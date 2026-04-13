@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import useUserStore from "../../store/useUserStore";
 import {
-  MagnifyingGlassIcon,
   BellIcon,
   BookOpenIcon,
   HomeIcon,
@@ -18,6 +17,8 @@ import {
   countUnreadNotifications,
   markNotificationAsRead,
 } from "../../api/notification";
+
+import useNotificationStore from "../../store/useNotificationStore";
 
 // Format timestamp to readable format (HH:mm:ss DD/MM/YYYY)
 const formatNotificationTime = (timestamp) => {
@@ -42,13 +43,17 @@ export default function Header({ menuItems }) {
   const location = useLocation();
   const { isLoggedIn, logout } = useAuth();
   const user = useUserStore((state) => state.user);
+
+  // Use Notification Store
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+  const markAsRead = useNotificationStore((state) => state.markAsRead);
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [isNotificationDetailOpen, setIsNotificationDetailOpen] = useState(false);
@@ -56,7 +61,7 @@ export default function Header({ menuItems }) {
   const notificationRef = useRef(null);
 
   const defaultMenuItems = [
-    { label: t("header.khóaHọc"), path: "/courses", icon: BookOpenIcon },
+    { label: "Lớp học", path: "/classes", icon: BookOpenIcon },
     { label: t("header.gioiThieu"), path: "/home", icon: HomeIcon },
     // { label: "Liên hệ", path: "#" },
     { label: t("header.trangCaNhan"), path: "/student/profile", icon: UserCircleIcon },
@@ -64,63 +69,26 @@ export default function Header({ menuItems }) {
 
   const itemsToRender = menuItems || defaultMenuItems;
 
-  // Fetch notifications when component mounts or when dropdown opens
+  // Fetch notifications when dropdown opens
   useEffect(() => {
     if (isLoggedIn && isNotificationOpen) {
-      fetchNotifications();
+      const load = async () => {
+        setIsLoadingNotifications(true);
+        await fetchNotifications();
+        setIsLoadingNotifications(false);
+      };
+      load();
     }
-  }, [isNotificationOpen, isLoggedIn]);
-
-  // Fetch unread count on mount
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchUnreadCount();
-    }
-  }, [isLoggedIn]);
-
-  const fetchNotifications = async () => {
-    try {
-      setIsLoadingNotifications(true);
-      const response = await getMyNotifications();
-      // Format the time field for each notification
-      const formattedNotifications = response.data.map((notification) => ({
-        ...notification,
-        time: formatNotificationTime(notification.time),
-      }));
-      setNotifications(formattedNotifications);
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-      setNotifications([]);
-    } finally {
-      setIsLoadingNotifications(false);
-    }
-  };
-
-  const fetchUnreadCount = async () => {
-    try {
-      const count = await countUnreadNotifications();
-      setUnreadCount(count.data);
-    } catch (err) {
-      console.error("Failed to fetch unread count:", err);
-      setUnreadCount(0);
-    }
-  };
+  }, [isNotificationOpen, isLoggedIn, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId) => {
-    try {
-      await markNotificationAsRead(notificationId);
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((notif) =>
-          notif.id === notificationId ? { ...notif, isRead: true } : notif
-        )
-      );
-      // Refresh unread count
-      fetchUnreadCount();
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
-    }
+    await markAsRead(notificationId);
   };
+
+  const formattedNotifications = notifications.map((n) => ({
+    ...n,
+    time: formatNotificationTime(n.time || n.createdAt),
+  }));
 
   // Helper function to check if a path is active
   const isActive = (path) => {
@@ -163,11 +131,24 @@ export default function Header({ menuItems }) {
       <header className="sticky top-0 z-50 flex justify-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm border-b border-solid border-slate-200 dark:border-slate-800">
         <div className="flex items-center justify-between whitespace-nowrap px-4 sm:px-6 lg:px-8 py-3 w-full max-w-7xl">
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3 text-primary">
+{/*            <div className="flex items-center gap-3 text-primary">
               <span className="material-symbols-outlined text-primary text-3xl">
                 school
               </span>
               <h2 className="hidden sm:block text-xl font-bold leading-tight tracking-[-0.015em] text-[#111418] dark:text-white">
+                LearnOnline
+              </h2>
+            </div>*/}
+            <div className="flex items-center gap-3 text-primary">
+              {/* 1. Icon nên có leading-none để xóa sạch padding thừa của font icon */}
+              <span className="material-symbols-outlined text-primary text-3xl leading-none">
+                school
+              </span>
+              {/* 2. Tinh chỉnh translate-y:
+      - Nếu chữ đang cao hơn icon: dùng translate-y-[1px] hoặc [2px]
+      - Nếu chữ đang thấp hơn icon: dùng -translate-y-[1px] hoặc [-2px]
+  */}
+              <h2 className="hidden sm:block text-xl font-bold leading-none tracking-[-0.015em] text-[#111418] dark:text-white transform translate-y-[4px]">
                 LearnOnline
               </h2>
             </div>
@@ -208,20 +189,6 @@ export default function Header({ menuItems }) {
           </div>
 
           <div className="flex flex-1 justify-end gap-2 sm:gap-4 items-center">
-            <label className="hidden sm:flex flex-col min-w-40 !h-10 max-w-64 ml-4">
-              <div className="flex w-full items-stretch rounded-lg">
-                <div className="text-[#617589] flex border border-r-0 border-[#dbe0e6] dark:border-gray-600 bg-white dark:bg-gray-800 items-center justify-center pl-3.5 pr-3.5 rounded-l-lg h-10">
-                  <MagnifyingGlassIcon className="h-5 w-5" />
-                </div>
-                <input
-                  className="form-input flex w-full min-w-0 flex-1"
-                  style={{ height: "40px" }}
-                  placeholder="Tìm kiếm..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </label>
             {isLoggedIn ? (
               <>
                 <div className="relative" ref={notificationRef}>
@@ -247,8 +214,8 @@ export default function Header({ menuItems }) {
                           <div className="px-4 py-3 text-center text-sm text-gray-500">
                             Đang tải...
                           </div>
-                        ) : notifications.length > 0 ? (
-                          notifications.map((notification) => (
+                        ) : formattedNotifications.length > 0 ? (
+                          formattedNotifications.map((notification) => (
                           <div
                             key={notification.id}
                             className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0 relative transition-colors"

@@ -176,6 +176,9 @@
   },
   "teacher": {
     "tongQuan": "Tổng quan",
+    "chuongTrinhHoc": "Chương trình học",
+    "lopHoc": "Lớp học",
+    "nganHangCauHoi": "Ngân hàng câu hỏi",
     "quanLyKhoaHoc": "Quản lý khóa học",
     "quanLyHocVien": "Quản lý học viên",
     "baoCoThongKe": "Báo cáo/Thống kê",
@@ -185,7 +188,10 @@
   "admin": {
     "tongQuan": "Tổng quan",
     "quanLyNguoiDung": "Quản lý người dùng",
+    "quanLyLopHoc": "Quản lý lớp học",
     "quanLyKhoaHoc": "Quản lý khóa học",
+    "chuongTrinhHoc": "Chương trình học",
+    "nganHangCauHoi": "Ngân hàng câu hỏi",
     "thongKe": "Thống kê",
     "hoSo": "Hồ sơ",
     "caiDat": "Cài đặt"

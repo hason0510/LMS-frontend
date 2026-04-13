@@ -1,154 +1,53 @@
+import axiosClient from "./axiosClient";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+// ── Chapter Management ──────────────────────────────────────────
+export const createChapter = async (classId, data) => {
+  const response = await axiosClient.post(`chapters/${classId}`, data);
+  return response.data;
+};
 
-const API_URL = `${BACKEND_URL}/api/v1/lms/chapters`;
+export const getChapterById = async (id) => {
+  const response = await axiosClient.get(`chapters/${id}`);
+  return response.data;
+};
 
-export async function getChaptersByCourseId(courseId) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/course/${courseId}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const getChaptersByCourseId = async (courseId) => {
+  const response = await axiosClient.get(`chapters/course/${courseId}`);
+  return response.data;
+};
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch chapters");
-  }
+export const updateChapter = async (id, data) => {
+  const response = await axiosClient.put(`chapters/${id}`, data);
+  return response.data;
+};
 
-  return await response.json();
-}
+export const deleteChapter = async (id) => {
+  const response = await axiosClient.delete(`chapters/${id}`);
+  return response.data;
+};
 
-export async function getChapterById(id) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/${id}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const updateChapterOrder = async (courseId, orderedChapterIds) => {
+  const response = await axiosClient.put(`chapters/course/${courseId}/order-chapters`, { orderedChapterIds });
+  return response.data;
+};
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch chapter");
-  }
+// ── Chapter Items (Lessons/Quizzes in Chapter) ──────────────────
+export const getChapterItems = async (chapterId) => {
+  const response = await axiosClient.get(`chapters/${chapterId}/items`);
+  return response.data;
+};
 
-  return await response.json();
-}
+export const getChapterItemsForStudent = async (chapterId) => {
+  const response = await axiosClient.get(`chapters/${chapterId}/items/student`);
+  return response.data;
+};
 
-export async function createChapter(courseId, chapterData) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/${courseId}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(chapterData),
-  });
+export const updateChapterItemOrder = async (chapterId, orderedItemIds) => {
+  const response = await axiosClient.put(`chapters/${chapterId}/order-items`, { orderedItemIds });
+  return response.data;
+};
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to create chapter");
-  }
-
-  return await response.json();
-}
-
-export async function updateChapter(id, chapterData) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(chapterData),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to update chapter");
-  }
-
-  return await response.json();
-}
-
-export async function deleteChapter(id) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/${id}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to delete chapter");
-  }
-
-  if (response.status === 204) {
-    return { success: true };
-  }
-
-  return await response.json();
-}
-
-export async function getChapterItems(chapterId) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/${chapterId}/items`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch chapter items");
-  }
-
-  return await response.json();
-}
-
-export async function updateChapterItemOrder(chapterId, orderedItemIds) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/${chapterId}/order-items`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      orderedItemIds: orderedItemIds,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to update item order");
-  }
-
-  return { success: true };
-}
-
-export async function deleteChapterItem(itemId) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${BACKEND_URL}/api/v1/lms/chaptersItems/${itemId}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to delete chapter item");
-  }
-
-  return { success: true };
-}
+export const deleteChapterItem = async (id) => {
+  const response = await axiosClient.delete(`chaptersItems/${id}`);
+  return response.data;
+};

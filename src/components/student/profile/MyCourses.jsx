@@ -4,7 +4,8 @@ import { Spin, Empty } from "antd";
 import { useNavigate } from "react-router-dom";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import CourseCard from "../../course/CourseCard";
-import { getApprovedCourses } from "../../../api/course";
+import { getApprovedCourses } from "../../../api/classSection";
+import classPlaceholder from "../../../assets/class_placeholder.png";
 
 export default function MyCourses() {
   const { t } = useTranslation();
@@ -20,7 +21,7 @@ export default function MyCourses() {
   const fetchMyCourses = async () => {
     try {
       setLoading(true);
-      const response = await getApprovedCourses(1, 100);
+      const response = await getApprovedClassSections();
       // Handle API response structure: data.pageList
       const courseList = response.data?.pageList || [];
       setCourses(courseList);
@@ -37,7 +38,7 @@ export default function MyCourses() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
-        <Spin size="large" tip={t("profile.dangTaiKhoaHoc")} />
+        <Spin size="large" description={t("profile.dangTaiKhoaHoc")} />
       </div>
     );
   }
@@ -55,10 +56,10 @@ export default function MyCourses() {
       <div className="flex flex-wrap justify-between items-center gap-4 pb-6 border-b border-black/10 dark:border-white/10">
         <div className="flex min-w-72 flex-col gap-2">
           <p className="text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
-            {t("profile.khoaHocCuaToi")}
+            {t("profile.lopHocCuaToi") || "Lớp học của tôi"}
           </p>
           <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-normal">
-            {t("profile.tiepTucHoc")}
+            {t("profile.tiepTucHocTap") || "Tiếp tục học tập các lớp học của bạn"}
           </p>
         </div>
       </div>
@@ -68,9 +69,9 @@ export default function MyCourses() {
             <Empty description={t("profile.chuaDangKy")} />
             <button
               className="group flex min-w-[84px] max-w-[480px] w-fit cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-white text-base font-bold gap-2"
-              onClick={() => navigate("/courses")}
+              onClick={() => navigate("/classes")}
             >
-              <span>{t("profile.khamPhaCacKhoaHoc")}</span>
+              <span>{t("profile.khamPhaCacLopHoc") || "Khám phá các lớp học"}</span>
               <ArrowRightIcon className="h-4 w-4 transform transition-transform duration-200 group-hover:translate-x-2" />
             </button>
           </div>
@@ -80,11 +81,11 @@ export default function MyCourses() {
               <CourseCard
                 key={course.id}
                 id={course.id}
-                title={course.title}
+                title={course.title || course.classCode}
                 author={course.teacherName}
-                image={course.imageUrl}
-                rating={course.rating || 0}
-                reviews={course.reviewCounts?.toString() || "0"}
+                image={course.imageUrl || classPlaceholder}
+                code={course.classCode}
+                studentsCount={course.totalEnrollments || 0}
                 progress={course.progress || 0}
               />
             ))}

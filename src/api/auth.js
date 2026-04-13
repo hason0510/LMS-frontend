@@ -1,57 +1,29 @@
-// API xác thực cho frontend
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
-
-const API_URL = `${BACKEND_URL}/api/v1/lms/auth`;
+import axiosClient from "./axiosClient";
 
 export async function login(username, password) {
-  const response = await fetch(`${API_URL}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include', // nhận cookie refresh_token
-    body: JSON.stringify({ username, password })
-  });
-  if (!response.ok) throw new Error('Sai tài khoản hoặc mật khẩu');
-  return await response.json(); // trả về accessToken, user info
+  const response = await axiosClient.post('/auth/login', { username, password });
+  return response.data; // Trả về ApiResponse chứa data (LoginResponse)
 }
 
 export async function register(userData) {
-  const response = await fetch(`${API_URL}/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(userData)
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Đăng ký thất bại');
-  }
-  return await response.json();
+  const response = await axiosClient.post('/auth/register', userData);
+  return response.data;
 }
 
 // Xác thực OTP
 export async function verifyOtp(otpCode, userId) {
-  const response = await fetch(`${API_URL}/verify-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ code: otpCode, userId: userId })
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Xác thực OTP thất bại');
-  }
-  return await response.json();
+  const response = await axiosClient.post('/auth/verify-otp', { code: otpCode, userId: userId });
+  return response.data;
 }
 
 // Đăng nhập bằng Google
 export async function googleLogin(credentialResponse) {
-  const response = await fetch(`${API_URL}/google`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include', // nhận cookie refresh_token
-    body: JSON.stringify({ token: credentialResponse.credential })
-  });
-  if (!response.ok) throw new Error('Đăng nhập bằng Google thất bại');
-  return await response.json(); // trả về accessToken, user info
+  const response = await axiosClient.post('/auth/google', { token: credentialResponse.credential });
+  return response.data;
+}
+
+// Refresh token manually (if needed outside interceptor)
+export async function refreshToken() {
+  const response = await axiosClient.put('/auth/refresh');
+  return response.data;
 }

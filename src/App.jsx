@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { App as AntdApp } from "antd";
+import useNotificationStore from "./store/useNotificationStore";
+
 import AuthPage from "./pages/auth/AuthPage";
 import Home from "./pages/student/Home";
-import CoursesPage from "./pages/common/CoursesPage";
-import CourseDetailPage from "./pages/common/CourseDetailPage";
+import ClassesPage from "./pages/common/ClassesPage";
+import ClassDetailPage from "./pages/common/ClassDetailPage";
 import NotificationsPage from "./pages/common/NotificationsPage";
 import QuizAttempt from "./pages/student/QuizAttempt";
 import QuizResult from "./pages/student/QuizResult";
@@ -15,10 +18,14 @@ import StudentLectureDetail from "./pages/student/StudentLectureDetail";
 import ProfilePage from "./pages/student/ProfilePage";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherReport from "./pages/teacher/TeacherReport";
-import TeacherCourses from "./pages/teacher/TeacherCourses";
-import CreateCourse from "./pages/teacher/CreateCourse";
+import TeacherClassSections from "./pages/teacher/TeacherClassSections";
+import TeacherCurriculums from "./pages/teacher/TeacherCurriculums";
+import CreateCurriculumTemplate from "./pages/teacher/CreateCurriculumTemplate";
+import QuestionBanks from "./pages/teacher/QuestionBanks";
+import QuestionBankDetail from "./pages/teacher/QuestionBankDetail";
 import CreateChapter from "./pages/teacher/CreateChapter";
 import LectureDetail from "./pages/teacher/LectureDetail";
+import TemplateDetailPage from "./pages/teacher/TemplateDetailPage";
 import TeacherProfilePage from "./pages/teacher/TeacherProfilePage";
 import TeacherSettingsPage from "./pages/teacher/TeacherSettingsPage";
 import TeacherStudentManagement from "./pages/teacher/TeacherStudentManagement";
@@ -26,6 +33,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import AdminProfilePage from "./pages/admin/AdminProfilePage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+import AdminCategoryManagement from "./pages/admin/AdminCategoryManagement";
+import AdminSubjectManagement from "./pages/admin/AdminSubjectManagement";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 
 const GOOGLE_CLIENT_ID =
@@ -58,457 +67,314 @@ function RootRedirect() {
   return <Navigate to="/home" replace />;
 }
 
+function AppContent() {
+  const { user, isLoggedIn } = useAuth();
+  const connect = useNotificationStore((state) => state.connect);
+  const disconnect = useNotificationStore((state) => state.disconnect);
+  const fetchUnreadCount = useNotificationStore((state) => state.fetchUnreadCount);
+
+  useEffect(() => {
+    if (isLoggedIn && user?.id) {
+      connect(user.id);
+      fetchUnreadCount();
+    } else {
+      disconnect();
+    }
+    
+    return () => disconnect();
+  }, [isLoggedIn, user?.id, connect, disconnect, fetchUnreadCount]);
+
+  return (
+    <Routes>
+      <Route path="/" element={<RootRedirect />} />
+
+      {/* Student Routes */}
+      <Route
+        path="/home"
+        element={<ProtectedRoute element={<Home />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/student/profile"
+        element={<ProtectedRoute element={<ProfilePage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/student/profile/information"
+        element={<ProtectedRoute element={<ProfilePage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/student/profile/classes"
+        element={<ProtectedRoute element={<ProfilePage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/student/profile/certificate"
+        element={<ProtectedRoute element={<ProfilePage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/student/profile/notifications"
+        element={<ProtectedRoute element={<ProfilePage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/student/profile/password"
+        element={<ProtectedRoute element={<ProfilePage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/student/profile/settings"
+        element={<ProtectedRoute element={<ProfilePage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/class-sections/:classSectionId/quizzes/:id/attempt"
+        element={<ProtectedRoute element={<QuizAttempt />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/class-sections/:classSectionId/quizzes/:id/detail"
+        element={<ProtectedRoute element={<QuizDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/class-sections/:classSectionId/lectures/:lectureId"
+        element={<ProtectedRoute element={<StudentLectureDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/class-sections/:classSectionId/quizzes/:id/result"
+        element={<ProtectedRoute element={<QuizResult />} allowedRoles={["STUDENT"]} />}
+      />
+
+      {/* Public/Auth Routes */}
+      <Route path="/login" element={<AuthPage defaultTab="login" />} />
+      <Route path="/register" element={<AuthPage defaultTab="register" />} />
+      
+      {/* Common Routes */}
+      <Route
+        path="/notifications"
+        element={<ProtectedRoute element={<NotificationsPage />} allowedRoles={["STUDENT", "TEACHER", "ADMIN"]} />}
+      />
+      <Route
+        path="/classes"
+        element={<ProtectedRoute element={<ClassesPage />} allowedRoles={["STUDENT", "TEACHER", "ADMIN"]} />}
+      />
+      <Route
+        path="/class-sections/:id"
+        element={<ProtectedRoute element={<ClassDetailPage />} allowedRoles={["STUDENT", "TEACHER", "ADMIN"]} />}
+      />
+
+      {/* Teacher Routes */}
+      <Route
+        path="/teacher/dashboard"
+        element={<ProtectedRoute element={<TeacherDashboard />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/report"
+        element={<ProtectedRoute element={<TeacherReport />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections"
+        element={<ProtectedRoute element={<TeacherClassSections />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:id"
+        element={<ProtectedRoute element={<ClassDetailPage />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/lectures/:lectureId"
+        element={<ProtectedRoute element={<LectureDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/chapters/:chapterId/lectures/create"
+        element={<ProtectedRoute element={<LectureDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/quizzes/:quizId"
+        element={<ProtectedRoute element={<TeacherQuizDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/chapters/:chapterId/quizzes/create"
+        element={<ProtectedRoute element={<TeacherQuizDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums"
+        element={<ProtectedRoute element={<TeacherCurriculums />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/create"
+        element={<ProtectedRoute element={<CreateCurriculumTemplate />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/edit/:id"
+        element={<ProtectedRoute element={<CreateCurriculumTemplate />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:id"
+        element={<ProtectedRoute element={<TemplateDetailPage />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:templateId/chapters/create"
+        element={<ProtectedRoute element={<CreateChapter />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:templateId/lectures/create"
+        element={<ProtectedRoute element={<LectureDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:templateId/chapters/:chapterId/lectures/create"
+        element={<ProtectedRoute element={<LectureDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:templateId/lectures/:lectureId"
+        element={<ProtectedRoute element={<LectureDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:templateId/quizzes/create"
+        element={<ProtectedRoute element={<TeacherQuizDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:templateId/chapters/:chapterId/quizzes/create"
+        element={<ProtectedRoute element={<TeacherQuizDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:templateId/quizzes/:quizId"
+        element={<ProtectedRoute element={<TeacherQuizDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/question-banks"
+        element={<ProtectedRoute element={<QuestionBanks />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/question-banks/:id"
+        element={<ProtectedRoute element={<QuestionBankDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/students"
+        element={<ProtectedRoute element={<TeacherStudentManagement />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/profile"
+        element={<ProtectedRoute element={<TeacherProfilePage />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/settings"
+        element={<ProtectedRoute element={<TeacherSettingsPage />} allowedRoles={["TEACHER"]} />}
+      />
+
+      {/* Admin Routes */}
+      <Route
+        path="/admin/dashboard"
+        element={<ProtectedRoute element={<AdminDashboard />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/users"
+        element={<ProtectedRoute element={<AdminUserManagement />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/profile"
+        element={<ProtectedRoute element={<AdminProfilePage />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/settings"
+        element={<ProtectedRoute element={<AdminSettingsPage />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/categories"
+        element={<ProtectedRoute element={<AdminCategoryManagement />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/subjects"
+        element={<ProtectedRoute element={<AdminSubjectManagement />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections"
+        element={<ProtectedRoute element={<TeacherClassSections isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:id"
+        element={<ProtectedRoute element={<ClassDetailPage />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:classSectionId/lectures/:lectureId"
+        element={<ProtectedRoute element={<LectureDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:classSectionId/chapters/:chapterId/lectures/create"
+        element={<ProtectedRoute element={<LectureDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:classSectionId/quizzes/:quizId"
+        element={<ProtectedRoute element={<TeacherQuizDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:classSectionId/chapters/:chapterId/quizzes/create"
+        element={<ProtectedRoute element={<TeacherQuizDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums"
+        element={<ProtectedRoute element={<TeacherCurriculums isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/question-banks"
+        element={<ProtectedRoute element={<QuestionBanks isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/question-banks/:id"
+        element={<ProtectedRoute element={<QuestionBankDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/create"
+        element={<ProtectedRoute element={<CreateCurriculumTemplate isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/edit/:id"
+        element={<ProtectedRoute element={<CreateCurriculumTemplate isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:id"
+        element={<ProtectedRoute element={<TemplateDetailPage isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:templateId/chapters/create"
+        element={<ProtectedRoute element={<CreateChapter isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:templateId/lectures/create"
+        element={<ProtectedRoute element={<LectureDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:templateId/chapters/:chapterId/lectures/create"
+        element={<ProtectedRoute element={<LectureDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:templateId/lectures/:lectureId"
+        element={<ProtectedRoute element={<LectureDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:templateId/quizzes/create"
+        element={<ProtectedRoute element={<TeacherQuizDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:templateId/chapters/:chapterId/quizzes/create"
+        element={<ProtectedRoute element={<TeacherQuizDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:templateId/quizzes/:quizId"
+        element={<ProtectedRoute element={<TeacherQuizDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/students"
+        element={<ProtectedRoute element={<TeacherStudentManagement isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/reports"
+        element={<ProtectedRoute element={<TeacherReport isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<RootRedirect />} />
-
-          {/* Student Routes */}
-          <Route
-            path="/home"
-            element={
-              <ProtectedRoute element={<Home />} allowedRoles={["STUDENT"]} />
-            }
-          />
-          <Route
-            path="/student/profile"
-            element={
-              <ProtectedRoute
-                element={<ProfilePage />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/student/profile/information"
-            element={
-              <ProtectedRoute
-                element={<ProfilePage />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/student/profile/courses"
-            element={
-              <ProtectedRoute
-                element={<ProfilePage />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/student/profile/certificate"
-            element={
-              <ProtectedRoute
-                element={<ProfilePage />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/student/profile/notifications"
-            element={
-              <ProtectedRoute
-                element={<ProfilePage />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/student/profile/password"
-            element={
-              <ProtectedRoute
-                element={<ProfilePage />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/student/profile/settings"
-            element={
-              <ProtectedRoute
-                element={<ProfilePage />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/courses/:courseId/quizzes/:id/attempt"
-            element={
-              <ProtectedRoute
-                element={<QuizAttempt />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/courses/:courseId/quizzes/:id/detail"
-            element={
-              <ProtectedRoute
-                element={<QuizDetail />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/courses/:courseId/lectures/:lectureId"
-            element={
-              <ProtectedRoute
-                element={<StudentLectureDetail />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-          <Route
-            path="/courses/:courseId/quizzes/:id/result"
-            element={
-              <ProtectedRoute
-                element={<QuizResult />}
-                allowedRoles={["STUDENT"]}
-              />
-            }
-          />
-
-          {/* Public/Auth Routes */}
-          <Route path="/login" element={<AuthPage defaultTab="login" />} />
-          <Route
-            path="/register"
-            element={<AuthPage defaultTab="register" />}
-          />
-          {/* Common Routes (Student, Teacher, Admin) */}
-          <Route
-            path="/notifications"
-            element={
-              <ProtectedRoute
-                element={<NotificationsPage />}
-                allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/courses"
-            element={
-              <ProtectedRoute
-                element={<CoursesPage />}
-                allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/courses/:id"
-            element={
-              <ProtectedRoute
-                element={<CourseDetailPage />}
-                allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}
-              />
-            }
-          />
-
-          {/* Teacher Routes */}
-          <Route
-            path="/teacher/dashboard"
-            element={
-              <ProtectedRoute
-                element={<TeacherDashboard />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/report"
-            element={
-              <ProtectedRoute
-                element={<TeacherReport />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses"
-            element={
-              <ProtectedRoute
-                element={<TeacherCourses />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/create"
-            element={
-              <ProtectedRoute
-                element={<CreateCourse />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/:id"
-            element={
-              <ProtectedRoute
-                element={<CourseDetailPage />}
-                allowedRoles={["TEACHER", "ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/edit/:id"
-            element={
-              <ProtectedRoute
-                element={<CreateCourse />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/:courseId/chapters/create"
-            element={
-              <ProtectedRoute
-                element={<CreateChapter />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/:courseId/lectures/create"
-            element={
-              <ProtectedRoute
-                element={<LectureDetail />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/:courseId/chapters/:chapterId/lectures/create"
-            element={
-              <ProtectedRoute
-                element={<LectureDetail />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/:courseId/lectures/:lectureId"
-            element={
-              <ProtectedRoute
-                element={<LectureDetail />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/:courseId/quizzes/create"
-            element={
-              <ProtectedRoute
-                element={<TeacherQuizDetail />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/:courseId/chapters/:chapterId/quizzes/create"
-            element={
-              <ProtectedRoute
-                element={<TeacherQuizDetail />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/courses/:courseId/quizzes/:quizId"
-            element={
-              <ProtectedRoute
-                element={<TeacherQuizDetail />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/students"
-            element={
-              <ProtectedRoute
-                element={<TeacherStudentManagement />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/profile"
-            element={
-              <ProtectedRoute
-                element={<TeacherProfilePage />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-          <Route
-            path="/teacher/settings"
-            element={
-              <ProtectedRoute
-                element={<TeacherSettingsPage />}
-                allowedRoles={["TEACHER"]}
-              />
-            }
-          />
-
-          {/* Admin Routes */}
-          <Route
-            path="/admin/dashboard"
-            element={
-              <ProtectedRoute
-                element={<AdminDashboard />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/users"
-            element={
-              <ProtectedRoute
-                element={<AdminUserManagement />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/profile"
-            element={
-              <ProtectedRoute
-                element={<AdminProfilePage />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/settings"
-            element={
-              <ProtectedRoute
-                element={<AdminSettingsPage />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses"
-            element={
-              <ProtectedRoute
-                element={<TeacherCourses isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/:id"
-            element={
-              <ProtectedRoute
-                element={<CourseDetailPage />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/create"
-            element={
-              <ProtectedRoute
-                element={<CreateCourse isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/edit/:id"
-            element={
-              <ProtectedRoute
-                element={<CreateCourse isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/:courseId/chapters/create"
-            element={
-              <ProtectedRoute
-                element={<CreateChapter isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/:courseId/lectures/create"
-            element={
-              <ProtectedRoute
-                element={<LectureDetail isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/:courseId/chapters/:chapterId/lectures/create"
-            element={
-              <ProtectedRoute
-                element={<LectureDetail isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/:courseId/lectures/:lectureId"
-            element={
-              <ProtectedRoute
-                element={<LectureDetail isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/:courseId/quizzes/create"
-            element={
-              <ProtectedRoute
-                element={<TeacherQuizDetail isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/:courseId/chapters/:chapterId/quizzes/create"
-            element={
-              <ProtectedRoute
-                element={<TeacherQuizDetail isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/courses/:courseId/quizzes/:quizId"
-            element={
-              <ProtectedRoute
-                element={<TeacherQuizDetail isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/students"
-            element={
-              <ProtectedRoute
-                element={<TeacherStudentManagement isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-          <Route
-            path="/admin/reports"
-            element={
-              <ProtectedRoute
-                element={<TeacherReport isAdmin={true} />}
-                allowedRoles={["ADMIN"]}
-              />
-            }
-          />
-        </Routes>
-      </AuthProvider>
+      <AntdApp>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </AntdApp>
     </GoogleOAuthProvider>
   );
 }

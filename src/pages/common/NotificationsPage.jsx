@@ -52,9 +52,11 @@ export default function NotificationsPage() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await getMyNotifications();
+      const res = await getMyNotifications();
+      // res is ApiResponse { code, message, data: [...] }
+      const notificationsData = res.data || [];
       // Format the time field for each notification
-      const formattedNotifications = response.data.map((notification) => ({
+      const formattedNotifications = notificationsData.map((notification) => ({
         ...notification,
         time: formatNotificationTime(notification.time),
       }));
@@ -136,7 +138,7 @@ export default function NotificationsPage() {
             {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center min-h-96">
-                <Spin size="large" tip="Đang tải thông báo..." />
+                <Spin size="large" description="Đang tải thông báo..." />
               </div>
             )}
 

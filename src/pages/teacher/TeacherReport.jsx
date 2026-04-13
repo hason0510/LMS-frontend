@@ -3,13 +3,21 @@ import { useNavigate, useParams } from "react-router-dom";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
-import { getTeacherCourses, getAdminCourses } from "../../api/course";
+import { getTeacherCourses, getAdminCourses } from "../../api/classSection";
+import { 
+  approveEnrollment, 
+  rejectEnrollment 
+} from "../../api/enrollment";
 import {
   getCourseGradeBook,
   getCourseApprovedStudents,
   getCoursePendingRequests,
 } from "../../api/statistics";
-import { Spin, Alert, Table, Tabs, Statistic, Row, Col, Card, Select } from "antd";
+import { Spin, Alert, Table, Tabs, Statistic, Row, Col, Card, Select, App, Space, Button } from "antd";
+import {
+  CheckOutlined,
+  CloseOutlined,
+} from "@ant-design/icons";
 import {
   AcademicCapIcon,
   UserGroupIcon,
@@ -21,6 +29,7 @@ import {
 
 export default function TeacherReport({ isAdmin = false }) {
   const navigate = useNavigate();
+  const { message: messageApi, modal: modalApi } = App.useApp();
   const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [gradeBook, setGradeBook] = useState([]);
@@ -55,8 +64,10 @@ export default function TeacherReport({ isAdmin = false }) {
     try {
       setLoading(true);
       // Use different API based on role (admin gets all courses, teacher gets only their courses)
-      const response = isAdmin ? await getAdminCourses(1, 100) : await getTeacherCourses(1, 100);
-      const coursesList = response.data.pageList;
+      const res = isAdmin ? await getAdminCourses(1, 100) : await getTeacherCourses(1, 100);
+      
+      // res is ApiResponse, res.data is the actual list (since getClassSections returns List<...>)
+      const coursesList = res.data || [];
       setCourses(coursesList);
       if (coursesList.length > 0) {
         setSelectedCourseId(coursesList[0].id);
@@ -72,19 +83,60 @@ export default function TeacherReport({ isAdmin = false }) {
     try {
       setLoading(true);
       const [gradeBookRes, approvedRes, pendingRes] = await Promise.all([
-        getCourseGradeBook(selectedCourseId),
-        getCourseApprovedStudents(selectedCourseId, 1, 100),
-        getCoursePendingRequests(selectedCourseId, 1, 100),
+        getCourseGradeBook(null, selectedCourseId),
+        getCourseApprovedStudents(null, selectedCourseId, 1, 100),
+        getCoursePendingRequests(null, selectedCourseId, 1, 100),
       ]);
 
-      setGradeBook(gradeBookRes.data || gradeBookRes);
-      setApprovedStudents(approvedRes.data?.pageList);
-      setPendingRequests(pendingRes.data?.pageList);
+      // All Res are now ApiResponse objects { code, message, data }
+      setGradeBook(gradeBookRes.data || []);
+      
+      // approvedRes.data is PageResponse { pageList, ... } or List depending on backend
+      // Looking at enrollment/statistics API, it's usually PageResponse for these
+      setApprovedStudents(approvedRes.data?.pageList || approvedRes.data || []);
+      setPendingRequests(pendingRes.data?.pageList || pendingRes.data || []);
     } catch (err) {
       setError(err.message || "Lỗi khi tải dữ liệu");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleApprove = (record) => {
+    modalApi.confirm({
+      title: "Phê duyệt tham gia lớp học",
+      content: `Bạn có chắc muốn phê duyệt cho học viên "${record.fullName}" tham gia lớp học này?`,
+      okText: "Duyệt",
+      cancelText: "Hủy",
+      async onOk() {
+        try {
+          await approveEnrollment(record.studentId, record.courseId, record.classSectionId);
+          messageApi.success("Đã duyệt học viên thành công");
+          fetchCourseData();
+        } catch (err) {
+          messageApi.error("Phê duyệt thất bại: " + err.message);
+        }
+      },
+    });
+  };
+
+  const handleReject = (record) => {
+    modalApi.confirm({
+      title: "Từ chối yêu cầu tham gia",
+      content: `Yêu cầu tham gia của "${record.fullName}" sẽ bị từ chối. Bạn có chắc chắn không?`,
+      okText: "Từ chối",
+      cancelText: "Hủy",
+      okButtonProps: { danger: true },
+      async onOk() {
+        try {
+          await rejectEnrollment(record.studentId, record.courseId, record.classSectionId);
+          messageApi.success("Đã từ chối yêu cầu thành công");
+          fetchCourseData();
+        } catch (err) {
+          messageApi.error("Thao tác thất bại: " + err.message);
+        }
+      },
+    });
   };
 
   const currentCourse = courses.find((c) => c.id === selectedCourseId);
@@ -215,6 +267,34 @@ export default function TeacherReport({ isAdmin = false }) {
         </span>
       ),
     },
+    {
+      title: "Hành động",
+      key: "action",
+      align: "right",
+      render: (_, record) => (
+        <Space size="middle">
+          <Button
+            type="link"
+            icon={<CheckOutlined />}
+            size="small"
+            className="text-green-600 hover:text-green-700 p-0"
+            onClick={() => handleApprove(record)}
+          >
+            Duyệt
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<CloseOutlined />}
+            size="small"
+            className="p-0"
+            onClick={() => handleReject(record)}
+          >
+            Từ chối
+          </Button>
+        </Space>
+      ),
+    },
   ];
 
   const tabItems = [
@@ -226,7 +306,7 @@ export default function TeacherReport({ isAdmin = false }) {
           {selectedCourseId && (
             <Row gutter={[16, 16]} className="mb-6">
               <Col xs={24} sm={12} md={6}>
-                <Card bordered={false} className="shadow-sm">
+                <Card variant="borderless" className="shadow-sm">
                   <Statistic
                     title="Tổng học viên"
                     value={stats.totalStudents}
@@ -235,33 +315,33 @@ export default function TeacherReport({ isAdmin = false }) {
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Card bordered={false} className="shadow-sm">
+                <Card variant="borderless" className="shadow-sm">
                   <Statistic
                     title="Yêu cầu chờ duyệt"
                     value={stats.pendingCount}
-                    valueStyle={{ color: "#faad14" }}
+                    styles={{ content: { color: "#faad14" } }}
                     prefix={<ClockIcon className="h-5 w-5 text-yellow-500" />}
                   />
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Card bordered={false} className="shadow-sm">
+                <Card variant="borderless" className="shadow-sm">
                   <Statistic
                     title="Điểm trung bình"
                     value={stats.avgScore}
                     suffix="/ 100"
-                    valueStyle={{ color: "#52c41a" }}
+                    styles={{ content: { color: "#52c41a" } }}
                     prefix={<TrophyIcon className="h-5 w-5 text-green-500" />}
                   />
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Card bordered={false} className="shadow-sm">
+                <Card variant="borderless" className="shadow-sm">
                   <Statistic
                     title="Tỉ lệ hoàn thành"
                     value={stats.completionRate}
                     suffix="%"
-                    valueStyle={{ color: "#1890ff" }}
+                    styles={{ content: { color: "#1890ff" } }}
                     prefix={<CheckCircleIcon className="h-5 w-5 text-blue-500" />}
                   />
                 </Card>

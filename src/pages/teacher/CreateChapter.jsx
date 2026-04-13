@@ -13,7 +13,7 @@ import {
 import { ArrowLeftIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
-import { getCourseById } from "../../api/course";
+import { getCourseById } from "../../api/classSection";
 import { createChapter } from "../../api/chapter";
 
 const { TextArea } = Input;
@@ -48,10 +48,6 @@ export default function CreateChapter() {
       setLoading(true);
       const response = await getCourseById(courseId);
       setCourse(response.data);
-      form.setFieldsValue({
-        courseId: courseId,
-        orderIndex: 1,
-      });
     } catch (err) {
       setError("Không thể tải thông tin khóa học");
       console.error(err);
@@ -59,6 +55,16 @@ export default function CreateChapter() {
       setLoading(false);
     }
   };
+
+  // Fix for: Warning: Instance created by `useForm` is not connected to any Form element.
+  useEffect(() => {
+    if (!loading && course && form) {
+      form.setFieldsValue({
+        courseId: courseId,
+        orderIndex: 1,
+      });
+    }
+  }, [loading, course, courseId, form]);
 
   const onFinish = async (values) => {
     try {

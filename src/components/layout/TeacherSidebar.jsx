@@ -9,6 +9,8 @@ import {
   ChartBarIcon,
   Cog6ToothIcon,
   BellIcon,
+  BookOpenIcon,
+  RectangleGroupIcon,
 } from "@heroicons/react/24/outline";
 
 export default function TeacherSidebar() {
@@ -44,10 +46,24 @@ export default function TeacherSidebar() {
           isCollapsed={isCollapsed}
         />
         <SidebarLink
+          icon={<BookOpenIcon className="h-6 w-6" />}
+          label={t("teacher.chuongTrinhHoc") || "Chương trình học"}
+          active={currentPath.startsWith("/teacher/curriculums")}
+          to="/teacher/curriculums"
+          isCollapsed={isCollapsed}
+        />
+        <SidebarLink
           icon={<AcademicCapIcon className="h-6 w-6" />}
-          label={t("teacher.quanLyKhoaHoc")}
-          active={currentPath.startsWith("/teacher/courses")}
-          to="/teacher/courses"
+          label={t("teacher.lopHoc") || "Lớp học (Class Sections)"}
+          active={currentPath.startsWith("/teacher/class-sections")}
+          to="/teacher/class-sections"
+          isCollapsed={isCollapsed}
+        />
+        <SidebarLink
+          icon={<RectangleGroupIcon className="h-6 w-6" />}
+          label={t("teacher.nganHangCauHoi") || "Ngân hàng câu hỏi"}
+          active={currentPath.startsWith("/teacher/question-banks")}
+          to="/teacher/question-banks"
           isCollapsed={isCollapsed}
         />
         <SidebarLink

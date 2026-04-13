@@ -13,7 +13,7 @@ import { getAttemptDetail } from "../../api/quiz";
 import Header from "../../components/layout/Header";
 
 export default function QuizResult() {
-  const { id, courseId } = useParams();
+  const { id, classSectionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const attemptId = location.state?.attemptId;
@@ -81,7 +81,7 @@ export default function QuizResult() {
   if (loading) {
     return (
       <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center">
-        <Spin size="large" tip="Đang tải kết quả..." />
+        <Spin size="large" description="Đang tải kết quả..." />
       </div>
     );
   }
@@ -103,11 +103,11 @@ export default function QuizResult() {
   }
 
   const handleRetake = () => {
-    navigate(`/courses/${courseId}/quizzes/${id}/detail`);
+    navigate(`/class-sections/${classSectionId}/quizzes/${id}/detail`);
   };
 
   const handleBackToCourse = () => {
-    navigate(`/courses/${courseId}`);
+    navigate(`/class-sections/${classSectionId}`);
   };
 
   return (

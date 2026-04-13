@@ -67,7 +67,7 @@ export default function LoginForm() {
         onSubmit={handleSubmit}
       >
         <div className="flex flex-col w-full">
-          <p className="text-[#111418] dark:text-gray-200 text-sm font-medium pb-2">
+          <p className="text-[#111418] dark:text-gray-200 text-sm font-medium mb-2">
             {t('auth.emailHoacTenDangNhap')}
           </p>
           <div className="input-group w-full">
@@ -85,13 +85,24 @@ export default function LoginForm() {
         </div>
 
         <div className="flex flex-col w-full">
-          <div className="flex justify-between items-center pb-2">
+{/*          <div className="flex justify-between items-center mb-1">
             <p className="text-[#111418] dark:text-gray-200 text-sm font-medium">
               {t('auth.matKhau')}
             </p>
             <a
               className="text-primary text-sm font-medium hover:underline"
               href="#"
+            >
+              {t('auth.quenMatKhau')}
+            </a>
+          </div>*/}
+          <div className="flex justify-between items-baseline mb-1 w-full">
+            <p className="text-[#111418] dark:text-gray-200 text-sm font-medium leading-none">
+              {t('auth.matKhau')}
+            </p>
+            <a
+                className="text-primary text-sm font-medium hover:underline leading-none"
+                href="#"
             >
               {t('auth.quenMatKhau')}
             </a>
@@ -133,7 +144,7 @@ export default function LoginForm() {
           {loading ? t('auth.dangDangNhap') : t('auth.dangNhap')}
         </button>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <hr className="flex-grow border-t border-[#dbe0e6] dark:border-gray-700" />
           <span className="text-[#617589] dark:text-gray-400 text-sm">
             {t('auth.dangNhapVoi')}

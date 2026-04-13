@@ -7,8 +7,7 @@ import QuickActionCard from "../../components/teacher/dashboard/QuickActionCard"
 import DashboardCourseCard from "../../components/teacher/dashboard/DashboardCourseCard";
 import StatItem from "../../components/teacher/dashboard/StatItem";
 import NotificationItem from "../../components/teacher/dashboard/NotificationItem";
-// import { getCoursesByTeacher } from "../../api/course";
-import { getTeacherCourses } from "../../api/course";
+import { getTeacherCourses } from "../../api/classSection";
 import { Spin, Alert } from "antd";
 import {
   AcademicCapIcon,
@@ -44,9 +43,9 @@ export default function TeacherDashboard() {
   const fetchTeacherCourses = async () => {
     try {
       setLoading(true);
-      const response = await getTeacherCourses();
-      // Response có cấu trúc: { data: [...] }
-      const coursesList = response.data.pageList;
+      const res = await getTeacherCourses();
+      // res is ApiResponse, res.data is the actual list of ClassSections
+      const coursesList = res.data || [];
       setCourses(coursesList);
     } catch (err) {
       setError(err.message || "Lỗi khi tải khóa học");
@@ -57,8 +56,9 @@ export default function TeacherDashboard() {
   };
 
   // Calculate statistics
-  const totalStudents = courses.reduce((sum, course) => sum + (course.totalEnrollments || 0), 0);
-  const totalCourses = courses.length;
+  // ClassSectionResponse doesn't have totalEnrollments, so we handle it gracefully
+  const totalStudents = Array.isArray(courses) ? courses.reduce((sum, course) => sum + (course.totalEnrollments || 0), 0) : 0;
+  const totalCourses = Array.isArray(courses) ? courses.length : 0;
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
@@ -80,7 +80,7 @@ export default function TeacherDashboard() {
                   Dashboard Giáo viên
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Tổng quan hoạt động giảng dạy của bạn.
+                  Tổng quan hoạt động giảng dạy các lớp học của bạn.
                 </p>
               </div>
             </div>
@@ -96,13 +96,13 @@ export default function TeacherDashboard() {
                   <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                     <QuickActionCard
                       icon={<PlusCircleIcon className="h-8 w-8" />}
-                      label="Tạo khóa học"
-                      to="/teacher/courses/create"
+                      label="Tạo lớp học"
+                      to="/teacher/class-sections/create"
                     />
                     <QuickActionCard
                       icon={<DocumentPlusIcon className="h-8 w-8" />}
                       label="Tạo bài giảng"
-                      to={totalCourses > 0 ? `/teacher/courses/${courses[0].id}/chapters/create` : "#"}
+                      to={totalCourses > 0 ? `/teacher/class-sections/${courses[0].id}/chapters/create` : "#"}
                     />
                   </div>
                 </div>
@@ -111,10 +111,10 @@ export default function TeacherDashboard() {
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-[#111418] dark:text-white">
-                      Các khóa học đang giảng dạy
+                      Các lớp học đang giảng dạy
                     </h3>
                     <button
-                      onClick={() => navigate("/teacher/courses")}
+                      onClick={() => navigate("/teacher/class-sections")}
                       className="flex items-center gap-2 text-sm font-bold text-primary hover:underline"
                     >
                       <span>Xem tất cả</span>
@@ -126,32 +126,32 @@ export default function TeacherDashboard() {
                       <Spin />
                     </div>
                   ) : error ? (
-                    <Alert message="Lỗi" description={error} type="error" showIcon />
+                    <Alert title="Lỗi" description={error} type="error" showIcon />
                   ) : courses.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {courses.slice(0, 2).map((course) => (
                         <div
                           key={course.id}
-                          onClick={() => navigate(`/teacher/courses/${course.id}`)}
+                          onClick={() => navigate(`/teacher/class-sections/${course.id}`)}
                           className="cursor-pointer"
                         >
                           <DashboardCourseCard
                             title={course.title}
                             students={course.totalEnrollments || 0}
-                            rating={course.rating || 0}
-                            category={course.categoryName || "Chưa phân loại"}
+                            classCode={course.classCode}
+                            subject={course.subjectTitle || "Chưa phân loại"}
                           />
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <p>Chưa có khóa học nào. Hãy tạo khóa học đầu tiên của bạn!</p>
+                      <p>Chưa có lớp học nào. Hãy tạo lớp học đầu tiên của bạn!</p>
                       <button
-                        onClick={() => navigate("/teacher/courses/create")}
+                        onClick={() => navigate("/teacher/class-sections/create")}
                         className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                       >
-                        Tạo khóa học
+                        Tạo lớp học
                       </button>
                     </div>
                   )}
@@ -169,7 +169,7 @@ export default function TeacherDashboard() {
                     <StatItem
                       icon={<AcademicCapIcon className="h-6 w-6" />}
                       colorClass="bg-blue-500/10 text-blue-500"
-                      label="Khóa học"
+                      label="Lớp học"
                       value={totalCourses}
                     />
                     <StatItem
@@ -190,7 +190,7 @@ export default function TeacherDashboard() {
                     <NotificationItem
                       icon={<ChatBubbleLeftEllipsisIcon className="h-5 w-5" />}
                       colorClass="bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
-                      text={`Bạn đang quản lý ${totalCourses} khóa học với ${totalStudents} học viên.`}
+                      text={`Bạn đang quản lý ${totalCourses} lớp học với ${totalStudents} học viên.`}
                       time="Cập nhật vừa xong"
                     />
                   </div>

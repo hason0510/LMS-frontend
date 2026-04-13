@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Form, Select, Input, Button, message, Spin, Table, Checkbox, Space, Alert } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
-import { getStudentsNotInCourse, addStudentsToCourse } from "../../api/course";
+import { getStudentsNotInClassSection, addStudentsToClassSection } from "../../api/enrollment";
 import CustomAvatar from "../common/Avatar";
 
 export default function AddStudentModal({ visible, onClose, onSuccess, courses }) {
@@ -29,19 +29,22 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
       if (searchText) {
         searchRequest.fullName = searchText;
       }
-      const res = await getStudentsNotInCourse(selectedCourse, searchRequest, currentPage, pageSize);
-      const studentList = res.data.pageList.map((student) => ({
+      const res = await getStudentsNotInClassSection(selectedCourse, searchRequest, currentPage, pageSize);
+      // Backend returns PageResponse directly: { currentPage, totalPage, totalElements, pageList }
+      const pageList = res?.pageList || res?.data?.pageList || [];
+      const totalElements = res?.totalElements || res?.data?.totalElements || 0;
+      const studentList = pageList.map((student) => ({
         id: student.id,
         key: student.id,
         fullName: student.fullName || "N/A",
         username: student.userName || "N/A",
-        email: student.gmail || "N/A",
+        email: student.email || student.gmail || "N/A",
         avatar: student.avatar || "",
       }));
       setAvailableStudents(studentList);
-      setTotalStudents(res.data.totalElements || 0);
+      setTotalStudents(totalElements);
     } catch (err) {
-      console.log("Failed to fetch available students:", err);
+      console.error("Failed to fetch available students:", err);
       message.error("Không thể tải danh sách học viên");
     } finally {
       setLoading(false);
@@ -86,7 +89,7 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
 
     try {
       setLoading(true);
-      await addStudentsToCourse(selectedCourse, selectedStudents);
+      await addStudentsToClassSection(selectedCourse, selectedStudents);
       message.success(`Đã thêm ${selectedStudents.length} học viên vào khóa học`);
       
       // Reset form

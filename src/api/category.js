@@ -1,21 +1,23 @@
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
-
-const API_URL = `${BACKEND_URL}/api/v1/lms/categories`;
+import axiosClient from "./axiosClient";
 
 export async function getAllCategories(pageNumber = 1, pageSize = 100) {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_URL}?pageNumber=${pageNumber}&pageSize=${pageSize}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    }
+  const response = await axiosClient.get('categories', {
+    params: { pageNumber, pageSize }
   });
+  return response.data;
+}
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch categories');
-  }
+export async function createCategory(data) {
+  const response = await axiosClient.post('categories', data);
+  return response.data;
+}
 
-  return await response.json();
+export async function updateCategory(id, data) {
+  const response = await axiosClient.put(`categories/${id}`, data);
+  return response.data;
+}
+
+export async function deleteCategory(id) {
+  const response = await axiosClient.delete(`categories/${id}`);
+  return response.data;
 }

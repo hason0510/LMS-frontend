@@ -176,6 +176,9 @@
   },
   "teacher": {
     "tongQuan": "Dashboard",
+    "chuongTrinhHoc": "Curriculum",
+    "lopHoc": "Class Sections",
+    "nganHangCauHoi": "Question Bank",
     "quanLyKhoaHoc": "Manage Courses",
     "quanLyHocVien": "Manage Students",
     "baoCoThongKe": "Reports/Analytics",
@@ -185,7 +188,10 @@
   "admin": {
     "tongQuan": "Dashboard",
     "quanLyNguoiDung": "User Management",
+    "quanLyLopHoc": "Class Sections",
     "quanLyKhoaHoc": "Course Management",
+    "chuongTrinhHoc": "Curriculum",
+    "nganHangCauHoi": "Question Bank",
     "thongKe": "Analytics",
     "hoSo": "Profile",
     "caiDat": "Settings"

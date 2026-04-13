@@ -16,20 +16,28 @@ import {
   ArrowLeftIcon,
   PencilIcon,
 } from "@heroicons/react/24/outline";
-import { Form, Input, Button, Spin, Alert, message, Modal } from "antd";
-import { getCourseById } from "../../api/course";
-import { getLessonById, createLessonInChapter, updateLesson, deleteLesson } from "../../api/lesson";
+import { Form, Input, Button, Spin, Alert, Modal, App } from "antd";
+import { getCourseById, createClassContentItem } from "../../api/classSection";
+import { getLessonById, updateLesson, deleteLesson, createLesson } from "../../api/lesson";
 import { createResource, uploadVideoResource, uploadSlideResource, getResourcesByLessonId } from "../../api/resource";
 import { getResourceTypeFromFile, isVideoFile } from "../../utils/fileUtils";
+import {
+  createContentItemTemplate,
+  getTemplateById,
+  createLessonTemplate,
+  getLessonTemplateById,
+  updateLessonTemplate,
+} from "../../api/curriculumTemplate";
 
-export default function LectureDetail() {
-  const { courseId, lectureId, chapterId } = useParams();
+export default function LectureDetail({ isAdmin = false }) {
+  const { classSectionId, lectureId, chapterId } = useParams();
   const location = useLocation();
   const [course, setCourse] = useState(null);
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const { message: messageApi, modal: modalApi } = App.useApp();
   const [form] = Form.useForm();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -45,6 +53,11 @@ export default function LectureDetail() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [resources, setResources] = useState([]);
   const fileInputRef = React.useRef(null);
+
+  // Template Mode Detection
+  const isTemplateMode = location.state?.isTemplateMode || false;
+  const chapterIdFromState = location.state?.chapterId || chapterId;
+  const templateIdFromPath = useParams().templateId;
 
   useEffect(() => {
     const handleResize = () => {
@@ -123,23 +136,29 @@ export default function LectureDetail() {
     const init = async () => {
       try {
         setLoading(true);
-        // Fetch course data
-        const courseResponse = await getCourseById(courseId);
-        setCourse(courseResponse.data);
+        
+        // Fetch course or template data based on mode
+        if (isTemplateMode && templateIdFromPath) {
+          const templateResponse = await getTemplateById(templateIdFromPath);
+          setCourse(templateResponse.data || templateResponse);
+        } else if (classSectionId) {
+          const courseResponse = await getCourseById(classSectionId);
+          setCourse(courseResponse.data || courseResponse);
+        }
 
-        // If has lectureId (editing or viewing), fetch lesson data
+        // If has lectureId (editing or viewing), fetch lesson/lessonTemplate data
         if (lectureId) {
-          const lessonResponse = await getLessonById(lectureId);
+          const lessonResponse = isTemplateMode
+            ? await getLessonTemplateById(lectureId)
+            : await getLessonById(lectureId);
           const lessonData = lessonResponse.data || lessonResponse;
           setLesson(lessonData);
           
-          // Set form fields with lesson data
           setTitle(lessonData.title || "");
           setContent(lessonData.content || "");
           setVideoUrl(lessonData.videoUrl || "");
           setNotes(lessonData.notes || "");
           
-          // Fetch resources for this lesson
           try {
             const resourcesResponse = await getResourcesByLessonId(lectureId);
             const resourcesList = Array.isArray(resourcesResponse) 
@@ -151,7 +170,6 @@ export default function LectureDetail() {
             setResources([]);
           }
           
-          // Populate uploaded files if any
           if (lessonData.attachments && Array.isArray(lessonData.attachments)) {
             setUploadedFiles(lessonData.attachments.map(file => ({
               id: file.id,
@@ -160,11 +178,6 @@ export default function LectureDetail() {
               url: file.url,
             })));
           }
-          
-          form.setFieldsValue({
-            title: lessonData.title,
-            content: lessonData.content,
-          });
         }
       } catch (err) {
         setError("Không thể tải dữ liệu");
@@ -175,7 +188,17 @@ export default function LectureDetail() {
     };
 
     init();
-  }, [courseId, lectureId, form]);
+  }, [classSectionId, templateIdFromPath, lectureId, form, isTemplateMode]);
+
+  // Fix for: Warning: Instance created by `useForm` is not connected to any Form element.
+  useEffect(() => {
+    if (!loading && lesson && form) {
+      form.setFieldsValue({
+        title: lesson.title,
+        content: lesson.content,
+      });
+    }
+  }, [loading, lesson, form]);
 
   const handleFileSelect = (event) => {
     const files = Array.from(event.target.files || []);
@@ -186,12 +209,12 @@ export default function LectureDetail() {
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       ];
       if (!allowedTypes.includes(file.type)) {
-        message.error("Chỉ hỗ trợ file PDF và PPTX");
+        messageApi.error("Chỉ hỗ trợ file PDF và PPTX");
         return;
       }
       // Validate file size (50MB)
       if (file.size > 50 * 1024 * 1024) {
-        message.error("File không được vượt quá 50MB");
+        messageApi.error("File không được vượt quá 50MB");
         return;
       }
 
@@ -232,32 +255,73 @@ export default function LectureDetail() {
 
       // Validate required fields
       if (!lessonData.title) {
-        message.error("Vui lòng nhập tiêu đề bài giảng");
+        messageApi.error("Vui lòng nhập tiêu đề bài giảng");
         return;
       }
 
       if (!lessonData.content) {
-        message.error("Vui lòng nhập nội dung bài giảng");
+        messageApi.error("Vui lòng nhập nội dung bài giảng");
         return;
       }
 
       let savedLesson;
       
-      if (isEditMode) {
-        // Update existing lesson
+      if (isTemplateMode && templateIdFromPath) {
+        if (isEditMode) {
+          // ── Template edit: update existing LessonTemplate ──
+          const response = await updateLessonTemplate(lectureId, {
+            title: lessonData.title,
+            content: lessonData.content,
+            videoUrl: lessonData.videoUrl,
+            notes: lessonData.notes,
+          });
+          savedLesson = response.data || response;
+          messageApi.success("Cập nhật bài giảng mẫu thành công");
+        } else {
+          // ── Template create: create LessonTemplate → link to template chapter ──
+          const response = await createLessonTemplate({
+            title: lessonData.title,
+            content: lessonData.content,
+            videoUrl: lessonData.videoUrl,
+            notes: lessonData.notes,
+          });
+          savedLesson = response.data || response;
+
+          await createContentItemTemplate(templateIdFromPath, chapterIdFromState, {
+            itemType: "LESSON",
+            lessonTemplateId: savedLesson.id,
+          });
+
+          messageApi.success("Tạo và gắn bài giảng vào chương trình thành công");
+        }
+      } else if (isEditMode) {
+        // Update existing lesson in class section
         const response = await updateLesson(lectureId, lessonData);
         savedLesson = response.data || response;
-        message.success("Cập nhật bài giảng thành công");
+        messageApi.success("Cập nhật bài giảng thành công");
       } else {
-        // Create new lesson via chapter endpoint
-        const response = await createLessonInChapter(chapterId, lessonData);
-        // The response from ChapterItemController contains the lesson data inside
-        savedLesson = response.data?.lesson || response.lesson || response.data || response;
-        message.success("Tạo bài giảng thành công");
+        // ── Class section flow: create lesson → link to class chapter ──
+        const response = await createLesson({
+          title: lessonData.title,
+          content: lessonData.content,
+          videoUrl: lessonData.videoUrl,
+          notes: lessonData.notes,
+        });
+        savedLesson = response.data || response;
+
+        const chapterIdForSection = chapterId || chapterIdFromState;
+        if (classSectionId && chapterIdForSection) {
+          await createClassContentItem(classSectionId, chapterIdForSection, {
+            itemType: "LESSON",
+            lessonId: savedLesson.id,
+            title: lessonData.title,
+          });
+        }
+        messageApi.success("Tạo bài giảng thành công");
       }
 
-      // Upload files if there are any new files
-      const newFiles = uploadedFiles.filter(f => f.file);
+      // Upload files only for class section lessons (LessonTemplate has no resources)
+      const newFiles = isTemplateMode ? [] : uploadedFiles.filter(f => f.file);
       if (newFiles.length > 0 && savedLesson?.id) {
         for (const file of newFiles) {
           try {
@@ -280,21 +344,26 @@ export default function LectureDetail() {
               } else {
                 await uploadSlideResource(resourceId, file.file);
               }
-              message.success(`Tải lên ${file.name} thành công`);
+              messageApi.success(`Tải lên ${file.name} thành công`);
             }
           } catch (uploadErr) {
             console.error("Failed to upload file:", uploadErr);
-            message.warning(`Không thể tải lên file ${file.name}`);
+            messageApi.warning(`Không thể tải lên file ${file.name}`);
           }
         }
       }
 
       // Navigate back
       setTimeout(() => {
-        navigate(`/teacher/courses/${courseId}`);
+        const base = isAdmin ? "/admin" : "/teacher";
+        if (isTemplateMode && templateIdFromPath) {
+          navigate(`${base}/curriculums/${templateIdFromPath}`);
+        } else {
+          navigate(`${base}/class-sections/${classSectionId}`);
+        }
       }, 500);
     } catch (err) {
-      message.error(err.message || "Không thể lưu bài giảng");
+      messageApi.error(err.message || "Không thể lưu bài giảng");
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -302,7 +371,7 @@ export default function LectureDetail() {
   };
 
   const handleDelete = async () => {
-    Modal.confirm({
+    modalApi.confirm({
       title: "Xác nhận xóa bài giảng",
       content: "Bạn có chắc chắn muốn xóa bài giảng này? Hành động này không thể hoàn tác.",
       okText: "Xóa",
@@ -312,10 +381,10 @@ export default function LectureDetail() {
         try {
           setSubmitting(true);
           await deleteLesson(lectureId);
-          message.success("Xóa bài giảng thành công");
-          navigate(`/teacher/courses/${courseId}`);
+          messageApi.success("Xóa bài giảng thành công");
+          navigate(`/teacher/class-sections/${classSectionId}`);
         } catch (err) {
-          message.error(err.message || "Không thể xóa bài giảng");
+          messageApi.error(err.message || "Không thể xóa bài giảng");
           console.error(err);
         } finally {
           setSubmitting(false);
@@ -369,12 +438,19 @@ export default function LectureDetail() {
             ) : (
               <>
               <button
-                onClick={() => navigate(`/teacher/courses/${courseId}`)}
+                onClick={() => {
+                  const base = isAdmin ? "/admin" : "/teacher";
+                  if (isTemplateMode && templateIdFromPath) {
+                    navigate(`${base}/curriculums/${templateIdFromPath}`);
+                  } else {
+                    navigate(`${base}/class-sections/${classSectionId}`);
+                  }
+                }}
                 className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
               >
                 <ArrowLeftIcon className="w-5 h-5" />
                 <span className="font-medium">
-                  Quay lại khóa học {course?.title}
+                  Quay lại {isTemplateMode ? `khung chương trình: ${course?.name}` : `khóa học: ${course?.title}`}
                 </span>
               </button>
               <div className="mx-auto flex flex-col gap-6">
@@ -417,11 +493,11 @@ export default function LectureDetail() {
                 <div className="space-y-6">
                   <div className="flex flex-col gap-2">
                     <label className="text-[#111418] dark:text-gray-200 text-base font-medium">
-                      Thuộc khóa học
+                      {isTemplateMode ? "Thuộc khung chương trình" : "Thuộc khóa học"}
                     </label>
                     <div className="px-4 py-3 rounded-lg bg-primary bg-gray-50 dark:bg-gray-700 border border-[#dbe0e6] dark:border-gray-600">
                       <p className="text-white font-medium">
-                        {course?.title}
+                        {isTemplateMode ? course?.name : course?.title}
                       </p>
                     </div>
                   </div>
@@ -715,7 +791,9 @@ export default function LectureDetail() {
               </div>
               <div className="flex gap-3 w-full sm:w-auto justify-end">
                 <button
-                  onClick={() => isViewMode ? navigate(-1) : setIsViewMode(true)}
+                  onClick={() => {
+                    isViewMode ? navigate(-1) : setIsViewMode(true);
+                  }}
                   disabled={submitting}
                   className="px-6 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-[#111418] dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50"
                 >

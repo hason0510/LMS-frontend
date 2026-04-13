@@ -5,10 +5,10 @@ import LessonComments from "../../components/lesson/LessonComments";
 import { getLessonById } from "../../api/lesson";
 import { getResourcesByLessonId } from "../../api/resource";
 import { Spin, Alert, Button, message } from "antd";
-import { ArrowLeftIcon, DocumentArrowDownIcon, PlayCircleIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ArrowTopRightOnSquareIcon, PlayCircleIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 
 export default function StudentLectureDetail() {
-  const { courseId, lectureId } = useParams();
+  const { classSectionId, lectureId } = useParams();
   const navigate = useNavigate();
   const [lesson, setLesson] = useState(null);
   const [resources, setResources] = useState([]);
@@ -79,14 +79,10 @@ export default function StudentLectureDetail() {
     return null;
   };
 
-  const handleDownloadResource = (resource) => {
-    if (resource.url) {
-      const link = document.createElement("a");
-      link.href = resource.url;
-      link.download = resource.name || "document";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const handleOpenResource = (resource) => {
+    const url = resource.fileUrl || resource.embedUrl || resource.url;
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -123,7 +119,7 @@ export default function StudentLectureDetail() {
         <div className="max-w-7xl mx-auto">
           {/* Back Button */}
           <button
-            onClick={() => navigate(`/courses/${courseId}`)}
+            onClick={() => navigate(`/class-sections/${classSectionId}`)}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-6 font-medium transition-colors"
           >
             <ArrowLeftIcon className="h-5 w-5" />
@@ -192,26 +188,25 @@ export default function StudentLectureDetail() {
                     {resources.map((resource) => (
                       <div
                         key={resource.id}
-                        className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
-                        onClick={() => handleDownloadResource(resource)}
+                        className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-primary/5 hover:border-primary/40 transition-all group"
+                        onClick={() => handleOpenResource(resource)}
                       >
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded text-green-600 dark:text-green-400 shrink-0">
-                            {resource.type === "VIDEO" ? (
-                              <PlayCircleIcon className="h-5 w-5" />
-                            ) : (
-                              <DocumentTextIcon className="h-5 w-5" />
-                            )}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {resource.title || resource.name}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {resource.type || "File"}
-                            </p>
-                          </div>
+                        <div className="bg-primary/10 p-2 rounded-md text-primary shrink-0">
+                          {resource.type === "VIDEO" ? (
+                            <PlayCircleIcon className="h-5 w-5" />
+                          ) : (
+                            <DocumentTextIcon className="h-5 w-5" />
+                          )}
                         </div>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {resource.title || resource.name}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {resource.type || "Tài liệu"}
+                          </p>
+                        </div>
+                        <ArrowTopRightOnSquareIcon className="h-4 w-4 text-slate-400 group-hover:text-primary flex-shrink-0 transition-colors" />
                       </div>
                     ))}
                   </div>

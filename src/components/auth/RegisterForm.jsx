@@ -143,7 +143,7 @@ export default function RegisterForm() {
       )}
 
       <div className="flex flex-col w-full">
-        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium pb-2">{t('auth.tenDangNhap')} <span className="text-red-500">*</span></p>
+        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium mb-1 leading-none">{t('auth.tenDangNhap')} <span className="text-red-500">*</span></p>
         <div className={`input-group w-full ${errors.username ? '!border-red-500' : ''}`}>
           <div className={`icon-area border-r border-[#dbe0e6] dark:border-gray-600 ${errors.username ? '!border-red-500' : ''}`}>
             <UserIcon className="h-5 w-5" />
@@ -161,7 +161,7 @@ export default function RegisterForm() {
       </div>
 
       <div className="flex flex-col w-full">
-        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium pb-2">{t('auth.hoVaTen')} <span className="text-red-500">*</span></p>
+        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium mb-1 leading-none">{t('auth.hoVaTen')} <span className="text-red-500">*</span></p>
         <div className={`input-group w-full ${errors.fullName ? '!border-red-500' : ''}`}>
           <div className={`icon-area border-r border-[#dbe0e6] dark:border-gray-600 ${errors.fullName ? '!border-red-500' : ''}`}>
             <UserIcon className="h-5 w-5" />
@@ -179,7 +179,7 @@ export default function RegisterForm() {
       </div>
 
       <div className="flex flex-col w-full">
-        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium pb-2">{t('auth.email')} <span className="text-red-500">*</span></p>
+        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium mb-1 leading-none">{t('auth.email')} <span className="text-red-500">*</span></p>
         <div className={`input-group w-full ${errors.email ? '!border-red-500' : ''}`}>
           <div className={`icon-area border-r border-[#dbe0e6] dark:border-gray-600 ${errors.email ? '!border-red-500' : ''}`}>
             <EnvelopeIcon className="h-5 w-5" />
@@ -197,7 +197,7 @@ export default function RegisterForm() {
       </div>
 
       <div className="flex flex-col w-full">
-        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium pb-2">{t('auth.matKhau')} <span className="text-red-500">*</span></p>
+        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium mb-1 leading-none">{t('auth.matKhau')} <span className="text-red-500">*</span></p>
         <div className={`input-group w-full ${errors.password ? '!border-red-500' : ''}`}>
           <div className={`icon-area border-r border-[#dbe0e6] dark:border-gray-600 ${errors.password ? '!border-red-500' : ''}`}>
             <LockClosedIcon className="h-5 w-5" />
@@ -216,7 +216,7 @@ export default function RegisterForm() {
       </div>
 
       <div className="flex flex-col w-full">
-        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium pb-2">{t('auth.xacNhanMatKhau')} <span className="text-red-500">*</span></p>
+        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium mb-1 leading-none">{t('auth.xacNhanMatKhau')} <span className="text-red-500">*</span></p>
         <div className={`input-group w-full ${errors.confirmPassword ? '!border-red-500' : ''}`}>
           <div className={`icon-area border-r border-[#dbe0e6] dark:border-gray-600 ${errors.confirmPassword ? '!border-red-500' : ''}`}>
             <LockClosedIcon className="h-5 w-5" />
@@ -235,7 +235,7 @@ export default function RegisterForm() {
       </div>
 
       <div className="flex flex-col w-full">
-        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium pb-2">{t('auth.vaiTro')} <span className="text-red-500">*</span></p>
+        <p className="text-[#111418] dark:text-gray-200 text-sm font-medium mb-1 leading-none">{t('auth.vaiTro')} <span className="text-red-500">*</span></p>
         <div className="flex items-center gap-6 px-1">
           <label className="flex items-center gap-2 cursor-pointer group">
             <div className="relative flex items-center">

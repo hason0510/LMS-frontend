@@ -21,12 +21,26 @@ export default function AuthPage({ defaultTab = 'login' }) {
 
       <div className="flex flex-col justify-center items-center w-full lg:w-1/3 p-6 sm:p-8">
         <div className="flex flex-col gap-6 w-full max-w-md">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-3xl">school</span>
-            <p className="text-xl font-bold text-[#111418] dark:text-white">LearnOnline</p>
-          </div>
+{/*          <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-3xl">
+                school
+              </span>
+                <p className="text-xl font-bold text-[#111418] dark:text-white mt-[2px]">
+                  LearnOnline
+                </p>
+          </div>*/}
+        <div className="flex items-center gap-2">
+            {/* Thêm leading-none và nhích icon lên một tí tẹo bằng -translate-y */}
+            <span className="material-symbols-outlined text-primary text-[32px] leading-none -translate-y-0.5">
+            school
+            </span>
+            {/* Đổi p thành span, xóa cái mt-[2px] cũ đi, thay bằng leading-none */}
+            <span className="text-xl font-bold text-[#111418] dark:text-white leading-none">
+            LearnOnline
+            </span>
+        </div>
 
-          <div className="flex flex-col gap-2 text-left">
+          <div className="flex flex-col gap-0.5 text-left">
             <h1 className="text-[#111418] dark:text-white text-3xl font-bold">
               {tab === 'login' ? t('auth.chaoMung') : t('auth.taoTaiKhoan')}
             </h1>

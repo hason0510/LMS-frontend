@@ -1,57 +1,28 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
-
-const API_URL = `${BACKEND_URL}/api/v1/lms`;
-
-export async function getMyNotifications() {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/notifications`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch notifications");
-  }
-
-  return await response.json();
-}
+import axiosClient from "./axiosClient";
 
 export async function countUnreadNotifications() {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}/notifications/unread/count`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+  const response = await axiosClient.get('notifications/unread/count');
+  return response.data;
+}
+
+export async function getMyNotifications() {
+  const response = await axiosClient.get('notifications');
+  return response.data;
+}
+
+export async function getMyNotificationsPage(pageNumber = 1, pageSize = 10) {
+  const response = await axiosClient.get('notifications/page', {
+    params: { pageNumber, pageSize }
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to count unread notifications");
-  }
-
-  return await response.json();
+  return response.data;
 }
 
 export async function markNotificationAsRead(notificationId) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(
-    `${API_URL}/notifications/${notificationId}/read`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await axiosClient.put(`notifications/${notificationId}/read`);
+  return response.data;
+}
 
-  if (!response.ok) {
-    throw new Error("Failed to mark notification as read");
-  }
-
-  return await response.json();
+export async function deleteNotification(notificationId) {
+  const response = await axiosClient.delete(`notifications/${notificationId}`);
+  return response.data;
 }

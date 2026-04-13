@@ -90,7 +90,7 @@ export default function ProfilePage() {
 
   const tabs = [
     { id: "profile", label: t("profile.thongTinCaNhan"), icon: UserIcon },
-    { id: "courses", label: t("profile.khoaHocCuaToi"), icon: BookOpenIcon },
+ //   { id: "courses", label: t("profile.khoaHocCuaToi"), icon: BookOpenIcon },
     // { id: "certificate", label: t("profile.chungChiCuaToi"), icon: AcademicCapIcon },
     { id: "notifications", label: t("profile.thongBao"), icon: BellIcon },
     // {
@@ -105,8 +105,8 @@ export default function ProfilePage() {
     switch (activeTab) {
       case "profile":
         return <MyInformation userData={userData} isLoading={isLoading} onUpdate={handleProfileUpdate} />;
-      case "courses":
-        return <MyCourses />;
+/*      case "courses":
+        return <MyCourses />;*/
       case "certificate":
         return <MyCertificate />;
       case "notifications":

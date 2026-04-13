@@ -10,6 +10,7 @@ module.exports = {
         primary: '#137fec',
         'background-light': '#f6f7f8',
         'background-dark': '#0b1116',
+        'card-dark': '#111827',
       },
       fontFamily: {
         display: ['Lexend', 'ui-sans-serif', 'system-ui'],

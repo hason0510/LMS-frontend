@@ -11,17 +11,26 @@ import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
-import { getTeacherEnrollments, getAllEnrollments, approveEnrollment, rejectEnrollment, deleteStudentsFromCourse, getStudentsNotInCourse, addStudentsToCourse, getTeacherCourses, getAllCourses } from "../../api/course";
+import {
+  getAllTeacherEnrollments,
+  getAllEnrollments,
+  approveEnrollment,
+  rejectEnrollment,
+  deleteStudentsFromCourse
+} from "../../api/enrollment";
+import { getTeacherCourses, getAllCourses } from "../../api/classSection";
 import AddStudentModal from "../../components/teacher/AddStudentModal";
 
 export default function TeacherStudentManagement({ isAdmin = false }) {
   const [selectedRows, setSelectedRows] = useState([]);
   const [searchText, setSearchText] = useState("");
-  const [courseFilter, setCourseFilter] = useState("");
+  const [classFilter, setClassFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [enrollments, setEnrollments] = useState([]);
-  const [courses, setCourses] = useState([]);
+  const [totalEnrollments, setTotalEnrollments] = useState(0);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [displayLoading, setDisplayLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -30,18 +39,15 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pageSize = 10;
 
-  // Track sidebar collapse state
   useEffect(() => {
     const handleResize = () => {
       setSidebarCollapsed(window.innerWidth < 1024);
     };
-
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Debounce loading state to avoid spinner flash for quick loads
   useEffect(() => {
     if (loading) {
       const timer = setTimeout(() => {
@@ -53,49 +59,56 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
     }
   }, [loading]);
 
-  // Fetch enrollments with filters
   useEffect(() => {
-    const fetchEnrollments = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        // Use different API based on role (admin gets all enrollments, teacher gets only their enrollments)
+
+        // Fetch enrollments
         const res = isAdmin
           ? await getAllEnrollments(currentPage, pageSize)
-          : await getTeacherEnrollments(currentPage, pageSize, courseFilter || null, statusFilter || null);
-        const enrollmentList = (res.data.pageList).map((enrollment, index) => ({
+          : await getAllTeacherEnrollments(currentPage, pageSize, statusFilter || null);
+
+        console.log("Enrollment Data Response:", res);
+
+        // Backend returns PageResponse directly: { currentPage, totalPage, totalElements, pageList }
+        const enrollmentList = (res?.pageList || res?.data?.pageList || []).map((enrollment, index) => ({
           key: enrollment.id || index,
           id: enrollment.id,
           studentId: enrollment.studentId,
-          name: enrollment.fullName || "N/A",
-          username: enrollment.userName || "N/A",
-          email: enrollment.userName || "N/A",
-          avatar: enrollment.studentAvatar || "",
-          course: enrollment.courseTitle || "N/A",
-          courseId: enrollment.courseId || "",
-          courseCode: enrollment.courseCode || "",
+          name: enrollment.fullName || enrollment.studentName || "N/A",
+          username: enrollment.userName || enrollment.studentUsername || "N/A",
+          email: enrollment.email || enrollment.gmail || "N/A",
+          avatar: enrollment.studentAvatar || enrollment.avatar || "",
+          classSectionName: enrollment.classSectionTitle || enrollment.className || "N/A",
+          classSectionId: enrollment.classSectionId,
+          courseId: enrollment.courseId,
           progress: enrollment.progress || 0,
-          approvalStatus: enrollment.approvalStatus || "PENDING",
-          enrollmentDate: enrollment.createdAt || new Date().toISOString(),
+          approvalStatus: enrollment.approvalStatus || "APPROVED",
+          enrollmentDate: enrollment.createdAt || enrollment.enrolledAt || new Date().toISOString(),
         }));
         setEnrollments(enrollmentList);
-        
-        // Fetch courses from API instead of extracting from enrollmentList
+        setTotalEnrollments(res?.totalElements || res?.data?.totalElements || enrollmentList.length);
+
         try {
-          const coursesRes = isAdmin
+          // Fetch ClassSections for filter
+          const classesRes = isAdmin
             ? await getAllCourses(1, 1000)
             : await getTeacherCourses(1, 1000);
-          const courseList = (coursesRes.data?.pageList || []).map(course => ({
-            id: course.id,
-            name: course.title || course.name || "N/A"
+
+          // Backend GET /class-sections returns List, not PageResponse
+          // After ApiResponse wrapping: { code, message, data: [...] }
+          const classListRaw = classesRes?.data?.pageList || classesRes?.data || [];
+          const classList = (Array.isArray(classListRaw) ? classListRaw : []).map(cls => ({
+            id: cls.id,
+            name: cls.title || cls.classSectionName || cls.name || "N/A"
           }));
-          setCourses(courseList);
-        } catch (courseErr) {
-          console.log("Failed to fetch courses:", courseErr);
-          setCourses([]);
+          setClasses(classList);
+        } catch (err) {
+          console.error("Failed to fetch classes:", err);
         }
       } catch (err) {
-        console.log("Failed to fetch enrollments:", err);
         setError(err.message);
         message.error("Không thể tải dữ liệu học viên");
       } finally {
@@ -103,620 +116,222 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
       }
     };
 
-    fetchEnrollments();
-  }, [courseFilter, statusFilter, currentPage]);
+    fetchData();
+  }, [classFilter, statusFilter, currentPage, isAdmin]);
 
-  const handleApprove = (enrollmentId, studentId, courseId) => {
+  const handleApprove = (enrollmentId, studentId, courseId, classSectionId) => {
     Modal.confirm({
-      title: "Duyệt đơn đăng ký",
-      content: "Bạn có chắc chắn muốn duyệt học viên này?",
+      title: "Phê duyệt tham gia lớp học",
+      content: "Bạn có chắc muốn cho phép học viên này tham gia lớp học?",
       okText: "Duyệt",
       cancelText: "Hủy",
-      okButtonProps: { type: "primary" },
       async onOk() {
         try {
-          await approveEnrollment(studentId, courseId);
-          setEnrollments((prev) =>
-            prev.map((e) =>
-              e.id === enrollmentId ? { ...e, approvalStatus: "APPROVED" } : e
-            )
+          await approveEnrollment(studentId, courseId, classSectionId);
+          setEnrollments(prev =>
+            prev.map(item => item.id === enrollmentId ? { ...item, approvalStatus: "APPROVED" } : item)
           );
-          message.success("Duyệt học viên thành công!");
+          message.success("Đã duyệt học viên!");
         } catch (err) {
-          message.error(err.message || "Lỗi khi duyệt học viên");
+          message.error("Lỗi: " + err.message);
         }
       },
     });
   };
 
-  const handleReject = (enrollmentId, studentId, courseId) => {
+  const handleReject = (enrollmentId, studentId, courseId, classSectionId) => {
     Modal.confirm({
-      title: "Từ chối đơn đăng ký",
-      content: "Bạn có chắc chắn muốn từ chối học viên này?",
+      title: "Từ chối yêu cầu",
+      content: "Học viên này sẽ không được tham gia lớp học. Bạn có chắc không?",
       okText: "Từ chối",
       cancelText: "Hủy",
-      okButtonProps: { type: "primary", danger: true },
+      okButtonProps: { danger: true },
       async onOk() {
         try {
-          await rejectEnrollment(studentId, courseId);
-          setEnrollments((prev) =>
-            prev.map((e) =>
-              e.id === enrollmentId ? { ...e, approvalStatus: "REJECTED" } : e
-            )
+          await rejectEnrollment(studentId, courseId, classSectionId);
+          setEnrollments(prev =>
+            prev.map(item => item.id === enrollmentId ? { ...item, approvalStatus: "REJECTED" } : item)
           );
-          message.success("Từ chối học viên thành công!");
+          message.success("Đã từ chối yêu cầu!");
         } catch (err) {
-          message.error(err.message || "Lỗi khi từ chối học viên");
+          message.error("Lỗi: " + err.message);
         }
       },
     });
   };
 
-  const handleDelete = (enrollmentRecord) => {
-    Modal.confirm({
-      title: "Xóa học viên",
-      content: "Bạn có chắc chắn muốn xóa học viên khỏi khóa học?",
-      okText: "Xóa",
-      cancelText: "Hủy",
-      okButtonProps: { type: "primary", danger: true },
-      async onOk() {
-        try {
-          setLoading(true);
-          await deleteStudentsFromCourse(enrollmentRecord.courseId, [enrollmentRecord.studentId]);
-          setEnrollments((prev) => prev.filter((e) => e.id !== enrollmentRecord.id));
-          message.success("Xóa học viên thành công!");
-        } catch (err) {
-          message.error(err.message || "Lỗi khi xóa học viên");
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-  };
-
-  // Bulk actions
-  const handleBulkApprove = () => {
-    if (selectedRows.length === 0) {
-      message.warning("Vui lòng chọn ít nhất một học viên");
-      return;
-    }
-
-    Modal.confirm({
-      title: "Duyệt hàng loạt",
-      content: `Bạn có chắc chắn muốn duyệt ${selectedRows.length} học viên đã chọn?`,
-      okText: "Duyệt",
-      cancelText: "Hủy",
-      okButtonProps: { type: "primary" },
-      async onOk() {
-        try {
-          setLoading(true);
-          const selectedEnrollments = enrollments.filter((e) => selectedRows.includes(e.key));
-          
-          // Perform approve for each selected enrollment
-          for (const enrollment of selectedEnrollments) {
-            await approveEnrollment(enrollment.studentId, enrollment.courseId);
-          }
-          
-          setEnrollments((prev) =>
-            prev.map((e) =>
-              selectedRows.includes(e.key) ? { ...e, approvalStatus: "APPROVED" } : e
-            )
-          );
-          setSelectedRows([]);
-          message.success(`Đã duyệt ${selectedRows.length} học viên thành công!`);
-        } catch (err) {
-          message.error(err.message || "Lỗi khi duyệt học viên");
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-  };
-
-  const handleBulkReject = () => {
-    if (selectedRows.length === 0) {
-      message.warning("Vui lòng chọn ít nhất một học viên");
-      return;
-    }
-
-    Modal.confirm({
-      title: "Từ chối hàng loạt",
-      content: `Bạn có chắc chắn muốn từ chối ${selectedRows.length} học viên đã chọn?`,
-      okText: "Từ chối",
-      cancelText: "Hủy",
-      okButtonProps: { type: "primary", danger: true },
-      async onOk() {
-        try {
-          setLoading(true);
-          const selectedEnrollments = enrollments.filter((e) => selectedRows.includes(e.key));
-          
-          for (const enrollment of selectedEnrollments) {
-            await rejectEnrollment(enrollment.studentId, enrollment.courseId);
-          }
-          
-          setEnrollments((prev) =>
-            prev.map((e) =>
-              selectedRows.includes(e.key) ? { ...e, approvalStatus: "REJECTED" } : e
-            )
-          );
-          setSelectedRows([]);
-          message.success(`Đã từ chối ${selectedRows.length} học viên thành công!`);
-        } catch (err) {
-          message.error(err.message || "Lỗi khi từ chối học viên");
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedRows.length === 0) {
-      message.warning("Vui lòng chọn ít nhất một học viên");
-      return;
-    }
-
-    Modal.confirm({
-      title: "Xóa hàng loạt",
-      content: `Bạn có chắc chắn muốn xóa ${selectedRows.length} học viên đã chọn khỏi khóa học?`,
-      okText: "Xóa",
-      cancelText: "Hủy",
-      okButtonProps: { type: "primary", danger: true },
-      async onOk() {
-        try {
-          setLoading(true);
-          const selectedEnrollments = enrollments.filter((e) => selectedRows.includes(e.key));
-          
-          // Group by courseId to delete in batches per course
-          const groupedByCourse = {};
-          selectedEnrollments.forEach((enrollment) => {
-            if (!groupedByCourse[enrollment.courseId]) {
-              groupedByCourse[enrollment.courseId] = [];
-            }
-            groupedByCourse[enrollment.courseId].push(enrollment.studentId);
-          });
-          
-          // Delete students from each course
-          for (const [courseId, studentIds] of Object.entries(groupedByCourse)) {
-            await deleteStudentsFromCourse(parseInt(courseId), studentIds);
-          }
-          
-          setEnrollments((prev) =>
-            prev.filter((e) => !selectedRows.includes(e.key))
-          );
-          setSelectedRows([]);
-          message.success(`Đã xóa ${selectedRows.length} học viên thành công!`);
-        } catch (err) {
-          message.error(err.message || "Lỗi khi xóa học viên");
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-  };
-
-  // Validate selected enrollments status
-  const getSelectedEnrollmentsStatus = () => {
-    if (selectedRows.length === 0) return null;
-    
-    const selectedEnrollments = enrollments.filter((e) => selectedRows.includes(e.key));
-    const statuses = new Set(selectedEnrollments.map((e) => e.approvalStatus));
-    
-    // All selected are PENDING
-    if (statuses.size === 1 && statuses.has("PENDING")) {
-      return "PENDING";
-    }
-    
-    // All selected are APPROVED
-    if (statuses.size === 1 && statuses.has("APPROVED")) {
-      return "APPROVED";
-    }
-    
-    // Mixed statuses
-    return "MIXED";
-  };
-
-  const getStatusTag = (approvalStatus) => {
-    const statusConfig = {
-      APPROVED: {
-        color: "green",
-        text: "Đã duyệt",
-      },
-      PENDING: {
-        color: "orange",
-        text: "Chờ duyệt",
-      },
-      REJECTED: {
-        color: "red",
-        text: "Bị từ chối",
-      },
-    };
-
-    const config = statusConfig[approvalStatus] || statusConfig.PENDING;
-    return (
-      <Tag
-        color={config.color}
-        style={{ borderRadius: "20px" }}
-      >
-        {config.text}
-      </Tag>
-    );
-  };
-
-  const getProgressColor = (progress) => {
-    if (progress === 100) return "#22c55e";
-    if (progress >= 50) return "#137fec";
-    return "#9ca3af";
+  const statusTags = {
+    APPROVED: <Tag color="success" className="rounded-full px-3">Đã duyệt</Tag>,
+    PENDING: <Tag color="warning" className="rounded-full px-3">Chờ duyệt</Tag>,
+    REJECTED: <Tag color="error" className="rounded-full px-3">Bị từ chối</Tag>,
   };
 
   const columns = [
     {
       title: "Học viên",
-      dataIndex: "name",
-      key: "name",
-      width: 280,
-      render: (text, record) => (
+      key: "student",
+      render: (_, record) => (
         <div className="flex items-center gap-3">
-          <CustomAvatar
-            src={record.avatar}
-            alt={record.name}
-            className="w-10 h-10"
-          />
-          <div className="flex flex-col min-w-0">
-            <p className="font-bold text-sm truncate text-[#111418] dark:text-white">
-              {text}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-              {record.username}
-            </p>
+          <CustomAvatar src={record.avatar} className="w-10 h-10 shadow-sm" />
+          <div>
+            <p className="font-bold text-gray-900 dark:text-white mb-0">{record.name}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">@{record.username}</p>
           </div>
         </div>
       ),
     },
     {
-      title: "Khóa học",
-      dataIndex: "course",
-      key: "course",
-      width: 200,
-      render: (text, record) => (
-        <div className="flex flex-col">
-          <p className="text-md font-bold text-[#111418] dark:text-white">
-            {text}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            #{record.courseCode}
-          </p>
-        </div>
-      ),
+      title: "Lớp học",
+      dataIndex: "classSectionName",
+      key: "classSectionName",
+      render: (text) => <span className="font-medium text-primary">{text}</span>,
     },
     {
-      title: "Tiến độ",
-      dataIndex: "progress",
-      key: "progress",
-      width: 150,
-      render: (progress) => (
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-24 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden flex-shrink-0">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${progress}%`,
-                backgroundColor: getProgressColor(progress),
-              }}
-            ></div>
-          </div>
-          <span className="text-xs font-medium text-[#111418] dark:text-white min-w-fit">
-            {progress}%
-          </span>
-        </div>
-      ),
-    },
-    {
-      title: "Trạng thái duyệt",
+      title: "Trạng thái",
       dataIndex: "approvalStatus",
       key: "approvalStatus",
-      width: 140,
-      render: (approvalStatus) => getStatusTag(approvalStatus),
+      render: (status) => statusTags[status] || status,
     },
     {
-      title: "Ngày đăng ký",
+      title: "Ngày tham gia",
       dataIndex: "enrollmentDate",
       key: "enrollmentDate",
-      width: 150,
-      render: (date) => {
-        const d = new Date(date);
-        return d.toLocaleDateString("vi-VN");
-      },
+      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
     },
     {
       title: "Hành động",
       key: "action",
-      width: 200,
       align: "right",
-      render: (_, record) => {
-        if (record.approvalStatus === "PENDING") {
-          return (
-            <Space>
-              <Button
-                type="primary"
-                size="small"
-                icon={<CheckOutlined />}
-                onClick={() => handleApprove(record.id, record.studentId, record.courseId)}
-                style={{ borderRadius: "6px" }}
+      render: (_, record) => (
+        <Space size="middle">
+          {record.approvalStatus === "PENDING" ? (
+            <>
+              <Button 
+                type="link" 
+                icon={<CheckOutlined />} 
+                className="text-green-600 hover:text-green-700 p-0"
+                onClick={() => handleApprove(record.id, record.studentId, record.courseId, record.classSectionId)}
               >
                 Duyệt
               </Button>
-              <Button
-                danger
-                size="small"
-                icon={<CloseOutlined />}
-                onClick={() => handleReject(record.id, record.studentId, record.courseId)}
-                style={{
-                  borderRadius: "6px",
-                  backgroundColor: "#ff4d4f",
-                  borderColor: "#ff4d4f",
-                  color: "white",
-                }}
-              >Từ chối</Button>
-            </Space>
-          );
-        }
-
-        return (
-          <Space>
-            <Button
-              type="text"
-              size="large"
-              icon={<EyeOutlined />}
-              title="Xem chi tiết"
-              style={{ borderRadius: "6px" }}
-            />
-            <Button
-              type="text"
-              size="large"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record)}
-              title="Xóa khỏi khóa học"
-              style={{ borderRadius: "6px" }}
-            />
-          </Space>
-        );
-      },
+              <Button 
+                type="link" 
+                danger 
+                icon={<CloseOutlined />} 
+                className="p-0"
+                onClick={() => handleReject(record.id, record.studentId, record.courseId, record.classSectionId)}
+              >
+                Từ chối
+              </Button>
+            </>
+          ) : (
+            <Button type="text" icon={<EyeOutlined />} className="dark:text-gray-400" />
+          )}
+        </Space>
+      ),
     },
   ];
 
-  const filteredEnrollments = enrollments.filter((enrollment) => {
-    const matchSearch =
-      enrollment.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      enrollment.username.toLowerCase().includes(searchText.toLowerCase());
-
-    return matchSearch;
-  });
-
-  const handleAddStudentsSuccess = async () => {
-    setIsAddModalVisible(false);
-    message.success("Thêm học viên vào khóa học thành công!");
-    // Refresh the enrollments list
-    setCurrentPage(1);
-    try {
-      setLoading(true);
-      // Use different API based on role
-      const res = isAdmin
-        ? await getAllEnrollments(1, pageSize)
-        : await getTeacherEnrollments(1, pageSize, courseFilter || null, statusFilter || null);
-      const enrollmentList = (res.data.pageList).map((enrollment, index) => ({
-        key: enrollment.id || index,
-        id: enrollment.id,
-        studentId: enrollment.studentId,
-        name: enrollment.fullName || "N/A",
-        username: enrollment.userName || "N/A",
-        email: enrollment.userName || "N/A",
-        avatar: enrollment.studentAvatar || "",
-        course: enrollment.courseTitle || "N/A",
-        courseId: enrollment.courseId || "",
-        courseCode: enrollment.courseCode || "",
-        progress: enrollment.progress || 0,
-        approvalStatus: enrollment.approvalStatus || "PENDING",
-        enrollmentDate: enrollment.createdAt || new Date().toISOString(),
-      }));
-      setEnrollments(enrollmentList);
-    } catch (err) {
-      console.log("Failed to refresh enrollments:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display">
-      {/* Header */}
+    <div className="min-h-screen bg-background-light dark:bg-background-dark">
       <TeacherHeader />
-
       <div className="flex">
-        {/* Sidebar - Admin or Teacher */}
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-
-        {/* Main Content */}
-        <main className={`flex-1 pt-16 transition-all duration-300 ${
-          sidebarCollapsed ? "pl-20" : "pl-64"
-        }`}>
-          <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
-            {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h1 className="text-2xl md:text-3xl text-[#111418] dark:text-white font-bold leading-tight">
-                Quản lý Học viên
-              </h1>
-              <Button
-                type="primary"
-                size="large"
-                icon={<span style={{ marginRight: "8px" }}>+</span>}
+        <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Quản lý Học viên</h1>
+                <p className="text-gray-500 mt-1">Duyệt và xem danh sách học viên trong các lớp học của bạn.</p>
+              </div>
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<UserOutlined />}
+                className="h-11 rounded-xl shadow-md px-6 font-bold"
                 onClick={() => setIsAddModalVisible(true)}
               >
                 Thêm học viên
               </Button>
             </div>
 
-            {/* Filters */}
-            <div className="mb-6">
-              <div className="flex flex-col md:flex-row gap-2 items-end">
-                <Input
-                  placeholder="Tìm kiếm theo tên sinh viên..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}    
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ flex: 2 }}
-                  className="h-10"
-                />
-                <Select
-                  placeholder="Tất cả khóa học"
-                  value={courseFilter || undefined}
-                  onChange={(val) => {
-                    setCourseFilter(val);
-                    setCurrentPage(1);
-                  }}
-                  style={{ flex: 1 }}
-                  className="h-10"
-                  options={[
-                    { label: "Tất cả khóa học", value: "" },
-                    ...courses.map(c => ({ label: c.name, value: c.id })),
-                  ]}
-                />
-                <Select
-                  placeholder="Trạng thái duyệt"
-                  value={statusFilter || undefined}
-                  onChange={(val) => {
-                    setStatusFilter(val);
-                    setCurrentPage(1);
-                  }}
-                  style={{ flex: 1 }}
-                  className="h-10"
-                  options={[
-                    { label: "Tất cả trạng thái", value: "" },
-                    { label: "Chờ duyệt", value: "PENDING" },
-                    { label: "Đã duyệt", value: "APPROVED" },
-                    { label: "Bị từ chối", value: "REJECTED" },
-                  ]}
-                />
+            <div className="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-2">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Tìm kiếm</p>
+                  <Input
+                    placeholder="Tên học viên hoặc @username..."
+                    prefix={<SearchOutlined className="text-gray-400" />}
+                    className="h-11 rounded-xl border-gray-200 dark:border-gray-700"
+                    value={searchText}
+                    onChange={e => setSearchText(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Lớp học</p>
+                  <Select
+                    placeholder="Tất cả lớp học"
+                    className="w-full h-11"
+                    status="primary"
+                    value={classFilter || undefined}
+                    onChange={setClassFilter}
+                    options={[
+                      { label: "Tất cả lớp học", value: "" },
+                      ...classes.map(c => ({ label: c.name, value: c.id }))
+                    ]}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Trạng thái</p>
+                  <Select
+                    placeholder="Tất cả trạng thái"
+                    className="w-full h-11"
+                    value={statusFilter || undefined}
+                    onChange={setStatusFilter}
+                    options={[
+                      { label: "Tất cả trạng thái", value: "" },
+                      { label: "Chờ duyệt", value: "PENDING" },
+                      { label: "Đã duyệt", value: "APPROVED" },
+                      { label: "Bị từ chối", value: "REJECTED" },
+                    ]}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Bulk Actions Bar */}
-            {selectedRows.length > 0 && (
-              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-                {getSelectedEnrollmentsStatus() === "MIXED" ? (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                        ⚠️ Không thể thực hiện hành động chung. Các bản ghi được chọn có trạng thái khác nhau.
-                      </p>
-                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                        Vui lòng chỉ chọn các bản ghi có cùng trạng thái duyệt.
-                      </p>
-                    </div>
-                    <Button
-                      type="text"
-                      size="small"
-                      onClick={() => setSelectedRows([])}
-                    >
-                      Bỏ chọn
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      Đã chọn {selectedRows.length} học viên
-                    </span>
-                    <Space>
-                      {getSelectedEnrollmentsStatus() === "PENDING" && (
-                        <>
-                          <Button
-                            type="primary"
-                            size="small"
-                            icon={<CheckOutlined />}
-                            onClick={handleBulkApprove}
-                            loading={loading}
-                          >
-                            Duyệt tất cả
-                          </Button>
-                          <Button
-                            danger
-                            size="small"
-                            icon={<CloseOutlined />}
-                            onClick={handleBulkReject}
-                            loading={loading}
-                            style={{
-                              backgroundColor: "#ff4d4f",
-                              borderColor: "#ff4d4f",
-                              color: "white",
-                            }}
-                          >
-                            Từ chối tất cả
-                          </Button>
-                        </>
-                      )}
-                      {getSelectedEnrollmentsStatus() === "APPROVED" && (
-                        <Button
-                          danger
-                          type="text"
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={handleBulkDelete}
-                          loading={loading}
-                        >
-                          Xóa tất cả
-                        </Button>
-                      )}
-                      <Button
-                        type="text"
-                        size="small"
-                        onClick={() => setSelectedRows([])}
-                      >
-                        Bỏ chọn
-                      </Button>
-                    </Space>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Table */}
-            <div className="bg-white dark:bg-[#1a2632] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <Spin spinning={displayLoading} tip="Đang tải...">
+            <div className="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <Spin spinning={displayLoading}>
                 <Table
                   columns={columns}
-                  dataSource={filteredEnrollments}
+                  dataSource={enrollments.filter(e => 
+                    e.name.toLowerCase().includes(searchText.toLowerCase()) || 
+                    e.username.toLowerCase().includes(searchText.toLowerCase())
+                  )}
                   pagination={{
                     current: currentPage,
                     pageSize: pageSize,
-                    onChange: (page) => setCurrentPage(page),
-                    showTotal: (total, range) =>
-                      `Hiển thị ${range[0]} đến ${range[1]} trong tổng số ${total} học viên`,
-                    position: ["bottomCenter"],
+                    onChange: setCurrentPage,
+                    total: totalEnrollments,
+                    showSizeChanger: false,
+                    placement: "bottomCenter",
                   }}
-                  rowSelection={{
-                    selectedRowKeys: selectedRows,
-                    onChange: (keys) => setSelectedRows(keys),
-                  }}
-                  scroll={{ x: 1200 }}
-                  className="dark:bg-[#1a2632]"
-                  style={{
-                    borderColor: "transparent",
-                  }}
+                  className="custom-table"
                 />
               </Spin>
             </div>
-
-            {/* Add Student Modal */}
-            <AddStudentModal
-              visible={isAddModalVisible}
-              onClose={() => setIsAddModalVisible(false)}
-              onSuccess={handleAddStudentsSuccess}
-              courses={courses}
-            />
           </div>
         </main>
       </div>
+
+      <AddStudentModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
+        onSuccess={() => {
+          setIsAddModalVisible(false);
+          currentPage === 1 ? message.success("Đã cập nhật danh sách") : setCurrentPage(1);
+        }}
+        courses={classes} // Still named courses in modal prop but using ClassSections
+      />
     </div>
   );
 }

@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { Select, DatePicker, Form, Input, Button, Checkbox, Radio, message, Spin, Alert } from "antd";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
+import { Select, DatePicker, Form, Input, Button, Checkbox, Radio, Spin, Alert, App, Modal } from "antd";
 import dayjs from "dayjs";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
-import { createQuiz, createQuizInChapter, getQuizById, updateQuiz } from "../../api/quiz";
+import { createQuiz, getQuizById, updateQuiz } from "../../api/quiz";
+import {
+  createContentItemTemplate,
+  getTemplateById,
+  createQuizTemplate,
+  getQuizTemplateById,
+  updateQuizTemplate,
+} from "../../api/curriculumTemplate";
+import { createClassContentItem } from "../../api/classSection";
 import {
   TrashIcon,
   PlusCircleIcon,
@@ -14,12 +22,13 @@ import {
   PencilIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
-import { getCourseById } from "../../api/course";
+import { getCourseById } from "../../api/classSection";
 
-export default function QuizDetail() {
-  const { courseId, quizId, chapterId } = useParams();
+export default function QuizDetail({ isAdmin = false }) {
+  const { classSectionId, quizId, chapterId } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!quizId;
+  const { message: messageApi } = App.useApp();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(isEditMode);
@@ -27,6 +36,11 @@ export default function QuizDetail() {
   const [isViewMode, setIsViewMode] = useState(isEditMode);
   const [course, setCourse] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const location = useLocation();
+  const isTemplateMode = location.state?.isTemplateMode || false;
+  const chapterIdFromState = location.state?.chapterId || chapterId;
+  const templateIdFromPath = useParams().templateId;
 
   useEffect(() => {
     const handleResize = () => {
@@ -61,15 +75,20 @@ export default function QuizDetail() {
 
   useEffect(() => {
       fetchCourse();
-    }, [courseId]);
+    }, [classSectionId]);
   
     const fetchCourse = async () => {
       try {
         setLoading(true);
-        const response = await getCourseById(courseId);
-        setCourse(response.data);
+        if (isTemplateMode && templateIdFromPath) {
+          const response = await getTemplateById(templateIdFromPath);
+          setCourse(response.data || response);
+        } else if (classSectionId) {
+          const response = await getCourseById(classSectionId);
+          setCourse(response.data || response);
+        }
       } catch (err) {
-        setError("Không thể tải thông tin khóa học");
+        setError("Không thể tải thông tin");
         console.error(err);
       } finally {
         setLoading(false);
@@ -84,49 +103,80 @@ export default function QuizDetail() {
     }
   }, [quizId]);
 
+  // Fix for: Warning: Instance created by `useForm` is not connected to any Form element.
+  useEffect(() => {
+    if (!loading && quizData && isEditMode) {
+      form.setFieldsValue({
+        title: quizData.title || "",
+        description: quizData.description || "",
+        timeLimitMinutes: quizData.timeLimitMinutes ? String(quizData.timeLimitMinutes) : "30",
+        minPassScore: quizData.minPassScore || undefined,
+        maxAttempts: quizData.maxAttempts || undefined,
+        availableFrom: quizData.availableFrom ? dayjs(quizData.availableFrom) : null,
+        availableUntil: quizData.availableUntil ? dayjs(quizData.availableUntil) : null,
+      });
+    }
+  }, [loading, quizData, isEditMode, form]);
+
   const fetchQuizData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getQuizById(quizId);
-      const quiz = response.data || response;
-      
-      // Update form initial values
-      form.setFieldsValue({
-        title: quiz.title || "",
-        description: quiz.description || "",
-        timeLimitMinutes: quiz.timeLimitMinutes ? String(quiz.timeLimitMinutes) : "30",
-        minPassScore: quiz.minPassScore || undefined,
-        maxAttempts: quiz.maxAttempts || undefined,
-        availableFrom: quiz.availableFrom ? dayjs(quiz.availableFrom) : null,
-        availableUntil: quiz.availableUntil ? dayjs(quiz.availableUntil) : null,
-      });
 
-      // Update quiz data with questions from backend
-      const transformedQuestions = (quiz.questions || []).map(q => ({
-        id: q.id,
-        type: q.type || "SINGLE_CHOICE",
-        content: q.content || "",
-        points: q.points || 1,
-        answers: (q.answers || []).map(a => ({
-          id: a.id,
-          content: a.content || "",
-          isCorrect: a.isCorrect || false,
-        })),
-      }));
+      if (isTemplateMode) {
+        // Fetch QuizTemplate (settings only, no questions)
+        const response = await getQuizTemplateById(quizId);
+        const quiz = response.data || response;
+        setQuizData(prev => ({
+          ...prev,
+          title: quiz.title || "",
+          description: quiz.description || "",
+          timeLimitMinutes: quiz.timeLimitMinutes || 30,
+          minPassScore: quiz.minPassScore || null,
+          maxAttempts: quiz.maxAttempts || null,
+          availableFrom: quiz.availableFrom || null,
+          availableUntil: quiz.availableTo || null,
+        }));
+        form.setFieldsValue({
+          title: quiz.title || "",
+          description: quiz.description || "",
+          timeLimitMinutes: quiz.timeLimitMinutes ? String(quiz.timeLimitMinutes) : "30",
+          minPassScore: quiz.minPassScore || undefined,
+          maxAttempts: quiz.maxAttempts || undefined,
+          availableFrom: quiz.availableFrom ? dayjs(quiz.availableFrom) : null,
+          availableUntil: quiz.availableTo ? dayjs(quiz.availableTo) : null,
+        });
+      } else {
+        const response = await getQuizById(quizId);
+        const quiz = response.data || response;
 
-      setQuizData({
-        title: quiz.title || "",
-        description: quiz.description || "",
-        timeLimitMinutes: quiz.timeLimitMinutes || 30,
-        minPassScore: quiz.minPassScore || null,
-        maxAttempts: quiz.maxAttempts || null,
-        questions: transformedQuestions.length > 0 ? transformedQuestions : quizData.questions,
-      });
+        const transformedQuestions = (quiz.questions || []).map(q => ({
+          id: q.id,
+          type: q.type || "SINGLE_CHOICE",
+          content: q.content || "",
+          points: q.points || 1,
+          answers: (q.answers || []).map(a => ({
+            id: a.id,
+            content: a.content || "",
+            isCorrect: a.isCorrect || false,
+          })),
+        }));
+
+        setQuizData({
+          title: quiz.title || "",
+          description: quiz.description || "",
+          timeLimitMinutes: quiz.timeLimitMinutes || 30,
+          minPassScore: quiz.minPassScore || null,
+          maxAttempts: quiz.maxAttempts || null,
+          availableFrom: quiz.availableFrom || null,
+          availableUntil: quiz.availableUntil || null,
+          questions: transformedQuestions.length > 0 ? transformedQuestions : quizData.questions,
+        });
+      }
     } catch (err) {
       setError(err.message || "Lỗi khi tải dữ liệu bài kiểm tra");
       console.error("Error fetching quiz:", err);
-      message.error("Lỗi khi tải dữ liệu bài kiểm tra");
+      messageApi.error("Lỗi khi tải dữ liệu bài kiểm tra");
     } finally {
       setLoading(false);
     }
@@ -278,20 +328,23 @@ export default function QuizDetail() {
       
       // Validate form fields
       if (!values.title || values.title.trim() === "") {
-        message.error("Vui lòng nhập tiêu đề bài kiểm tra");
+        messageApi.error("Vui lòng nhập tiêu đề bài kiểm tra");
         setSubmitting(false);
         return;
       }
 
       if (!values.timeLimitMinutes || values.timeLimitMinutes === "") {
-        message.error("Vui lòng nhập thời gian làm bài");
+        messageApi.error("Vui lòng nhập thời gian làm bài");
         setSubmitting(false);
         return;
       }
 
+      // Skip question validation in template mode (QuizTemplate has no questions)
+      if (!isTemplateMode) {
+
       // Validate questions
       if (!quizData.questions || quizData.questions.length === 0) {
-        message.error("Vui lòng thêm ít nhất 1 câu hỏi");
+        messageApi.error("Vui lòng thêm ít nhất 1 câu hỏi");
         setSubmitting(false);
         return;
       }
@@ -299,7 +352,7 @@ export default function QuizDetail() {
       // Validate each question
       for (let q of quizData.questions) {
         if (!q.content || q.content.trim() === "") {
-          message.error(`Câu hỏi ${quizData.questions.indexOf(q) + 1} không có nội dung`);
+          messageApi.error(`Câu hỏi ${quizData.questions.indexOf(q) + 1} không có nội dung`);
           setSubmitting(false);
           return;
         }
@@ -307,14 +360,14 @@ export default function QuizDetail() {
         if (q.type === "ESSAY") {
           // Validate essay answers
           if (!q.answers || q.answers.length === 0) {
-            message.error(`Câu hỏi tự luận ${quizData.questions.indexOf(q) + 1} không có đáp án mẫu`);
+            messageApi.error(`Câu hỏi tự luận ${quizData.questions.indexOf(q) + 1} không có đáp án mẫu`);
             setSubmitting(false);
             return;
           }
           // Validate answer content
           for (let a of q.answers) {
             if (!a.content || a.content.trim() === "") {
-              message.error(`Câu hỏi tự luận ${quizData.questions.indexOf(q) + 1} có đáp án không có nội dung`);
+              messageApi.error(`Câu hỏi tự luận ${quizData.questions.indexOf(q) + 1} có đáp án không có nội dung`);
               setSubmitting(false);
               return;
             }
@@ -322,27 +375,28 @@ export default function QuizDetail() {
         } else {
           // Validate multiple choice/single choice
           if (!q.answers || q.answers.length === 0) {
-            message.error(`Câu hỏi ${quizData.questions.indexOf(q) + 1} không có đáp án`);
+            messageApi.error(`Câu hỏi ${quizData.questions.indexOf(q) + 1} không có đáp án`);
             setSubmitting(false);
             return;
           }
           // Validate at least one correct answer
           const hasCorrect = q.answers.some(a => a.isCorrect);
           if (!hasCorrect) {
-            message.error(`Câu hỏi ${quizData.questions.indexOf(q) + 1} phải có ít nhất 1 đáp án đúng`);
+            messageApi.error(`Câu hỏi ${quizData.questions.indexOf(q) + 1} phải có ít nhất 1 đáp án đúng`);
             setSubmitting(false);
             return;
           }
           // Validate answer content
           for (let a of q.answers) {
             if (!a.content || a.content.trim() === "") {
-              message.error(`Câu hỏi ${quizData.questions.indexOf(q) + 1} có đáp án không có nội dung`);
+              messageApi.error(`Câu hỏi ${quizData.questions.indexOf(q) + 1} có đáp án không có nội dung`);
               setSubmitting(false);
               return;
             }
           }
         }
       }
+      } // end if (!isTemplateMode)
 
       // Process questions to ensure IDs are handled correctly for backend
       // Real IDs are small integers. Temp IDs are Date.now() (very large).
@@ -374,57 +428,75 @@ export default function QuizDetail() {
         questions: processedQuestions,
       };
 
-      let response;
-      if (isEditMode) {
-        // Update existing quiz
-        response = await updateQuiz(quizId, formData);
-        message.success("Cập nhật bài kiểm tra thành công");
-      } else {
-        // Create new quiz
-        if (chapterId) {
-          // Create quiz in chapter
-          response = await createQuizInChapter(chapterId, formData);
-          message.success("Tạo bài kiểm tra thành công");
+      // Template-specific payload (no questions)
+      const templatePayload = {
+        title: values.title,
+        description: values.description || null,
+        timeLimitMinutes: parseInt(values.timeLimitMinutes) || 30,
+        minPassScore: values.minPassScore ? parseInt(values.minPassScore) : null,
+        maxAttempts: values.maxAttempts ? parseInt(values.maxAttempts) : null,
+        availableFrom: values.availableFrom ? values.availableFrom.toISOString() : null,
+        availableTo: values.availableUntil ? values.availableUntil.toISOString() : null,
+      };
+
+      let savedQuiz;
+      if (isTemplateMode && templateIdFromPath) {
+        if (isEditMode) {
+          // ── Template edit: update existing QuizTemplate ──
+          const response = await updateQuizTemplate(quizId, templatePayload);
+          savedQuiz = response.data || response;
+          messageApi.success("Cập nhật bài kiểm tra mẫu thành công");
         } else {
-          // Create quiz directly to course
-          response = await createQuiz(formData);
-          message.success("Tạo bài kiểm tra thành công");
+          // ── Template create: create QuizTemplate → link to template chapter ──
+          const response = await createQuizTemplate(templatePayload);
+          savedQuiz = response.data || response;
+
+          await createContentItemTemplate(templateIdFromPath, chapterIdFromState, {
+            itemType: "QUIZ",
+            quizTemplateId: savedQuiz.id,
+          });
+
+          messageApi.success("Tạo và gắn bài kiểm tra vào chương trình thành công");
         }
-        
-        // Navigate back after success
-        setTimeout(() => {
-          if (chapterId) {
-            navigate(`/teacher/courses/${courseId}`);
-          } else {
-            navigate(`/teacher/courses`);
-          }
-        }, 1000);
+      } else if (isEditMode) {
+        // Update existing quiz in class section
+        const response = await updateQuiz(quizId, formData);
+        savedQuiz = response.data || response;
+        messageApi.success("Cập nhật bài kiểm tra thành công");
+      } else {
+        // ── Class section flow: create quiz → link to class chapter ──
+        const response = await createQuiz(formData);
+        savedQuiz = response.data || response;
+
+        const chapterIdForSection = chapterId || chapterIdFromState;
+        if (classSectionId && chapterIdForSection) {
+          await createClassContentItem(classSectionId, chapterIdForSection, {
+            itemType: "QUIZ",
+            quizId: savedQuiz.id,
+            title: formData.title,
+          });
+        }
+        messageApi.success("Tạo bài kiểm tra thành công");
       }
       
-      if (isEditMode) {
-         // Stay on page or navigate? Usually stay or go back. Let's go back for consistency
-         setTimeout(() => {
-            navigate(-1);
-         }, 1000);
-      }
+      // Navigate back after success
+      setTimeout(() => {
+        const base = isAdmin ? "/admin" : "/teacher";
+        if (isTemplateMode && templateIdFromPath) {
+          navigate(`${base}/curriculums/${templateIdFromPath}`);
+        } else if (classSectionId) {
+          navigate(`${base}/class-sections/${classSectionId}`);
+        } else {
+          navigate(`${base}/curriculums`);
+        }
+      }, 1000);
 
     } catch (err) {
       console.error(err);
-      message.error(err.message || "Có lỗi xảy ra");
+      messageApi.error(err.message || "Có lỗi xảy ra");
       setSubmitting(false);
     }
   };
-      //       navigate(`/teacher/courses/${courseId}`);
-      //     }
-      //   }, 500);
-      // }
-    // } catch (error) {
-    //   message.error(error.message || "Lỗi khi lưu bài kiểm tra");
-    //   console.error("Form submission error:", error);
-    // } finally {
-    //   setSubmitting(false);
-    // }
-  // };
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
@@ -436,21 +508,28 @@ export default function QuizDetail() {
         }`}>
           <div className="flex-1 overflow-y-auto p-6 md:px-12 md:py-8">
             <button
-              onClick={() => navigate(`/teacher/courses/${courseId}`)}
+              onClick={() => {
+                const base = isAdmin ? "/admin" : "/teacher";
+                if (isTemplateMode && templateIdFromPath) {
+                  navigate(`${base}/curriculums/${templateIdFromPath}`);
+                } else {
+                  navigate(`${base}/class-sections/${classSectionId}`);
+                }
+              }}
               className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
             >
               <ArrowLeftIcon className="w-5 h-5" />
               <span className="font-medium">
-                Quay lại khóa học {course?.title}
+                Quay lại {isTemplateMode ? `khung chương trình: ${course?.name}` : `khóa học: ${course?.title}`}
               </span>
             </button>
             {loading ? (
               <div className="flex justify-center items-center h-full">
-                <Spin size="large" tip="Đang tải dữ liệu..." />
+                <Spin size="large" description="Đang tải dữ liệu..." />
               </div>
             ) : error ? (
               <Alert
-                message="Lỗi"
+                title="Lỗi"
                 description={error}
                 type="error"
                 showIcon
@@ -621,6 +700,8 @@ export default function QuizDetail() {
                 </div>
               </Form>
 
+              {/* Questions section — hidden in template mode (QuizTemplate has no questions) */}
+              {!isTemplateMode && (<>
               <div className="flex items-center justify-between mt-4">
                 <h3 className="text-xl font-bold text-[#111418] dark:text-white">
                   Danh sách câu hỏi
@@ -844,6 +925,7 @@ export default function QuizDetail() {
                 <PlusCircleIcon className="h-8 w-8 group-hover:scale-110 transition-transform" />
                 <span className="font-bold">Thêm câu hỏi mới</span>
               </button>)}
+              </>)}
             </div>
             )}
           </div>

@@ -6,9 +6,7 @@ import useUserStore from "../../store/useUserStore";
 import Avatar from "../common/Avatar";
 import ConfirmModal from "../common/ConfirmModal";
 import {
-  MagnifyingGlassIcon,
   BellIcon,
-  Bars3Icon,
 } from "@heroicons/react/24/outline";
 import {
   getMyNotifications,
@@ -16,71 +14,53 @@ import {
   markNotificationAsRead,
 } from "../../api/notification";
 
+import useNotificationStore from "../../store/useNotificationStore";
+
 export default function TeacherHeader({ toggleSidebar }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { logout, isLoggedIn } = useAuth();
   const user = useUserStore((state) => state.user);
+  
+  // Use Notification Store
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+  const fetchUnreadCount = useNotificationStore((state) => state.fetchUnreadCount);
+  const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const connect = useNotificationStore((state) => state.connect);
+  const disconnect = useNotificationStore((state) => state.disconnect);
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
 
-  // Fetch notifications when component mounts or when dropdown opens
+  // Initial fetch and WebSocket connection
+  useEffect(() => {
+    if (isLoggedIn && user?.id) {
+      fetchUnreadCount();
+      connect(user.id);
+    }
+    return () => disconnect();
+  }, [isLoggedIn, user?.id, fetchUnreadCount, connect, disconnect]);
+
+  // Fetch notifications when dropdown opens
   useEffect(() => {
     if (isLoggedIn && isNotificationOpen) {
-      fetchNotifications();
+      const load = async () => {
+        setIsLoadingNotifications(true);
+        await fetchNotifications();
+        setIsLoadingNotifications(false);
+      };
+      load();
     }
-  }, [isNotificationOpen, isLoggedIn]);
-
-  // Fetch unread count on mount
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchUnreadCount();
-    }
-  }, [isLoggedIn]);
-
-  const fetchNotifications = async () => {
-    try {
-      setIsLoadingNotifications(true);
-      const response = await getMyNotifications();
-      setNotifications(response);
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-      setNotifications([]);
-    } finally {
-      setIsLoadingNotifications(false);
-    }
-  };
-
-  const fetchUnreadCount = async () => {
-    try {
-      const count = await countUnreadNotifications();
-      setUnreadCount(count);
-    } catch (err) {
-      console.error("Failed to fetch unread count:", err);
-      setUnreadCount(0);
-    }
-  };
+  }, [isNotificationOpen, isLoggedIn, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId) => {
-    try {
-      await markNotificationAsRead(notificationId);
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((notif) =>
-          notif.id === notificationId ? { ...notif, isRead: true } : notif
-        )
-      );
-      // Refresh unread count
-      fetchUnreadCount();
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
-    }
+    await markAsRead(notificationId);
   };
 
   // Dummy notifications - reuse from Header.jsx or fetch from API
@@ -143,31 +123,22 @@ export default function TeacherHeader({ toggleSidebar }) {
           </button> */}
 
           <div className="flex items-center gap-3 text-primary">
-            <span className="material-symbols-outlined text-primary text-3xl">
-                school
-              </span>
-            <h2 className="hidden sm:block text-xl font-bold leading-tight tracking-[-0.015em] text-[#111418] dark:text-white">
+            {/* 1. Icon nên có leading-none để xóa sạch padding thừa của font icon */}
+            <span className="material-symbols-outlined text-primary text-3xl leading-none">
+    school
+  </span>
+
+            {/* 2. Tinh chỉnh translate-y:
+      - Nếu chữ đang cao hơn icon: dùng translate-y-[1px] hoặc [2px]
+      - Nếu chữ đang thấp hơn icon: dùng -translate-y-[1px] hoặc [-2px]
+  */}
+            <h2 className="hidden sm:block text-xl font-bold leading-none tracking-[-0.015em] text-[#111418] dark:text-white transform translate-y-[4px]">
               LearnOnline
             </h2>
           </div>
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4 ml-8">
-          {/* Search Bar */}
-          <div className="relative w-full max-w-xs hidden md:block">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <input
-              className="w-full rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 py-2 pl-10 pr-4 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:border-primary focus:ring-primary focus:outline-none"
-              placeholder={t("header.timKiem")}
-              type="search"
-            />
-          </div>
-
-          {/* Mobile Search Button */}
-          <button className="flex items-center justify-center size-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 md:hidden">
-            <MagnifyingGlassIcon className="h-6 w-6" />
-          </button>
-
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
             <button
@@ -250,12 +221,28 @@ export default function TeacherHeader({ toggleSidebar }) {
               <Avatar
                 src={user?.imageUrl}
                 alt={user?.fullName || user?.username}
-              />
-              <div className="hidden sm:flex flex-col text-left">
-                <p className="text-sm font-bold text-[#111418] dark:text-white max-w-[150px] truncate">
+              />{/*
+              <div className="hidden sm:flex flex-col text-left justify-center">
+                 Thêm !m-0 để ép trình duyệt xóa sạch lề mặc định
+                <p className="text-sm font-bold leading-none text-[#111418] dark:text-white max-w-[150px] truncate uppercase !m-0">
                   {user?.fullName || user?.username || "Giáo viên"}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+
+                 Dòng dưới cũng vậy, kết hợp với -mt để kéo sát lên
+                <p className="text-xs leading-none text-slate-500 dark:text-slate-400 !m-0 -mt-1">
+                  {user?.role === "ADMIN" ? "Quản trị viên" : "Giáo viên"}
+                </p>
+              </div>*/}
+              {/* Thêm gap-1 (4px) hoặc gap-2 (8px) tùy độ giãn bạn muốn */}
+              <div className="hidden sm:flex flex-col text-left justify-center gap-1">
+
+                {/* Giữ nguyên !m-0 để sạch sẽ, nhưng bỏ leading-none nếu muốn giãn thêm nữa */}
+                <p className="text-sm font-bold leading-tight text-[#111418] dark:text-white max-w-[150px] truncate uppercase !m-0">
+                  {user?.fullName || user?.username || "Giáo viên"}
+                </p>
+
+                {/* XÓA BỎ -mt-1 ở đây */}
+                <p className="text-xs leading-tight text-slate-500 dark:text-slate-400 !m-0">
                   {user?.role === "ADMIN" ? "Quản trị viên" : "Giáo viên"}
                 </p>
               </div>

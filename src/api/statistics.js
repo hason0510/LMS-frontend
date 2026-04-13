@@ -1,124 +1,86 @@
-//const API_URL = "http://localhost:8080/api/v1/lms";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+import axiosClient from "./axiosClient";
 
-const API_URL = `${BACKEND_URL}/api/v1/lms`;
 /**
  * Get teacher's enrollment statistics
+ * Supports both courseId (legacy) and classSectionId
  */
-export async function getTeacherEnrollments(courseId = null, approvalStatus = null, pageNumber = 1, pageSize = 10) {
-  const token = localStorage.getItem("accessToken");
-  let url = `${API_URL}/teacher/enrollments?pageNumber=${pageNumber}&pageSize=${pageSize}`;
-  
-  if (courseId) {
-    url += `&courseId=${courseId}`;
-  }
-  if (approvalStatus) {
-    url += `&approvalStatus=${approvalStatus}`;
-  }
+export async function getTeacherEnrollments(courseId = null, classSectionId = null, approvalStatus = null, pageNumber = 1, pageSize = 10) {
+    const params = { pageNumber, pageSize };
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
+    if (courseId) params.courseId = courseId;
+    if (classSectionId) params.classSectionId = classSectionId;
+    if (approvalStatus) params.approvalStatus = approvalStatus;
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch enrollments");
-  }
-
-  return await response.json();
+    const response = await axiosClient.get('teacher/enrollments', { params });
+    return response.data;
 }
 
 /**
- * Get course grade book (all students' quiz results)
+ * Get course/class section grade book (all students' quiz results)
  */
-export async function getCourseGradeBook(courseId) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(
-    `${API_URL}/courses/${courseId}/quiz-grades`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+export async function getCourseGradeBook(courseId = null, classSectionId = null) {
+    let url;
+    if (classSectionId) {
+        url = `class-sections/${classSectionId}/quiz-grades`;
+    } else {
+        url = `courses/${courseId}/quiz-grades`;
     }
-  );
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch course grade book");
-  }
-
-  return await response.json();
+    const response = await axiosClient.get(url);
+    return response.data;
 }
 
 /**
- * Get quiz attempts for a specific chapter item
+ * Get quiz attempts for a specific chapter item or class content item
  */
-export async function getQuizAttempts(chapterItemId, pageNumber = 1, pageSize = 10) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(
-    `${API_URL}/chapterItem/${chapterItemId}/attempts?pageNumber=${pageNumber}&pageSize=${pageSize}`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+export async function getQuizAttempts(chapterItemId = null, classContentItemId = null, pageNumber = 1, pageSize = 10) {
+    let url;
+    if (classContentItemId) {
+        url = `class-content-items/${classContentItemId}/attempts`;
+    } else {
+        url = `chapterItem/${chapterItemId}/attempts`;
     }
-  );
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch quiz attempts");
-  }
-
-  return await response.json();
+    const response = await axiosClient.get(url, {
+        params: { pageNumber, pageSize }
+    });
+    return response.data;
 }
 
 /**
- * Get approved students for a course
+ * Get approved students for a course or class section
  */
-export async function getCourseApprovedStudents(courseId, pageNumber = 1, pageSize = 10) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(
-    `${API_URL}/courses/${courseId}/enrollments/approved?pageNumber=${pageNumber}&pageSize=${pageSize}`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+export async function getApprovedStudents(courseId = null, classSectionId = null, pageNumber = 1, pageSize = 10) {
+    let url;
+    if (classSectionId) {
+        url = `class-sections/${classSectionId}/enrollments/approved`;
+    } else {
+        url = `courses/${courseId}/enrollments/approved`;
     }
-  );
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch approved students");
-  }
-
-  return await response.json();
+    const response = await axiosClient.get(url, {
+        params: { pageNumber, pageSize }
+    });
+    return response.data;
 }
 
 /**
- * Get pending enrollment requests for a course
+ * Get pending enrollment requests for a course or class section
  */
-export async function getCoursePendingRequests(courseId, pageNumber = 1, pageSize = 10) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(
-    `${API_URL}/courses/${courseId}/enrollments/pending?pageNumber=${pageNumber}&pageSize=${pageSize}`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+export async function getPendingRequests(courseId = null, classSectionId = null, pageNumber = 1, pageSize = 10) {
+    let url;
+    if (classSectionId) {
+        url = `class-sections/${classSectionId}/enrollments/pending`;
+    } else {
+        url = `courses/${courseId}/enrollments/pending`;
     }
-  );
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch pending requests");
-  }
-
-  return await response.json();
+    const response = await axiosClient.get(url, {
+        params: { pageNumber, pageSize }
+    });
+    return response.data;
 }
+
+// Aliases for legacy course naming
+export const getCourseApprovedStudents = getApprovedStudents;
+export const getCoursePendingRequests = getPendingRequests;

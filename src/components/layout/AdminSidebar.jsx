@@ -9,6 +9,10 @@ import {
   CheckCircleIcon,
   ChartBarIcon,
   Cog6ToothIcon,
+  BookOpenIcon,
+  RectangleGroupIcon,
+  TagIcon,
+  BookmarkIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar() {
@@ -32,10 +36,34 @@ export default function AdminSidebar() {
           to="/admin/users"
         />
         <SidebarLink
+          icon={<TagIcon className="h-6 w-6" />}
+          label="Quản lý danh mục"
+          active={currentPath.startsWith("/admin/categories")}
+          to="/admin/categories"
+        />
+        <SidebarLink
+          icon={<BookmarkIcon className="h-6 w-6" />}
+          label="Quản lý môn học"
+          active={currentPath.startsWith("/admin/subjects")}
+          to="/admin/subjects"
+        />
+        <SidebarLink
           icon={<AcademicCapIcon className="h-6 w-6" />}
-          label={t("admin.quanLyKhoaHoc")}
-          active={currentPath.startsWith("/admin/courses")}
-          to="/admin/courses"
+          label={t("admin.quanLyLopHoc")}
+          active={currentPath.startsWith("/admin/class-sections")}
+          to="/admin/class-sections"
+        />
+        <SidebarLink
+          icon={<BookOpenIcon className="h-6 w-6" />}
+          label={t("admin.chuongTrinhHoc") || "Chương trình học"}
+          active={currentPath.startsWith("/admin/curriculums")}
+          to="/admin/curriculums"
+        />
+        <SidebarLink
+          icon={<RectangleGroupIcon className="h-6 w-6" />}
+          label={t("admin.nganHangCauHoi") || "Ngân hàng câu hỏi"}
+          active={currentPath.startsWith("/admin/question-banks")}
+          to="/admin/question-banks"
         />
         <SidebarLink
           icon={<CheckCircleIcon className="h-6 w-6" />}

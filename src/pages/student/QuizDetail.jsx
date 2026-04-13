@@ -6,7 +6,7 @@ import { getQuizById, getStudentAttemptsHistory } from "../../api/quiz";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function QuizDetail() {
-  const { id, courseId } = useParams();
+  const { id, classSectionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const chapterItemId = location.state?.chapterItemId;
@@ -57,7 +57,7 @@ export default function QuizDetail() {
   if (loading) {
     return (
       <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center">
-        <Spin size="large" tip="Đang tải thông tin bài kiểm tra..." />
+        <Spin size="large" description="Đang tải thông tin bài kiểm tra..." />
       </div>
     );
   }
@@ -84,7 +84,7 @@ export default function QuizDetail() {
 
   const handleConfirmStart = () => {
     setShowConfirmModal(false);
-    navigate(`/courses/${courseId}/quizzes/${id}/attempt`, { state: { chapterItemId } });
+    navigate(`/class-sections/${classSectionId}/quizzes/${id}/attempt`, { state: { chapterItemId } });
   };
 
   const handleCancelStart = () => {
@@ -108,7 +108,7 @@ export default function QuizDetail() {
       <main className="flex-1 flex justify-center py-8">
         <div className="layout-content-container flex flex-col max-w-[1024px] w-full px-4 md:px-10">
           <button
-              onClick={() => navigate(`/courses/${courseId}`)}
+              onClick={() => navigate(`/class-sections/${classSectionId}`)}
               className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
             >
               <ArrowLeftIcon className="w-5 h-5" />

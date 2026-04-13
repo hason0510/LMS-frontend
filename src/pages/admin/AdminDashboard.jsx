@@ -10,8 +10,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { Spin } from "antd";
 import { getAllUsers } from "../../api/user";
-import { getAdminCourses, getCourseEnrollments } from "../../api/course";
-import { getPendingCourses } from "../../api/course";
+import { getAdminCourses as getAdminClassSections, getPendingCourses as getPendingClassSections } from "../../api/classSection";
+import { getAllEnrollments } from "../../api/enrollment";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function AdminDashboard() {
@@ -26,14 +26,14 @@ export default function AdminDashboard() {
       icon: UserGroupIcon,
     },
     {
-      label: "Số khóa học đang hoạt động",
+      label: "Số lớp học đang hoạt động",
       value: "...",
       change: "+0%",
       changeType: "positive",
       icon: AcademicCapIcon,
     },
     {
-      label: "Số lượng đăng ký mới",
+      label: "Yêu cầu đăng ký mới",
       value: "...",
       change: "+0%",
       changeType: "positive",
@@ -50,22 +50,7 @@ export default function AdminDashboard() {
     { month: "Tháng 5", users: 0 },
     { month: "Tháng 6", users: 0 },
   ]);
-  const [alerts, setAlerts] = useState([
-    {
-      id: 1,
-      type: "warning",
-      icon: "warning",
-      title: "Khóa học chờ duyệt",
-      message: "Có các khóa học mới đang chờ xét duyệt từ quản trị viên.",
-    },
-    {
-      id: 2,
-      type: "info",
-      icon: "approval",
-      title: "Yêu cầu đăng ký chờ xử lý",
-      message: "Xem xét và phê duyệt các yêu cầu đăng ký khóa học của học viên.",
-    },
-  ]);
+  const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -87,40 +72,35 @@ export default function AdminDashboard() {
       setError(null);
 
       // Fetch users
-      const usersResponse = await getAllUsers(0, 1000);
-      const totalUsers = usersResponse.data?.totalElements || 0;
+      const usersRes = await getAllUsers(0, 1000);
+      // usersRes.data is PageResponse { totalElements, ... }
+      const totalUsers = usersRes.data?.totalElements || 0;
 
-      // Fetch courses
-      const coursesResponse = await getAdminCourses(1, 1000);
-      const totalCourses = coursesResponse.data?.totalElements || 0;
+      // Fetch ClassSections
+      const classSectionsRes = await getAdminClassSections(1, 1000);
+      // classSectionsRes.data is List<ClassSectionResponse> or PageResponse?
+      // getClassSections returns List on backend, but getAdminCourses might return PageResponse.
+      // Let's be safe and check both.
+      const totalClassSections = classSectionsRes.data?.totalElements ?? classSectionsRes.data?.length ?? 0;
 
-      // Fetch pending courses for alerts
-      let pendingCoursesCount = 0;
-      let pendingEnrollmentsCount = 0;
-      
+      // Fetch pending ClassSections for alerts
+      let pendingClassSectionsCount = 0;
       try {
-        const pendingCoursesResponse = await getPendingCourses(1, 100);
-        pendingCoursesCount = pendingCoursesResponse.data?.totalElements || 0;
+        const pendingRes = await getPendingClassSections(1, 100);
+        // pendingRes.data is List<ClassSectionResponse> (backend returns List)
+        pendingClassSectionsCount = pendingRes.data?.length || 0;
       } catch (err) {
-        console.error("Failed to fetch pending courses:", err);
+        console.error("Failed to fetch pending class sections:", err);
       }
 
-      // Try to fetch pending enrollments - get all courses and count pending enrollments
+      // Fetch all enrollments to count pending ones
+      let pendingEnrollmentsCount = 0;
       try {
-        const allCoursesResponse = await getAdminCourses(1, 100);
-        const coursesList = allCoursesResponse.data?.pageList || [];
-        
-        for (const course of coursesList.slice(0, 3)) {
-          try {
-            const enrollmentsResponse = await getCourseEnrollments(course.id, 1, 100);
-            const enrollments = enrollmentsResponse.data?.pageList || [];
-            pendingEnrollmentsCount += enrollments.filter(e => e.approvalStatus === 'PENDING').length;
-          } catch (err) {
-            // Continue if individual course fails
-          }
-        }
+        const enrollmentsResponse = await getAllEnrollments(1, 1000);
+        const enrollments = enrollmentsResponse.data?.pageList || [];
+        pendingEnrollmentsCount = enrollments.filter(e => e.approvalStatus === 'PENDING').length;
       } catch (err) {
-        console.error("Failed to fetch enrollments:", err);
+        console.error("Failed to fetch pending enrollments:", err);
       }
 
       // Generate realistic chart data based on total users
@@ -129,18 +109,18 @@ export default function AdminDashboard() {
         month: `T${i + 1}`,
         users: Math.floor(monthlyGrowth * (i + 1) * 0.85 + Math.random() * monthlyGrowth * 0.3),
       }));
-      newChartData[5].users = totalUsers;
+      if (newChartData[5]) newChartData[5].users = totalUsers;
       setChartData(newChartData);
 
       // Update alerts with real data
       const newAlerts = [];
-      if (pendingCoursesCount > 0) {
+      if (pendingClassSectionsCount > 0) {
         newAlerts.push({
           id: 1,
           type: "warning",
           icon: "warning",
-          title: "Khóa học chờ duyệt",
-          message: `Có ${pendingCoursesCount} khóa học mới đang chờ xét duyệt từ quản trị viên.`,
+          title: "Lớp học chờ duyệt",
+          message: `Có ${pendingClassSectionsCount} lớp học mới đang chờ xét duyệt từ quản trị viên.`,
         });
       }
       if (pendingEnrollmentsCount > 0) {
@@ -148,8 +128,8 @@ export default function AdminDashboard() {
           id: 2,
           type: "info",
           icon: "approval",
-          title: "Yêu cầu đăng ký chờ xử lý",
-          message: `Có ${pendingEnrollmentsCount} yêu cầu đăng ký khóa học đang chờ phê duyệt.`,
+          title: "Yêu cầu tham gia chờ xử lý",
+          message: `Có ${pendingEnrollmentsCount} yêu cầu tham gia lớp học đang chờ phê duyệt.`,
         });
       }
       if (newAlerts.length === 0) {
@@ -157,8 +137,8 @@ export default function AdminDashboard() {
           id: 3,
           type: "info",
           icon: "check_circle",
-          title: "Hệ thống hoạt động bình thường",
-          message: "Không có khóa học hoặc yêu cầu đăng ký chờ xử lý.",
+          title: "Hệ thống ổn định",
+          message: "Không có lớp học hoặc yêu cầu tham gia nào đang chờ xử lý.",
         });
       }
       setAlerts(newAlerts);
@@ -173,17 +153,17 @@ export default function AdminDashboard() {
           icon: UserGroupIcon,
         },
         {
-          label: "Số khóa học đang hoạt động",
-          value: totalCourses.toLocaleString(),
+          label: "Lớp học đang hoạt động",
+          value: totalClassSections.toLocaleString(),
           change: "+1.2%",
           changeType: "positive",
           icon: AcademicCapIcon,
         },
         {
-          label: "Số lượng đăng ký mới",
+          label: "Yêu cầu đăng ký mới",
           value: pendingEnrollmentsCount.toString(),
-          change: pendingEnrollmentsCount > 0 ? "+1" : "-",
-          changeType: pendingEnrollmentsCount > 0 ? "positive" : "positive",
+          change: pendingEnrollmentsCount > 0 ? "+1" : "0",
+          changeType: "positive",
           icon: UserPlusIcon,
         },
       ]);
@@ -199,10 +179,6 @@ export default function AdminDashboard() {
     setSidebarOpen(!sidebarOpen);
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
@@ -216,8 +192,8 @@ export default function AdminDashboard() {
       <TeacherHeader toggleSidebar={toggleSidebar} />
       <AdminSidebar />
       
-      <main className={`lg:ml-64 pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
-        sidebarCollapsed ? "pl-20" : "pl-64"
+      <main className={`pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
       }`}>
         <div className="mx-auto max-w-7xl">
           {error && (
@@ -230,29 +206,22 @@ export default function AdminDashboard() {
           <div className="flex flex-wrap mt-3 items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Bảng điều khiển
+                Bảng quản trị hệ thống
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Chào mừng quay trở lại, Quản trị viên!
+                Quản lý tổng thể tài khoản, lớp học và đăng ký.
               </p>
             </div>
-            {/* <div className="flex items-center gap-3">
-              <button className="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">
-                <DocumentArrowDownIcon className="h-5 w-5" />
-                <span>Tạo báo cáo</span>
-              </button>
-            </div> */}
           </div>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-3">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
-              const isPositive = stat.changeType === "positive";
               return (
                 <div
                   key={index}
-                  className="rounded-xl p-6 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700"
+                  className="rounded-xl p-6 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 shadow-sm"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div>
@@ -263,16 +232,12 @@ export default function AdminDashboard() {
                         {stat.value}
                       </p>
                     </div>
-                    <Icon className="h-8 w-8 text-primary/30" />
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <Icon className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                  <p
-                    className={`text-sm font-medium ${
-                      isPositive
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {stat.change} so với tháng trước
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                    {stat.change} <span className="text-gray-500 dark:text-gray-500 font-normal">so với tháng trước</span>
                   </p>
                 </div>
               );
@@ -282,107 +247,108 @@ export default function AdminDashboard() {
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             {/* Chart Section */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-800/50 lg:col-span-3">
-              <p className="text-base font-semibold text-gray-900 dark:text-white mb-2">
-                Tăng trưởng người dùng theo thời gian
-              </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                {stats[0]?.value || "0"} Người dùng
-              </p>
-              <div className="flex gap-2 items-center mb-6">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  6 tháng gần đây
-                </p>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-800/50 lg:col-span-3 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-base font-semibold text-gray-900 dark:text-white">
+                    Tăng trưởng người dùng
+                  </p>
+                  <p className="text-sm text-gray-500">Thống kê 6 tháng gần nhất</p>
+                </div>
+                <div className="px-3 py-1 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 text-xs font-bold rounded-full">
                   +15%
-                </p>
+                </div>
               </div>
               
-              {/* Dynamic Chart */}
               <div className="w-full h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                     <XAxis 
                       dataKey="month" 
-                      stroke="#6b7280"
-                      style={{ fontSize: '12px' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
                     />
                     <YAxis 
-                      stroke="#6b7280"
-                      style={{ fontSize: '12px' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
                     />
                     <Tooltip
+                      cursor={{ fill: 'transparent' }}
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           return (
-                            <div className="bg-white border border-gray-200 rounded-lg p-2 shadow-lg">
-                              <p className="text-sm font-medium text-gray-900">
+                            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-xl">
+                              <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
                                 {payload[0].payload.month}
                               </p>
-                              <p className="text-sm text-primary font-semibold">
-                                Người dùng: {payload[0].value}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                  Người dùng: <span className="font-bold text-gray-900 dark:text-white">{payload[0].value}</span>
+                                </p>
+                              </div>
                             </div>
                           );
                         }
                         return null;
                       }}
                     />
-                    <Bar dataKey="users" fill="#137fec" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="users" fill="#137fec" radius={[4, 4, 0, 0]} barSize={40} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Alerts Section */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-800/50 lg:col-span-2">
-              <p className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-                Cảnh báo hệ thống
-              </p>
-              <div className="flex flex-col gap-3">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-800/50 lg:col-span-2 shadow-sm">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-6">
+                Việc cần xử lý
+              </h3>
+              <div className="space-y-4">
                 {alerts.map((alert) => (
                   <div
                     key={alert.id}
-                    className={`flex items-start gap-3 rounded-lg p-4 ${
+                    className={`flex items-start gap-4 p-4 rounded-xl transition-all duration-200 ${
                       alert.type === "warning"
-                        ? "bg-yellow-50 dark:bg-yellow-500/10"
-                        : "bg-blue-50 dark:bg-blue-500/10"
+                        ? "bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20"
+                        : "bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20"
                     }`}
                   >
-                    <span
-                      className={`material-symbols-outlined text-lg ${
-                        alert.type === "warning"
-                          ? "text-yellow-500 dark:text-yellow-400"
-                          : "text-blue-500 dark:text-blue-400"
-                      }`}
-                      style={{ marginTop: "2px" }}
-                    >
-                      {alert.icon}
-                    </span>
-                    <div className="flex flex-col flex-1">
-                      <p
-                        className={`text-sm font-medium ${
-                          alert.type === "warning"
-                            ? "text-yellow-800 dark:text-yellow-300"
-                            : "text-blue-800 dark:text-blue-300"
+                    <div className={`p-2 rounded-lg ${
+                      alert.type === "warning" ? "bg-amber-100 dark:bg-amber-500/20" : "bg-blue-100 dark:bg-blue-500/20"
+                    }`}>
+                      <span
+                        className={`material-symbols-outlined text-xl ${
+                          alert.type === "warning" ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
                         }`}
                       >
+                        {alert.icon}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-sm font-bold mb-1 ${
+                        alert.type === "warning" ? "text-amber-900 dark:text-amber-200" : "text-blue-900 dark:text-blue-200"
+                      }`}>
                         {alert.title}
                       </p>
-                      <p
-                        className={`text-sm ${
-                          alert.type === "warning"
-                            ? "text-yellow-700 dark:text-yellow-400"
-                            : "text-blue-700 dark:text-blue-400"
-                        }`}
-                      >
+                      <p className={`text-xs leading-relaxed ${
+                        alert.type === "warning" ? "text-amber-800/80 dark:text-amber-400/80" : "text-blue-800/80 dark:text-blue-400/80"
+                      }`}>
                         {alert.message}
                       </p>
                     </div>
                   </div>
                 ))}
               </div>
+              <button 
+                onClick={fetchDashboardData}
+                className="w-full mt-6 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Làm mới dữ liệu
+              </button>
             </div>
           </div>
         </div>
@@ -390,3 +356,7 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+const AdminSidebarCollapsed = ({ collapsed }) => {
+  return <AdminSidebar collapsed={collapsed} />;
+};
