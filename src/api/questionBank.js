@@ -45,6 +45,18 @@ export const deleteQuestion = async (questionId) => {
   return response.data;
 };
 
+export const importGiftQuestions = async (bankId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await axiosClient.post(`question-banks/${bankId}/import-gift`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
 // ==========================================
 // Tags Management
 // ==========================================
