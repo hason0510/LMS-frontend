@@ -195,6 +195,17 @@ export default function CourseContent({ enrollmentStatus = null }) {
           state: { classContentItemId: item.id },
         });
       }
+    } else if (item.itemType === "ASSIGNMENT") {
+      const currentAssignmentId = item.assignmentId || item.id;
+      if (userRole === "STUDENT") {
+        navigate(`/class-sections/${classSectionId}/assignments/${currentAssignmentId}`, {
+          state: { classContentItemId: item.id },
+        });
+      } else {
+        navigate(`/${role}/class-sections/${classSectionId}/assignments/${currentAssignmentId}`, {
+          state: { classContentItemId: item.id },
+        });
+      }
     }
   };
 
@@ -330,6 +341,12 @@ export default function CourseContent({ enrollmentStatus = null }) {
         label: "Thêm bài kiểm tra",
         onClick: () =>
           navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/quizzes/create`),
+      },
+      {
+        key: "add-assignment",
+        label: "ThÃªm bÃ i táº­p",
+        onClick: () =>
+          navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/assignments/create`),
       },
       { type: "divider" },
       {

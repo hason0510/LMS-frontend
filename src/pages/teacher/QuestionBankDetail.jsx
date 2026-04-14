@@ -114,7 +114,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
           title: `Co ${skipped} cau bi bo qua`,
           content: (
             <div className="whitespace-pre-wrap max-h-64 overflow-auto text-xs leading-5">
-              {(result?.warnings || []).join("\n") || "Mot so cau hoi khong dung dinh dang GIFT duoc ho tro."}
+              {(result?.warnings || []).join("\n") || "Mot so cau hoi khong dung dinh dang GIFT/AIKEN duoc ho tro."}
             </div>
           ),
           width: 640,
@@ -122,7 +122,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       }
       await fetchBank();
     } catch (err) {
-      message.error(err?.response?.data?.message || "Import GIFT that bai");
+      message.error(err?.response?.data?.message || "Import GIFT/AIKEN that bai");
     } finally {
       setImportLoading(false);
     }
@@ -207,7 +207,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                       onChange={handleGiftFileSelected}
                     />
                     <Button onClick={handlePickGiftFile} loading={importLoading}>
-                      Import GIFT (.txt)
+                      Import GIFT/AIKEN (.txt)
                     </Button>
                     <Button
                       type="primary"

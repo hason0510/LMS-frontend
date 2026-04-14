@@ -21,6 +21,7 @@ import { getCourseById, createClassContentItem } from "../../api/classSection";
 import { getLessonById, updateLesson, deleteLesson, createLesson } from "../../api/lesson";
 import { createResource, uploadVideoResource, uploadSlideResource, getResourcesByLessonId } from "../../api/resource";
 import { getResourceTypeFromFile, isVideoFile } from "../../utils/fileUtils";
+import FileItem from "../../components/common/FileItem";
 import {
   createContentItemTemplate,
   getTemplateById,
@@ -459,33 +460,26 @@ export default function LectureDetail({ isAdmin = false }) {
                   <div className="flex flex-col gap-1">
                     <h1 className="text-[#111418] dark:text-white text-3xl font-black leading-tight tracking-tight">
                     {isViewMode ? "Chi tiết Bài giảng" : isEditMode ? "Chỉnh sửa Bài giảng" : "Tạo Bài giảng mới"}
-                  </h1>
-                  <p className="text-[#617589] dark:text-gray-400 text-base font-normal">
-                    {isViewMode ? "Xem nội dung bài giảng" : "Chỉnh sửa nội dung, media và bài tập cho bài giảng này."}
-                  </p>
-                </div>
-                {(isEditMode || isViewMode) && (
-                  <div className="flex items-center gap-3">
-                    {isViewMode && (
-                      <Button
-                        type="primary"
-                        onClick={() => setIsViewMode(false)}
-                        className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2"
-                        icon={<PencilIcon className="h-4 w-4" />}
-                      >
-                        Chỉnh sửa
-                      </Button>
-                    )}
-                    {/* <button 
-                      onClick={handleDelete}
-                      disabled={submitting}
-                      className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-semibold disabled:opacity-50"
-                    >
-                      <TrashIcon className="h-[18px] w-[18px]" />
-                      Xóa bài giảng
-                    </button> */}
+                    </h1>
+                    <p className="text-[#617589] dark:text-gray-400 text-base font-normal">
+                      {isViewMode ? "Xem nội dung bài giảng" : "Chỉnh sửa nội dung, media và bài tập cho bài giảng này."}
+                    </p>
                   </div>
-                )}
+                  {(isEditMode || isViewMode) && (
+                    <div className="flex items-center gap-3">
+                      {isViewMode && (
+                        <Button
+                          type="primary"
+                          onClick={() => setIsViewMode(false)}
+                          className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2"
+                          icon={<PencilIcon className="h-4 w-4" />}
+                        >
+                          Chỉnh sửa
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Main Form Grid */}
@@ -663,7 +657,7 @@ export default function LectureDetail({ isAdmin = false }) {
                           className="!hidden"
                         />
                       </div>
-                      {/* File List Items */}
+                      {/* File List Items - Pending Upload */}
                       {uploadedFiles.length > 0 && (
                         <div className="space-y-2">
                           {uploadedFiles.map((file) => (
@@ -680,7 +674,7 @@ export default function LectureDetail({ isAdmin = false }) {
                                     {file.name}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {file.size} MB
+                                    {file.size} MB • Chưa tải lên
                                   </p>
                                 </div>
                               </div>
@@ -695,7 +689,7 @@ export default function LectureDetail({ isAdmin = false }) {
                         </div>
                       )}
 
-                      {/* Resources List Section */}
+                      {/* Resources List Section - Already Uploaded */}
                       {resources.length > 0 && (
                         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                           <h3 className="text-sm font-semibold text-[#111418] dark:text-white mb-3">
@@ -703,61 +697,22 @@ export default function LectureDetail({ isAdmin = false }) {
                           </h3>
                           <div className="space-y-2">
                             {resources.map((resource) => (
-                              <div
+                              <FileItem
                                 key={resource.id}
-                                className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
-                              >
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                  <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded text-green-600 dark:text-green-400 shrink-0">
-                                    {resource.type === "VIDEO" ? (
-                                      <PlayCircleIcon className="h-5 w-5" />
-                                    ) : (
-                                      <DocumentTextIcon className="h-5 w-5" />
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                      {resource.title}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      {resource.type || "File"}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
+                                fileUrl={resource.url}
+                                fileName={resource.title}
+                                fileSize={resource.fileSize}
+                                mimeType={resource.mimeType}
+                                type={resource.type}
+                                source="UPLOAD"
+                                showDelete={!isViewMode}
+                              />
                             ))}
                           </div>
                         </div>
                       )}
                     </div>
                   </div>
-
-                  {/* Quiz Management Section */}
-                  {/* <div className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 p-6 rounded-xl border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex items-start gap-4">
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-full shadow-sm shrink-0 text-primary">
-                        <ClipboardDocumentListIcon className="h-7 w-7" />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <h3 className="text-lg font-bold text-[#111418] dark:text-white">
-                          Bài tập &amp; Quiz
-                        </h3>
-                        <p className="text-sm text-[#617589] dark:text-gray-300 max-w-lg">
-                          Tạo bộ câu hỏi trắc nghiệm hoặc bài tập tự luận cho
-                          bài giảng này để đánh giá học viên.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() =>
-                        navigate(`/teacher/courses/${courseId}/quizzes/create`)
-                      }
-                      className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 text-primary border border-primary/30 rounded-lg font-bold hover:bg-primary hover:text-white transition-all shadow-sm"
-                    >
-                      <PlusCircleIcon className="h-5 w-5" />
-                      Tạo Quiz mới
-                    </button>
-                  </div> */}
 
                   {/* Notes Section */}
                   <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 p-6 rounded-xl">
@@ -775,7 +730,6 @@ export default function LectureDetail({ isAdmin = false }) {
                   </div>
                 </div>
               </Form>
-            </div>
             </>
             )}
             {/* Sticky Footer Action Bar */}
