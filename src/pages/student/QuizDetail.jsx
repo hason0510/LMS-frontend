@@ -9,7 +9,7 @@ export default function QuizDetail() {
   const { id, classSectionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const chapterItemId = location.state?.chapterItemId;
+  const classContentItemId = location.state?.classContentItemId ?? location.state?.chapterItemId;
 
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState(null);
@@ -31,10 +31,10 @@ export default function QuizDetail() {
         const data = response?.data || response;
         setQuiz(data);
 
-        // Fetch attempts history if chapterItemId is available
-        if (chapterItemId) {
+        // Fetch attempts history if classContentItemId is available
+        if (classContentItemId) {
           try {
-            const attemptsResponse = await getStudentAttemptsHistory(chapterItemId);
+            const attemptsResponse = await getStudentAttemptsHistory(classContentItemId);
             const attemptsData = Array.isArray(attemptsResponse) ? attemptsResponse : (attemptsResponse?.data || []);
             setAttempts(attemptsData);
           } catch (err) {
@@ -52,7 +52,7 @@ export default function QuizDetail() {
     };
 
     fetchQuizDetails();
-  }, [id, chapterItemId]);
+  }, [id, classContentItemId]);
 
   if (loading) {
     return (
@@ -84,7 +84,7 @@ export default function QuizDetail() {
 
   const handleConfirmStart = () => {
     setShowConfirmModal(false);
-    navigate(`/class-sections/${classSectionId}/quizzes/${id}/attempt`, { state: { chapterItemId } });
+    navigate(`/class-sections/${classSectionId}/quizzes/${id}/attempt`, { state: { classContentItemId } });
   };
 
   const handleCancelStart = () => {
@@ -96,7 +96,7 @@ export default function QuizDetail() {
   };
 
   // Get quiz statistics
-  const totalQuestions = quiz.questions?.length || 0;
+  const totalQuestions = quiz.questionCount ?? (quiz.questions?.length || 0);
   const timeLimitMinutes = quiz.timeLimitMinutes || 0;
   const minPassScore = quiz.minPassScore || 0;
   const maxAttempts = quiz.maxAttempts; // null nghĩa là không giới hạn

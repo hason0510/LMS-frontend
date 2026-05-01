@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { Alert, Spin } from "antd";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
 import LessonComments from "../../components/lesson/LessonComments";
+import FileItem from "../../components/common/FileItem";
+import VideoPlayer from "../../components/common/VideoPlayer";
 import { getLessonById } from "../../api/lesson";
 import { getResourcesByLessonId } from "../../api/resource";
-import { Spin, Alert, Button, message } from "antd";
-import { ArrowLeftIcon, ArrowTopRightOnSquareIcon, PlayCircleIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 
 export default function StudentLectureDetail() {
   const { classSectionId, lectureId } = useParams();
@@ -19,12 +21,11 @@ export default function StudentLectureDetail() {
     const init = async () => {
       try {
         setLoading(true);
-        // Fetch lesson data
+
         const lessonResponse = await getLessonById(lectureId);
         const lessonData = lessonResponse.data || lessonResponse;
         setLesson(lessonData);
 
-        // Fetch resources for this lesson
         try {
           const resourcesResponse = await getResourcesByLessonId(lectureId);
           const resourcesList = Array.isArray(resourcesResponse)
@@ -49,7 +50,6 @@ export default function StudentLectureDetail() {
   const extractVideoId = (url) => {
     if (!url) return null;
 
-    // YouTube URL patterns
     const youtubeRegex =
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
     const youtubeMatch = url.match(youtubeRegex);
@@ -57,7 +57,6 @@ export default function StudentLectureDetail() {
       return { platform: "youtube", id: youtubeMatch[1] };
     }
 
-    // Vimeo URL pattern
     const vimeoRegex = /vimeo\.com\/(\d+)/;
     const vimeoMatch = url.match(vimeoRegex);
     if (vimeoMatch) {
@@ -72,18 +71,12 @@ export default function StudentLectureDetail() {
 
     if (videoInfo.platform === "youtube") {
       return `https://www.youtube.com/embed/${videoInfo.id}?controls=1&modestbranding=1`;
-    } else if (videoInfo.platform === "vimeo") {
+    }
+    if (videoInfo.platform === "vimeo") {
       return `https://player.vimeo.com/video/${videoInfo.id}`;
     }
 
     return null;
-  };
-
-  const handleOpenResource = (resource) => {
-    const url = resource.fileUrl || resource.embedUrl || resource.url;
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
   };
 
   if (loading) {
@@ -110,6 +103,9 @@ export default function StudentLectureDetail() {
 
   const videoInfo = lesson?.videoUrl ? extractVideoId(lesson.videoUrl) : null;
   const videoEmbedUrl = getVideoEmbedUrl(videoInfo);
+  const uploadedVideoResource = resources.find(
+    (r) => r.type === "VIDEO" && r.source === "UPLOAD"
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -117,7 +113,6 @@ export default function StudentLectureDetail() {
 
       <div className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
-          {/* Back Button */}
           <button
             onClick={() => navigate(`/class-sections/${classSectionId}`)}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-6 font-medium transition-colors"
@@ -126,15 +121,21 @@ export default function StudentLectureDetail() {
             <span>Quay lại</span>
           </button>
 
-          {/* Lesson Title */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-[#111418] dark:text-white mb-2">
               {lesson?.title || "Bài giảng"}
             </h1>
           </div>
 
-          {/* Video Section */}
-          {videoEmbedUrl && (
+          {uploadedVideoResource ? (
+            <div className="mb-8">
+              <VideoPlayer
+                fileUrl={uploadedVideoResource.fileUrl}
+                hlsUrl={uploadedVideoResource.hlsUrl}
+                title={lesson?.title}
+              />
+            </div>
+          ) : videoEmbedUrl ? (
             <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md">
               <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                 <iframe
@@ -143,15 +144,13 @@ export default function StudentLectureDetail() {
                   frameBorder="0"
                   allowFullScreen
                   className="absolute top-0 left-0 w-full h-full"
-                ></iframe>
+                />
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* Content Section */}
           <div className="grid grid-cols-3 gap-8">
             <div className="col-span-2">
-              {/* Lesson Content */}
               {lesson?.content && (
                 <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg px-6 py-4 shadow-md">
                   <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-4">
@@ -160,54 +159,30 @@ export default function StudentLectureDetail() {
                   <div
                     className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-justify]:text-justify [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:mb-6 [&_h1]:mt-4 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:mb-5 [&_h2]:mt-3 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:mb-4 [&_h3]:mt-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6"
                     dangerouslySetInnerHTML={{ __html: lesson.content }}
-                  ></div>
-                </div>
-              )}
-
-              {/* Notes Section */}
-              {lesson?.notes && (
-                <div className="mb-8 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-lg p-6">
-                  <h3 className="text-lg font-bold text-blue-700 dark:text-blue-300 mb-2">
-                    Ghi chú
-                  </h3>
-                  <div className="text-gray-700 dark:text-gray-300">
-                    {lesson.notes}
-                  </div>
+                  />
                 </div>
               )}
             </div>
 
-            {/* Sidebar - Resources */}
             <div>
-              {resources && resources.length > 0 && (
+              {resources.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-4 shadow-md sticky top-24">
                   <h3 className="text-md font-semibold text-[#111418] dark:text-white mb-3">
                     Tài liệu bài giảng
                   </h3>
                   <div className="space-y-2">
                     {resources.map((resource) => (
-                      <div
+                      <FileItem
                         key={resource.id}
-                        className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-primary/5 hover:border-primary/40 transition-all group"
-                        onClick={() => handleOpenResource(resource)}
-                      >
-                        <div className="bg-primary/10 p-2 rounded-md text-primary shrink-0">
-                          {resource.type === "VIDEO" ? (
-                            <PlayCircleIcon className="h-5 w-5" />
-                          ) : (
-                            <DocumentTextIcon className="h-5 w-5" />
-                          )}
-                        </div>
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {resource.title || resource.name}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {resource.type || "Tài liệu"}
-                          </p>
-                        </div>
-                        <ArrowTopRightOnSquareIcon className="h-4 w-4 text-slate-400 group-hover:text-primary flex-shrink-0 transition-colors" />
-                      </div>
+                        fileUrl={resource.fileUrl || resource.url}
+                        fileName={resource.title || resource.name || "Resource"}
+                        fileSize={resource.fileSize}
+                        mimeType={resource.mimeType}
+                        type={resource.type}
+                        source={resource.source}
+                        embedUrl={resource.embedUrl}
+                        showDelete={false}
+                      />
                     ))}
                   </div>
                 </div>
@@ -215,7 +190,6 @@ export default function StudentLectureDetail() {
             </div>
           </div>
 
-          {/* Lesson Comments Section */}
           <LessonComments lectureId={lectureId} />
         </div>
       </div>

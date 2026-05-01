@@ -37,7 +37,7 @@ export default function AdminUserManagement() {
   const [modalMode, setModalMode] = useState("view"); // "view" or "edit"
   const [selectedUser, setSelectedUser] = useState(null);
   const hasInitialized = useRef(false);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // Fetch users on component mount (only once)
   useEffect(() => {
@@ -50,8 +50,14 @@ export default function AdminUserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await getAllUsers(0, 200);
-      // Response có thể là array hoặc object với content array
+      // Lấy tổng số user trước, sau đó fetch tất cả trong 1 request
+      const probe = await getAllUsers(0, 1);
+      const totalElements = probe.data.totalElements;
+      if (totalElements === 0) {
+        setUsers([]);
+        return;
+      }
+      const response = await getAllUsers(0, totalElements);
       const userList = response.data.pageList;
       setUsers(userList);
       message.success("Tải danh sách người dùng thành công");
@@ -419,14 +425,28 @@ export default function AdminUserManagement() {
 
           {/* Pagination */}
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Hiển thị{" "}
-              <span className="font-medium">{startIndex + 1}</span> -{" "}
-              <span className="font-medium">
-                {Math.min(startIndex + itemsPerPage, filteredUsers.length)}
-              </span>{" "}
-              trên <span className="font-medium">{filteredUsers.length}</span> kết quả
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Hiển thị{" "}
+                <span className="font-medium">{filteredUsers.length === 0 ? 0 : startIndex + 1}</span> -{" "}
+                <span className="font-medium">
+                  {Math.min(startIndex + itemsPerPage, filteredUsers.length)}
+                </span>{" "}
+                trên <span className="font-medium">{filteredUsers.length}</span> kết quả
+              </p>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-8 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 text-sm text-gray-700 dark:text-gray-300 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {[20, 50, 100, 200].map((n) => (
+                  <option key={n} value={n}>{n} / trang</option>
+                ))}
+              </select>
+            </div>
 
             <div className="flex items-center gap-2">
               <button

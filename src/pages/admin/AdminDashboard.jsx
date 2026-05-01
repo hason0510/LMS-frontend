@@ -71,9 +71,8 @@ export default function AdminDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch users
-      const usersRes = await getAllUsers(0, 1000);
-      // usersRes.data is PageResponse { totalElements, ... }
+      // Fetch users - chỉ cần 1 bản ghi để lấy totalElements
+      const usersRes = await getAllUsers(0, 1);
       const totalUsers = usersRes.data?.totalElements || 0;
 
       // Fetch ClassSections

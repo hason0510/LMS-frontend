@@ -15,13 +15,15 @@ import {
   CheckCircleIcon,
   ArrowLeftIcon,
   PencilIcon,
+  EyeIcon,
 } from "@heroicons/react/24/outline";
 import { Form, Input, Button, Spin, Alert, Modal, App } from "antd";
 import { getCourseById, createClassContentItem } from "../../api/classSection";
 import { getLessonById, updateLesson, deleteLesson, createLesson } from "../../api/lesson";
-import { createResource, uploadVideoResource, uploadSlideResource, getResourcesByLessonId } from "../../api/resource";
+import { createResource, uploadVideoResource, uploadSlideResource, getResourcesByLessonId, deleteResource } from "../../api/resource";
 import { getResourceTypeFromFile, isVideoFile } from "../../utils/fileUtils";
 import FileItem from "../../components/common/FileItem";
+import VideoPlayer from "../../components/common/VideoPlayer";
 import {
   createContentItemTemplate,
   getTemplateById,
@@ -53,7 +55,17 @@ export default function LectureDetail({ isAdmin = false }) {
   const [notes, setNotes] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [resources, setResources] = useState([]);
+  const [fileUploadProgress, setFileUploadProgress] = useState({}); // { fileId: 0-100 }
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef(null);
+
+  // Video upload state
+  const [videoSourceType, setVideoSourceType] = useState("embed"); // "embed" | "upload"
+  const [videoResource, setVideoResource] = useState(null);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
+  const videoFileInputRef = React.useRef(null);
+  const [pendingVideoFile, setPendingVideoFile] = useState(null); // for create mode
 
   // Template Mode Detection
   const isTemplateMode = location.state?.isTemplateMode || false;
@@ -162,10 +174,18 @@ export default function LectureDetail({ isAdmin = false }) {
           
           try {
             const resourcesResponse = await getResourcesByLessonId(lectureId);
-            const resourcesList = Array.isArray(resourcesResponse) 
-              ? resourcesResponse 
+            const resourcesList = Array.isArray(resourcesResponse)
+              ? resourcesResponse
               : resourcesResponse.data || [];
             setResources(resourcesList);
+
+            const videoRes = resourcesList.find((r) => r.type === "VIDEO");
+            if (videoRes) {
+              setVideoResource(videoRes);
+              setVideoSourceType("upload");
+            } else if (lessonData.videoUrl) {
+              setVideoSourceType("embed");
+            }
           } catch (resourceErr) {
             console.error("Failed to fetch resources:", resourceErr);
             setResources([]);
@@ -203,6 +223,9 @@ export default function LectureDetail({ isAdmin = false }) {
 
   const handleFileSelect = (event) => {
     const files = Array.from(event.target.files || []);
+    // Reset input early so re-selecting the same file works
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
     files.forEach((file) => {
       // Validate file type
       const allowedTypes = [
@@ -214,24 +237,74 @@ export default function LectureDetail({ isAdmin = false }) {
         return;
       }
       // Validate file size (50MB)
-      if (file.size > 50 * 1024 * 1024) {
-        messageApi.error("File không được vượt quá 50MB");
+      if (file.size > 100 * 1024 * 1024) {
+        messageApi.error("File không được vượt quá 100MB");
         return;
       }
 
+      const fileId = Date.now() + Math.random();
       const newFile = {
-        id: Date.now() + Math.random(),
+        id: fileId,
         name: file.name,
         size: (file.size / (1024 * 1024)).toFixed(1),
-        file: file, // Store actual file object for upload
-        isNew: true, // Mark as new file
+        file: file,
+        isNew: true,
+        uploading: false,
       };
-      setUploadedFiles((prev) => [...prev, newFile]);
+
+      // In edit mode (lectureId exists, not template): upload immediately
+      if (lectureId && !isTemplateMode) {
+        const uploadingFile = { ...newFile, uploading: true };
+        setUploadedFiles((prev) => [...prev, uploadingFile]);
+        setIsUploading(true);
+
+        (async () => {
+          try {
+            const resourceType = getResourceTypeFromFile(file);
+            const resourceResponse = await createResource(lectureId, {
+              title: file.name,
+              fileUrl: "",
+              type: resourceType,
+            });
+            const resourceId = resourceResponse?.id || resourceResponse?.data?.id;
+
+            if (resourceId) {
+              const uploadFn = isVideoFile(file) ? uploadVideoResource : uploadSlideResource;
+              await uploadFn(resourceId, file, (percent) => {
+                setFileUploadProgress((prev) => ({ ...prev, [fileId]: percent }));
+              });
+
+              // Refresh the resource list
+              const resourcesResponse = await getResourcesByLessonId(lectureId);
+              const list = Array.isArray(resourcesResponse)
+                ? resourcesResponse
+                : resourcesResponse.data || [];
+              setResources(list);
+
+              messageApi.success(`Tải lên ${file.name} thành công`);
+            }
+          } catch (err) {
+            console.error("Failed to upload file:", err);
+            messageApi.warning(`Không thể tải lên file ${file.name}`);
+            setUploadedFiles((prev) => prev.map((f) =>
+              f.id === fileId ? { ...f, uploading: false, uploadError: true } : f
+            ));
+          } finally {
+            // Remove the pending entry (success or error)
+            setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+            setFileUploadProgress((prev) => {
+              const next = { ...prev };
+              delete next[fileId];
+              return next;
+            });
+            setIsUploading(false);
+          }
+        })();
+      } else {
+        // Create mode or template mode: defer upload to handleSubmit
+        setUploadedFiles((prev) => [...prev, newFile]);
+      }
     });
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const handleDeleteFile = (fileId) => {
@@ -321,37 +394,60 @@ export default function LectureDetail({ isAdmin = false }) {
         messageApi.success("Tạo bài giảng thành công");
       }
 
+      // Upload pending video (create mode only)
+      if (!isTemplateMode && pendingVideoFile && savedLesson?.id) {
+        setIsVideoUploading(true);
+        setVideoUploadProgress(0);
+        try {
+          const resourceResponse = await createResource(savedLesson.id, {
+            title: pendingVideoFile.name,
+            fileUrl: "",
+            type: "VIDEO",
+            source: "UPLOAD",
+          });
+          const resourceId = resourceResponse?.id || resourceResponse?.data?.id;
+          if (resourceId) {
+            await uploadVideoResource(resourceId, pendingVideoFile, (percent) => {
+              setVideoUploadProgress(percent);
+            });
+          }
+        } catch (uploadErr) {
+          console.error("Failed to upload video:", uploadErr);
+          messageApi.warning("Không thể tải lên video");
+        } finally {
+          setIsVideoUploading(false);
+          setVideoUploadProgress(0);
+          setPendingVideoFile(null);
+        }
+      }
+
       // Upload files only for class section lessons (LessonTemplate has no resources)
-      const newFiles = isTemplateMode ? [] : uploadedFiles.filter(f => f.file);
+      // In edit mode, files are already uploaded immediately on select — only pending files remain here
+      const newFiles = isTemplateMode ? [] : uploadedFiles.filter(f => f.file && !f.uploading);
       if (newFiles.length > 0 && savedLesson?.id) {
+        setIsUploading(true);
         for (const file of newFiles) {
           try {
-            // Detect resource type from file
             const resourceType = getResourceTypeFromFile(file.file);
-            
-            // Step 1: Create resource
             const resourceResponse = await createResource(savedLesson.id, {
               title: file.name,
-              url: "",
-              type: resourceType
+              fileUrl: "",
+              type: resourceType,
             });
-            
-            // Step 2: Upload the actual file
             if (resourceResponse?.id || resourceResponse?.data?.id) {
               const resourceId = resourceResponse.id || resourceResponse.data.id;
-              
-              if (isVideoFile(file.file)) {
-                await uploadVideoResource(resourceId, file.file);
-              } else {
-                await uploadSlideResource(resourceId, file.file);
-              }
-              messageApi.success(`Tải lên ${file.name} thành công`);
+              const uploadFn = isVideoFile(file.file) ? uploadVideoResource : uploadSlideResource;
+              await uploadFn(resourceId, file.file, (percent) => {
+                setFileUploadProgress((prev) => ({ ...prev, [file.id]: percent }));
+              });
             }
           } catch (uploadErr) {
             console.error("Failed to upload file:", uploadErr);
             messageApi.warning(`Không thể tải lên file ${file.name}`);
           }
         }
+        setIsUploading(false);
+        setFileUploadProgress({});
       }
 
       // Navigate back
@@ -392,6 +488,75 @@ export default function LectureDetail({ isAdmin = false }) {
         }
       },
     });
+  };
+
+  const handleVideoFileSelect = async (event) => {
+    const file = event.target.files?.[0];
+    if (videoFileInputRef.current) videoFileInputRef.current.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("video/")) {
+      messageApi.error("Chỉ hỗ trợ file video (MP4, WebM, MOV...)");
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      messageApi.error("File video không được vượt quá 100MB");
+      return;
+    }
+
+    // Create mode: defer upload until lesson is saved
+    if (!lectureId) {
+      setPendingVideoFile(file);
+      return;
+    }
+
+    setIsVideoUploading(true);
+    setVideoUploadProgress(0);
+
+    try {
+      const resourceResponse = await createResource(lectureId, {
+        title: file.name,
+        fileUrl: "",
+        type: "VIDEO",
+        source: "UPLOAD",
+      });
+      const resourceId = resourceResponse?.id || resourceResponse?.data?.id;
+
+      if (resourceId) {
+        await uploadVideoResource(resourceId, file, (percent) => {
+          setVideoUploadProgress(percent);
+        });
+
+        const resourcesResponse = await getResourcesByLessonId(lectureId);
+        const list = Array.isArray(resourcesResponse)
+          ? resourcesResponse
+          : resourcesResponse.data || [];
+        setResources(list);
+
+        const uploaded = list.find((r) => r.id === resourceId);
+        setVideoResource(uploaded || null);
+        messageApi.success("Upload video thành công");
+      }
+    } catch (err) {
+      console.error("Video upload failed:", err);
+      messageApi.error("Không thể upload video. Vui lòng thử lại.");
+    } finally {
+      setIsVideoUploading(false);
+      setVideoUploadProgress(0);
+    }
+  };
+
+  const handleDeleteVideo = async () => {
+    if (!videoResource) return;
+    try {
+      await deleteResource(videoResource.id);
+      setVideoResource(null);
+      setResources((prev) => prev.filter((r) => r.id !== videoResource.id));
+      messageApi.success("Đã xóa video");
+    } catch (err) {
+      console.error("Delete video failed:", err);
+      messageApi.error("Không thể xóa video");
+    }
   };
 
   const handleDragOver = (e) => {
@@ -475,6 +640,28 @@ export default function LectureDetail({ isAdmin = false }) {
                           icon={<PencilIcon className="h-4 w-4" />}
                         >
                           Chỉnh sửa
+                        </Button>
+                      )}
+                      {!isAdmin && !isTemplateMode && classSectionId && lectureId && (
+                        <Button
+                          onClick={() => {
+                            const doNavigate = () => navigate(`/teacher/class-sections/${classSectionId}/lectures/${lectureId}/preview`);
+                            if (isEditMode) {
+                              modalApi.confirm({
+                                title: "Xem trước bài giảng",
+                                content: "Trang xem trước hiển thị phiên bản đã lưu. Các thay đổi chưa lưu sẽ không xuất hiện.",
+                                okText: "Xem trước",
+                                cancelText: "Hủy",
+                                onOk: doNavigate,
+                              });
+                            } else {
+                              doNavigate();
+                            }
+                          }}
+                          className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
+                          icon={<EyeIcon className="h-4 w-4" />}
+                        >
+                          Xem như học viên
                         </Button>
                       )}
                     </div>
@@ -562,58 +749,165 @@ export default function LectureDetail({ isAdmin = false }) {
                         <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400">
                           <PlayCircleIcon className="h-6 w-6" />
                         </div>
-                        <h3 className="font-bold text-lg dark:text-white">
-                          Video bài giảng
-                        </h3>
+                        <h3 className="font-bold text-lg dark:text-white">Video bài giảng</h3>
                       </div>
-                      <Form.Item
-                        label="Link Video"
-                        labelCol={{
-                          className: "text-sm font-medium dark:text-gray-300",
-                        }}
-                        className="mb-2"
-                      >
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Dán link YouTube/Video..."
-                            size="large"
-                            value={videoUrl}
-                            onChange={(e) => setVideoUrl(e.target.value)}
-                            disabled={isViewMode}
-                            className={`flex-1 bg-[#f8f9fa] dark:bg-gray-800 border-[#dbe0e6] dark:border-gray-600 ${isViewMode ? 'disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-[#111418] dark:disabled:text-white' : ''}`}
-                          />
-                          {videoUrl && (
-                            <Button
-                              onClick={() => setVideoUrl("")}
-                              className="px-4 h-11 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30 rounded-lg font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/40"
-                            >
-                              Xóa
-                            </Button>
+
+                      {/* Source type toggle */}
+                      <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                        <button
+                          type="button"
+                          onClick={() => !isViewMode && setVideoSourceType("embed")}
+                          className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                            videoSourceType === "embed"
+                              ? "bg-primary text-white"
+                              : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          } ${isViewMode ? "cursor-default" : "cursor-pointer"}`}
+                        >
+                          YouTube / Vimeo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => !isViewMode && setVideoSourceType("upload")}
+                          className={`flex-1 py-2 text-sm font-medium transition-colors border-l border-gray-200 dark:border-gray-600 ${
+                            videoSourceType === "upload"
+                              ? "bg-primary text-white"
+                              : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          } ${isViewMode ? "cursor-default" : "cursor-pointer"}`}
+                        >
+                          Upload Video
+                        </button>
+                      </div>
+
+                      {/* Embed tab */}
+                      {videoSourceType === "embed" && (
+                        <>
+                          <Form.Item
+                            label="Link Video"
+                            labelCol={{ className: "text-sm font-medium dark:text-gray-300" }}
+                            className="mb-2"
+                          >
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="Dán link YouTube/Vimeo..."
+                                size="large"
+                                value={videoUrl}
+                                onChange={(e) => setVideoUrl(e.target.value)}
+                                disabled={isViewMode}
+                                className={`flex-1 bg-[#f8f9fa] dark:bg-gray-800 border-[#dbe0e6] dark:border-gray-600 ${isViewMode ? "disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-[#111418] dark:disabled:text-white" : ""}`}
+                              />
+                              {videoUrl && (
+                                <Button
+                                  onClick={() => setVideoUrl("")}
+                                  className="px-4 h-11 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30 rounded-lg font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/40"
+                                >
+                                  Xóa
+                                </Button>
+                              )}
+                            </div>
+                          </Form.Item>
+                          {videoEmbedUrl ? (
+                            <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                              <iframe
+                                width="100%"
+                                height="100%"
+                                src={videoEmbedUrl}
+                                title="Video Preview"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="absolute inset-0"
+                              />
+                            </div>
+                          ) : (
+                            <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-dashed border-gray-300 dark:border-gray-600">
+                              <div className="bg-white/90 dark:bg-black/70 p-3 rounded-full shadow-lg">
+                                <PlayCircleIcon className="h-8 w-8 text-primary" />
+                              </div>
+                              <div className="absolute bottom-3 left-3 bg-black/70 px-2 py-1 rounded text-xs text-white">
+                                Preview Mode
+                              </div>
+                            </div>
                           )}
-                        </div>
-                      </Form.Item>
-                      {/* Video Preview */}
-                      {videoEmbedUrl ? (
-                        <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-                          <iframe
-                            width="100%"
-                            height="100%"
-                            src={videoEmbedUrl}
-                            title="Video Preview"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="absolute inset-0"
-                          ></iframe>
-                        </div>
-                      ) : (
-                        <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center group cursor-pointer border border-dashed border-gray-300 dark:border-gray-600">
-                          <div className="relative z-10 bg-white/90 dark:bg-black/70 p-3 rounded-full shadow-lg group-hover:scale-110 transition-transform">
-                            <PlayCircleIcon className="h-8 w-8 text-primary" />
-                          </div>
-                          <div className="absolute bottom-3 left-3 z-10 bg-black/70 px-2 py-1 rounded text-xs text-white">
-                            Preview Mode
-                          </div>
+                        </>
+                      )}
+
+                      {/* Upload tab */}
+                      {videoSourceType === "upload" && (
+                        <div className="flex flex-col gap-3">
+                          {videoResource ? (
+                            <>
+                              <VideoPlayer fileUrl={videoResource.fileUrl} hlsUrl={videoResource.hlsUrl} title={videoResource.title} />
+                              {!isViewMode && (
+                                <button
+                                  type="button"
+                                  onClick={handleDeleteVideo}
+                                  className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors self-start"
+                                >
+                                  <TrashIcon className="h-4 w-4" /> Xóa video
+                                </button>
+                              )}
+                            </>
+                          ) : pendingVideoFile ? (
+                            <div className="flex flex-col gap-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                  <div className="p-2 bg-primary/10 rounded-lg">
+                                    <PlayCircleIcon className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{pendingVideoFile.name}</p>
+                                    <p className="text-xs text-gray-500">{(pendingVideoFile.size / (1024 * 1024)).toFixed(1)} MB — Sẽ upload khi lưu bài giảng</p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setPendingVideoFile(null)}
+                                  className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                                >
+                                  <XMarkIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </div>
+                          ) : isVideoUploading ? (
+                            <div className="flex flex-col gap-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                                <span className="font-medium">Đang upload video...</span>
+                                <span className="font-mono">{videoUploadProgress}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="bg-primary h-2 rounded-full transition-all duration-200"
+                                  style={{ width: `${videoUploadProgress}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : !isViewMode ? (
+                            <div
+                              onClick={() => videoFileInputRef.current?.click()}
+                              className="w-full aspect-video bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-primary dark:hover:border-primary transition-colors"
+                            >
+                              <div className="p-3 bg-primary/10 rounded-full">
+                                <CloudArrowUpIcon className="h-8 w-8 text-primary" />
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                  Click để chọn file video
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">MP4, WebM, MOV — tối đa 500MB</p>
+                              </div>
+                              <input
+                                ref={videoFileInputRef}
+                                type="file"
+                                accept="video/*"
+                                onChange={handleVideoFileSelect}
+                                className="hidden"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                              <p className="text-sm text-gray-400">Chưa có video được upload</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -657,35 +951,55 @@ export default function LectureDetail({ isAdmin = false }) {
                           className="!hidden"
                         />
                       </div>
-                      {/* File List Items - Pending Upload */}
+                      {/* File List Items - Pending / Uploading */}
                       {uploadedFiles.length > 0 && (
                         <div className="space-y-2">
-                          {uploadedFiles.map((file) => (
-                            <div
-                              key={file.id}
-                              className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm"
-                            >
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded text-red-600 dark:text-red-400 shrink-0">
-                                  <DocumentTextIcon className="h-5 w-5" />
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                    {file.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {file.size} MB • Chưa tải lên
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => handleDeleteFile(file.id)}
-                                className="text-gray-400 hover:text-red-500 transition-colors"
+                          {uploadedFiles.map((file) => {
+                            const progress = fileUploadProgress[file.id];
+                            const isFileUploading = file.uploading || (progress !== undefined);
+                            return (
+                              <div
+                                key={file.id}
+                                className="flex flex-col p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm gap-2"
                               >
-                                <XMarkIcon className="h-5 w-5" />
-                              </button>
-                            </div>
-                          ))}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 overflow-hidden">
+                                    <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded text-red-600 dark:text-red-400 shrink-0">
+                                      <DocumentTextIcon className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                        {file.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {file.size} MB •{" "}
+                                        {isFileUploading
+                                          ? (progress !== undefined ? `${progress}%` : "Đang chuẩn bị...")
+                                          : "Chờ lưu"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {!isFileUploading && (
+                                    <button
+                                      onClick={() => handleDeleteFile(file.id)}
+                                      className="text-gray-400 hover:text-red-500 transition-colors"
+                                    >
+                                      <XMarkIcon className="h-5 w-5" />
+                                    </button>
+                                  )}
+                                </div>
+                                {/* Progress bar */}
+                                {isFileUploading && (
+                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                    <div
+                                      className="bg-primary h-1.5 rounded-full transition-all duration-200"
+                                      style={{ width: `${progress ?? 0}%` }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -699,12 +1013,13 @@ export default function LectureDetail({ isAdmin = false }) {
                             {resources.map((resource) => (
                               <FileItem
                                 key={resource.id}
-                                fileUrl={resource.url}
-                                fileName={resource.title}
+                                fileUrl={resource.fileUrl || resource.url}
+                                fileName={resource.title || "Resource"}
                                 fileSize={resource.fileSize}
                                 mimeType={resource.mimeType}
                                 type={resource.type}
-                                source="UPLOAD"
+                                source={resource.source}
+                                embedUrl={resource.embedUrl}
                                 showDelete={!isViewMode}
                               />
                             ))}
@@ -753,12 +1068,17 @@ export default function LectureDetail({ isAdmin = false }) {
                 >
                   Hủy
                 </button>
-                <button 
+                <button
                   onClick={handleSubmit}
-                  disabled={submitting || isViewMode}
+                  disabled={submitting || isViewMode || isUploading}
                   className="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold transition-all shadow-md shadow-primary/20 flex items-center gap-2 text-sm disabled:opacity-50"
                 >
-                  {submitting ? (
+                  {isUploading ? (
+                    <>
+                      <Spin size="small" style={{ color: "white" }} />
+                      Đang tải file...
+                    </>
+                  ) : submitting ? (
                     <>
                       <Spin size="small" style={{ color: "white" }} />
                       Đang lưu...

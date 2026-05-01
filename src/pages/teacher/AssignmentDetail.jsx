@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import { App, Button, DatePicker, Form, Input, InputNumber, Spin, Switch } from "antd";
 import dayjs from "dayjs";
 import ReactQuill from "react-quill";
@@ -257,13 +258,26 @@ export default function AssignmentDetail({ isAdmin = false }) {
                   {isEditMode ? "Chỉnh sửa Assignment" : "Tạo Assignment"}
                 </h1>
                 {isEditMode && (
-                  <Button
-                    onClick={() =>
-                      navigate(`${basePath}/class-sections/${classSectionId}/assignments/${assignmentId}/submissions`)
-                    }
-                  >
-                    Xem Bài Nộp
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {!isAdmin && classSectionId && assignmentId && (
+                      <Button
+                        onClick={() =>
+                          navigate(`/teacher/class-sections/${classSectionId}/assignments/${assignmentId}/preview`)
+                        }
+                        className="flex items-center gap-1.5 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
+                        icon={<EyeIcon className="h-4 w-4" />}
+                      >
+                        Xem như học viên
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() =>
+                        navigate(`${basePath}/class-sections/${classSectionId}/assignments/${assignmentId}/submissions`)
+                      }
+                    >
+                      Xem Bài Nộp
+                    </Button>
+                  </div>
                 )}
               </div>
 

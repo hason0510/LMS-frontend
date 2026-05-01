@@ -43,3 +43,8 @@ export async function createUser(userData) {
   return response.data;
 }
 
+export async function searchUsers(params = {}) {
+  const response = await axiosClient.get("users/search", { params });
+  return response.data;
+}
+

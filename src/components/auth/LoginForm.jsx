@@ -17,6 +17,13 @@ export default function LoginForm() {
   const navigate = useNavigate();
   const { loginUser } = useAuth();
 
+  const getRedirectPathForRole = (role) => {
+    const normalized = String(role || "").toUpperCase();
+    if (normalized === "TEACHER") return "/teacher/dashboard";
+    if (normalized === "ADMIN") return "/admin/dashboard";
+    return "/home";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -24,11 +31,18 @@ export default function LoginForm() {
     try {
       const res = await login(username, password);
       console.log("Login response:", res);
-      if (res.data && res.data.accessToken) {
-        loginUser(res.data.accessToken, res.data.user);
+
+      const payload = res?.data ?? res;
+      const accessToken = payload?.accessToken;
+      const loginData = payload?.user;
+
+      if (!accessToken) {
+        throw new Error("Missing access token from login response");
       }
+
+      const authedUser = await loginUser(accessToken, loginData);
       setLoading(false);
-      navigate("/"); // chuyển hướng về Home
+      navigate(getRedirectPathForRole(authedUser?.role || loginData?.role || loginData?.roleName), { replace: true });
     } catch (err) {
       // setError(err.message || 'Đăng nhập thất bại');
         setError(t('auth.dangNhapThatBai'));
@@ -42,11 +56,17 @@ export default function LoginForm() {
     setLoading(true);
     try {
       const res = await googleLogin(credentialResponse);
-      if (res.data && res.data.accessToken) {
-        loginUser(res.data.accessToken, res.data.user);
+      const payload = res?.data ?? res;
+      const accessToken = payload?.accessToken;
+      const loginData = payload?.user;
+
+      if (!accessToken) {
+        throw new Error("Missing access token from google login response");
       }
+
+      const authedUser = await loginUser(accessToken, loginData);
       setLoading(false);
-      navigate("/"); // chuyển hướng về Home
+      navigate(getRedirectPathForRole(authedUser?.role || loginData?.role || loginData?.roleName), { replace: true });
     } catch (err) {
       setError(t('auth.googleLoginThatBai'));
       setLoading(false);

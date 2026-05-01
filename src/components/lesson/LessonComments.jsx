@@ -8,7 +8,7 @@ import {
 } from "../../api/lessonComment";
 import { SendOutlined } from "@ant-design/icons";
 
-export default function LessonComments({ lectureId }) {
+export default function LessonComments({ lectureId, previewMode = false }) {
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +110,13 @@ export default function LessonComments({ lectureId }) {
       </h3>
 
       {/* Comment Button / Form */}
-      {user ? (
+      {previewMode ? (
+        <div className="mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="text-center text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg py-2.5 px-4">
+            Chế độ xem trước — bình luận ở chế độ chỉ đọc, không thể đăng bình luận mới
+          </div>
+        </div>
+      ) : user ? (
         <div className="mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
           {!showCommentForm ? (
             <Button
@@ -205,7 +211,7 @@ export default function LessonComments({ lectureId }) {
                     </p>
                   </div>
                   <div className="flex gap-4 mt-2 text-xs font-medium">
-                    {user && (
+                    {user && !previewMode && (
                       <button
                         onClick={() => setReplyingTo(comment.commentId)}
                         className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
@@ -218,7 +224,7 @@ export default function LessonComments({ lectureId }) {
               </div>
 
               {/* Reply Form */}
-              {replyingTo === comment.commentId && user && (
+              {replyingTo === comment.commentId && user && !previewMode && (
                 <div className="ml-12 mb-4">
                   <div className="flex gap-3">
                     <Avatar

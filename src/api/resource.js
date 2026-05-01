@@ -3,7 +3,7 @@ import axiosClient from "./axiosClient";
 /**
  * Tạo resource cho bài học
  * @param {number} lessonId - ID của bài học
- * @param {object} resourceData - {title, url, type}
+ * @param {object} resourceData - {title, fileUrl, embedUrl, type}
  */
 export async function createResource(lessonId, resourceData) {
   const response = await axiosClient.post(`lessons/${lessonId}/resources`, resourceData);
@@ -14,15 +14,19 @@ export async function createResource(lessonId, resourceData) {
  * Tải lên video cho resource
  * @param {number} resourceId - ID của resource
  * @param {File} file - Video file
+ * @param onProgress
  */
-export async function uploadVideoResource(resourceId, file) {
+export async function uploadVideoResource(resourceId, file, onProgress) {
   const formData = new FormData();
   formData.append("file", file);
 
   const response = await axiosClient.post(`resources/${resourceId}/video`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
-    }
+    },
+    onUploadProgress: onProgress
+      ? (e) => onProgress(Math.round((e.loaded * 100) / e.total))
+      : undefined,
   });
 
   return response.data;
@@ -32,15 +36,19 @@ export async function uploadVideoResource(resourceId, file) {
  * Tải lên slide/tài liệu cho resource
  * @param {number} resourceId - ID của resource
  * @param {File} file - Slide/document file
+ * @param {Function} [onProgress] - Callback nhận phần trăm upload (0-100)
  */
-export async function uploadSlideResource(resourceId, file) {
+export async function uploadSlideResource(resourceId, file, onProgress) {
   const formData = new FormData();
   formData.append("file", file);
 
   const response = await axiosClient.post(`resources/${resourceId}/slide`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
-    }
+    },
+    onUploadProgress: onProgress
+      ? (e) => onProgress(Math.round((e.loaded * 100) / e.total))
+      : undefined,
   });
 
   return response.data;
@@ -67,7 +75,7 @@ export async function getResourceById(resourceId) {
 /**
  * Cập nhật resource
  * @param {number} resourceId - ID của resource
- * @param {object} resourceData - {title, url, type}
+ * @param {object} resourceData - {title, fileUrl, embedUrl, type}
  */
 export async function updateResource(resourceId, resourceData) {
   const response = await axiosClient.put(`resources/${resourceId}`, resourceData);

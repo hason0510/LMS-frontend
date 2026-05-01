@@ -12,11 +12,49 @@ import { Spin, message } from "antd";
 import { getAttemptDetail } from "../../api/quiz";
 import Header from "../../components/layout/Header";
 
+const sortByOrder = (items = []) =>
+  [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
+
+const formatInteractiveAnswer = (attemptAnswer) => {
+  const question = attemptAnswer.quizQuestion || {};
+  const items = question.items || [];
+  const answerItems = attemptAnswer.answerItems || [];
+  const itemsById = new Map(items.map((item) => [item.id, item]));
+
+  if (question.type === "MATCHING") {
+    return answerItems
+      .map((answerItem) => {
+        const prompt = itemsById.get(answerItem.itemId);
+        const selected = itemsById.get(answerItem.selectedItemId);
+        return `${prompt?.content || "Prompt"} → ${selected?.content || "Không chọn"}`;
+      })
+      .join("; ");
+  }
+
+  if (question.type === "DRAG_ORDER") {
+    return [...answerItems]
+      .sort((left, right) => (left.submittedOrderIndex || 0) - (right.submittedOrderIndex || 0))
+      .map((answerItem) => itemsById.get(answerItem.itemId)?.content)
+      .filter(Boolean)
+      .join(" → ");
+  }
+
+  if (question.type === "CLOZE") {
+    const answerByItemId = new Map(answerItems.map((answerItem) => [answerItem.itemId, answerItem.answerText || ""]));
+    return sortByOrder(items.filter((item) => item.role === "BLANK"))
+      .map((blank) => `${blank.content || "Blank"}: ${answerByItemId.get(blank.id) || "Không trả lời"}`)
+      .join("; ");
+  }
+
+  return "";
+};
+
 export default function QuizResult() {
   const { id, classSectionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const attemptId = location.state?.attemptId;
+  const classContentItemId = location.state?.classContentItemId;
 
   const [loading, setLoading] = useState(true);
   const [resultData, setResultData] = useState(null);
@@ -103,7 +141,9 @@ export default function QuizResult() {
   }
 
   const handleRetake = () => {
-    navigate(`/class-sections/${classSectionId}/quizzes/${id}/detail`);
+    navigate(`/class-sections/${classSectionId}/quizzes/${id}/detail`, {
+      state: { classContentItemId },
+    });
   };
 
   const handleBackToCourse = () => {
@@ -251,7 +291,10 @@ export default function QuizResult() {
                 resultData.answers.map((attemptAnswer, index) => {
                   const question = attemptAnswer.quizQuestion || {};
                   const isCorrect = attemptAnswer.isCorrect;
-                  const userAnswer = attemptAnswer.selectedAnswers?.map(a => a.content).join(", ") || attemptAnswer.textAnswer || "Không có câu trả lời";
+                  const userAnswer = formatInteractiveAnswer(attemptAnswer)
+                    || attemptAnswer.selectedAnswers?.map(a => a.content).join(", ")
+                    || attemptAnswer.textAnswer
+                    || "Không có câu trả lời";
                   
                   return (
                     <div

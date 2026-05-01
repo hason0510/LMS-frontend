@@ -90,15 +90,12 @@ export default function FileItem({
     return fileCategory.toUpperCase();
   };
   
-  // Determine the clickable element
-  const isLink = source === "EMBED" || source === "LINK" || embedUrl;
-  
   return (
     <div
       className={`flex items-center justify-between gap-3 border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-gray-800 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors group ${
-        !isLink && effectiveUrl ? "cursor-pointer" : ""
+        effectiveUrl ? "cursor-pointer" : ""
       } ${compact ? "p-2" : ""}`}
-      onClick={!isLink && effectiveUrl ? handleOpen : undefined}
+      onClick={effectiveUrl ? handleOpen : undefined}
     >
       {/* Left side - Icon and file info */}
       <div className="flex items-center gap-3 overflow-hidden min-w-0">
@@ -107,8 +104,7 @@ export default function FileItem({
         </div>
         <div className="flex flex-col min-w-0">
           <p 
-            className={`font-medium truncate text-slate-900 dark:text-slate-100 ${!isLink && effectiveUrl ? "group-hover:text-primary cursor-pointer" : ""}`}
-            onClick={isLink ? handleOpen : undefined}
+            className={`font-medium truncate text-slate-900 dark:text-slate-100 ${effectiveUrl ? "group-hover:text-primary cursor-pointer" : ""}`}
             title={fileName}
           >
             {fileName}

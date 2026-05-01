@@ -1,9 +1,25 @@
 import axios from "axios";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8081';
+const API_BASE = `${BACKEND_URL}/api/v1/lms`;
+
+const AUTH_HEADER_SKIP_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/verify-otp',
+  '/auth/google',
+  '/auth/refresh',
+  '/auth/resend-register-otp',
+  '/auth/resend-reset-password-otp',
+  '/auth/reset-password/request',
+  '/auth/reset-password/confirm',
+];
+
+const isAuthHeaderSkipRequest = (url = '') =>
+  AUTH_HEADER_SKIP_PATHS.some((path) => String(url).includes(path));
 
 const axiosClient = axios.create({
-  baseURL: `${BACKEND_URL}/api/v1/lms`, // Removed trailing slash
+  baseURL: API_BASE,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -27,6 +43,9 @@ const processQueue = (error, token = null) => {
 // Request Interceptor
 axiosClient.interceptors.request.use(
   (config) => {
+    if (isAuthHeaderSkipRequest(config?.url)) {
+      return config;
+    }
     const token = localStorage.getItem("accessToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -41,14 +60,15 @@ axiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+    const requestUrl = originalRequest?.url || '';
 
     // Skip interceptor if:
     // 1. It's an authentication request (login/refresh/register/verify-otp)
     // 2. Error is not 401
-    const isAuthRequest = originalRequest.url.includes('/auth/login') || 
-                         originalRequest.url.includes('/auth/refresh') ||
-                         originalRequest.url.includes('/auth/register') ||
-                         originalRequest.url.includes('/auth/verify-otp');
+    const isAuthRequest = isAuthHeaderSkipRequest(requestUrl);
 
     if (error.response?.status === 401 && !isAuthRequest && !originalRequest._retry) {
       
@@ -67,11 +87,13 @@ axiosClient.interceptors.response.use(
       isRefreshing = true;
 
       return new Promise((resolve, reject) => {
-        axiosClient.put('/auth/refresh')
+        axios.put(`${API_BASE}/auth/refresh`, null, { withCredentials: true })
           .then(({ data }) => {
-            // Backend returns ApiResponse<LoginResponse>, so data is { code, message, data: { accessToken, ... } }
-            const payload = data.data; 
+            const payload = data?.data ?? data;
             const newAccessToken = payload.accessToken;
+            if (!newAccessToken) {
+              throw new Error("Missing access token in refresh response");
+            }
             
             localStorage.setItem("accessToken", newAccessToken);
             

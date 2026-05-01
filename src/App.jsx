@@ -28,6 +28,11 @@ import CreateChapter from "./pages/teacher/CreateChapter";
 import LectureDetail from "./pages/teacher/LectureDetail";
 import AssignmentDetail from "./pages/teacher/AssignmentDetail";
 import AssignmentSubmissions from "./pages/teacher/AssignmentSubmissions";
+import TeacherLessonPreview from "./pages/teacher/TeacherLessonPreview";
+import TeacherQuizPreview from "./pages/teacher/TeacherQuizPreview";
+import TeacherQuizAttemptPreview from "./pages/teacher/TeacherQuizAttemptPreview";
+import TeacherQuizResultPreview from "./pages/teacher/TeacherQuizResultPreview";
+import TeacherAssignmentPreview from "./pages/teacher/TeacherAssignmentPreview";
 import TemplateDetailPage from "./pages/teacher/TemplateDetailPage";
 import TeacherProfilePage from "./pages/teacher/TeacherProfilePage";
 import TeacherSettingsPage from "./pages/teacher/TeacherSettingsPage";
@@ -39,6 +44,7 @@ import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminCategoryManagement from "./pages/admin/AdminCategoryManagement";
 import AdminSubjectManagement from "./pages/admin/AdminSubjectManagement";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import { useTokenExpiration } from "./hooks/useTokenExpiration";
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_HERE";
@@ -57,6 +63,16 @@ function RootRedirect() {
     return <Navigate to="/login" replace />;
   }
 
+  // If we're logged in but user/role is not ready yet (e.g. just after login),
+  // keep a short loading state to avoid "flashing" the wrong role homepage.
+  if (!user || !user.role) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
+  }
+
   // Redirect based on user role
   if (user?.role === "TEACHER") {
     return <Navigate to="/teacher/dashboard" replace />;
@@ -72,6 +88,7 @@ function RootRedirect() {
 
 function AppContent() {
   const { user, isLoggedIn } = useAuth();
+  useTokenExpiration();
   const connect = useNotificationStore((state) => state.connect);
   const disconnect = useNotificationStore((state) => state.disconnect);
   const fetchUnreadCount = useNotificationStore((state) => state.fetchUnreadCount);
@@ -207,6 +224,26 @@ function AppContent() {
       <Route
         path="/teacher/class-sections/:classSectionId/assignments/:assignmentId/submissions"
         element={<ProtectedRoute element={<AssignmentSubmissions />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/lectures/:lectureId/preview"
+        element={<ProtectedRoute element={<TeacherLessonPreview />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/quizzes/:quizId/preview"
+        element={<ProtectedRoute element={<TeacherQuizPreview />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/quizzes/:quizId/preview/attempt"
+        element={<ProtectedRoute element={<TeacherQuizAttemptPreview />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/quizzes/:quizId/preview/result"
+        element={<ProtectedRoute element={<TeacherQuizResultPreview />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:classSectionId/assignments/:assignmentId/preview"
+        element={<ProtectedRoute element={<TeacherAssignmentPreview />} allowedRoles={["TEACHER"]} />}
       />
       <Route
         path="/teacher/curriculums"

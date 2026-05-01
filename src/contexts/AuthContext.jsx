@@ -5,6 +5,25 @@ import { getUserById } from "../api/user";
 
 const AuthContext = createContext();
 
+const normalizeRole = (rawRole) => {
+  const role = String(rawRole || "").toUpperCase().trim();
+  if (role === "TEACHER" || role === "ADMIN" || role === "STUDENT") return role;
+  return rawRole;
+};
+
+const normalizeBasicUser = (loginData) => {
+  if (!loginData) return null;
+
+  // Backend fields vary a bit across endpoints; keep it defensive.
+  const role = normalizeRole(loginData.roleName || loginData.role);
+  return {
+    ...loginData,
+    id: loginData.id,
+    username: loginData.userName || loginData.username,
+    role,
+  };
+};
+
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { i18n } = useTranslation();
@@ -59,35 +78,52 @@ export function AuthProvider({ children }) {
 
   // Hàm login - fetch full user data after login
   const loginUser = async (accessToken, loginData) => {
+    setAuthLoading(true);
     try {
       localStorage.setItem("accessToken", accessToken);
       setAccessToken(accessToken);
       setIsLoggedIn(true);
 
+      // Set basic user immediately so routing/guards don't "flash" another role UI.
+      const basicUser = normalizeBasicUser(loginData);
+      if (basicUser) {
+        localStorage.setItem("user", JSON.stringify(basicUser));
+        setUser(basicUser);
+      }
+
       // Fetch full user data including imageUrl
-      if (loginData?.id) {
+      if (basicUser?.id) {
         const res = await getUserById(loginData.id);
         const fullUserData = res.data || res;
 
         const processedUser = {
           ...fullUserData,
-          id: fullUserData.id || loginData.id,
-          username: fullUserData.userName || loginData.username,
-          role: fullUserData.roleName || loginData.role,
+          id: fullUserData.id || basicUser.id,
+          username: fullUserData.userName || basicUser.username,
+          role: normalizeRole(fullUserData.roleName || fullUserData.role || basicUser.role),
         };
 
         localStorage.setItem("user", JSON.stringify(processedUser));
         setUser(processedUser);
+        return processedUser;
       } else {
         // Fallback if id is not available
-        localStorage.setItem("user", JSON.stringify(loginData));
-        setUser(loginData);
+        if (!basicUser) {
+          localStorage.setItem("user", JSON.stringify(loginData));
+          setUser(loginData);
+          return loginData;
+        }
+        return basicUser;
       }
     } catch (err) {
       console.error("Failed to fetch user data after login:", err);
       // Still set the basic user data from login response
-      localStorage.setItem("user", JSON.stringify(loginData));
-      setUser(loginData);
+      const basicUser = normalizeBasicUser(loginData) || loginData;
+      localStorage.setItem("user", JSON.stringify(basicUser));
+      setUser(basicUser);
+      return basicUser;
+    } finally {
+      setAuthLoading(false);
     }
   };
 

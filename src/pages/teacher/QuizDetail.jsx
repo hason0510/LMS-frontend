@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
-import { Select, DatePicker, Form, Input, Button, Checkbox, Radio, Spin, Alert, App, Modal } from "antd";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { Select, DatePicker, Form, Input, Button, Checkbox, Radio, Spin, Alert, App, Switch } from "antd";
 import dayjs from "dayjs";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import { createQuiz, getQuizById, updateQuiz } from "../../api/quiz";
+import { getQuestionBankById, getQuestionBanks, getTags } from "../../api/questionBank";
 import {
   createContentItemTemplate,
   getTemplateById,
@@ -21,8 +22,157 @@ import {
   CheckIcon,
   PencilIcon,
   ArrowLeftIcon,
+  EyeIcon,
 } from "@heroicons/react/24/outline";
 import { getCourseById } from "../../api/classSection";
+
+const QUIZ_BUILD_MODE = {
+  MANUAL: "MANUAL",
+  QUESTION_BANK: "QUESTION_BANK",
+};
+
+const SOURCE_SELECTION_OPTIONS = [
+  { value: "ALL_MATCHED", label: "Lay tat ca cau phu hop" },
+  { value: "RANDOM", label: "Lay ngau nhien" },
+  { value: "MANUAL", label: "Chon thu cong" },
+];
+
+const DIFFICULTY_OPTIONS = [
+  { value: "EASY", label: "De" },
+  { value: "MEDIUM", label: "Trung binh" },
+  { value: "HARD", label: "Kho" },
+];
+
+const createSourceId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createItemId = () => `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createEmptyBankSource = () => ({
+  sourceId: createSourceId(),
+  id: null,
+  questionBankId: null,
+  tagId: null,
+  selectionMode: "ALL_MATCHED",
+  questionCount: null,
+  difficultyLevel: null,
+  manualQuestionIds: [],
+});
+
+const stripHtml = (value = "") => value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+const isInteractionType = (type) => ["MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
+const splitAcceptedAnswers = (value = "") =>
+  value
+    .split(/\r?\n|,/)
+    .map((answer) => answer.trim())
+    .filter(Boolean);
+
+const createMatchingPairItems = () => {
+  const id = createItemId();
+  return [
+    {
+      id: `prompt-${id}`,
+      content: "",
+      itemKey: `prompt-${id}`,
+      role: "PROMPT",
+      correctMatchKey: `match-${id}`,
+      orderIndex: 1,
+    },
+    {
+      id: `match-${id}`,
+      content: "",
+      itemKey: `match-${id}`,
+      role: "MATCH",
+      orderIndex: 1,
+    },
+  ];
+};
+
+const createDefaultItemsForType = (type) => {
+  if (type === "MATCHING") {
+    const first = createMatchingPairItems();
+    const second = createMatchingPairItems().map((item) => ({ ...item, orderIndex: 2 }));
+    return [...first, ...second];
+  }
+  if (type === "DRAG_ORDER") {
+    return [1, 2].map((index) => ({
+      id: createItemId(),
+      content: "",
+      itemKey: `order-${index}-${createItemId()}`,
+      role: "ORDER_ITEM",
+      correctOrderIndex: index,
+      orderIndex: index,
+    }));
+  }
+  if (type === "CLOZE") {
+    return [
+      {
+        id: createItemId(),
+        content: "Blank 1",
+        itemKey: `blank-${createItemId()}`,
+        role: "BLANK",
+        blankIndex: 1,
+        acceptedAnswers: [],
+        orderIndex: 1,
+      },
+    ];
+  }
+  return [];
+};
+
+const sortByOrder = (items = []) =>
+  [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
+
+const buildItemsForPayload = (question) => {
+  const items = question.items || [];
+  if (question.type === "MATCHING") {
+    const prompts = sortByOrder(items.filter((item) => item.role === "PROMPT"));
+    const matchesByKey = new Map(
+      items.filter((item) => item.role === "MATCH").map((item) => [item.itemKey, item])
+    );
+    return prompts.flatMap((prompt, index) => {
+      const match = matchesByKey.get(prompt.correctMatchKey);
+      return [
+        {
+          content: prompt.content || "",
+          itemKey: prompt.itemKey,
+          role: "PROMPT",
+          correctMatchKey: prompt.correctMatchKey,
+          orderIndex: index + 1,
+        },
+        {
+          content: match?.content || "",
+          itemKey: prompt.correctMatchKey,
+          role: "MATCH",
+          orderIndex: index + 1,
+        },
+      ];
+    });
+  }
+
+  if (question.type === "DRAG_ORDER") {
+    return sortByOrder(items.filter((item) => item.role === "ORDER_ITEM")).map((item, index) => ({
+      content: item.content || "",
+      itemKey: item.itemKey || `order-${index + 1}`,
+      role: "ORDER_ITEM",
+      correctOrderIndex: index + 1,
+      orderIndex: index + 1,
+    }));
+  }
+
+  if (question.type === "CLOZE") {
+    return sortByOrder(items.filter((item) => item.role === "BLANK")).map((item, index) => ({
+      content: item.content || `Blank ${index + 1}`,
+      itemKey: item.itemKey || `blank-${index + 1}`,
+      role: "BLANK",
+      blankIndex: index + 1,
+      acceptedAnswers: Array.isArray(item.acceptedAnswers)
+        ? item.acceptedAnswers
+        : splitAcceptedAnswers(item.acceptedAnswersText || ""),
+      orderIndex: index + 1,
+    }));
+  }
+
+  return [];
+};
 
 export default function QuizDetail({ isAdmin = false }) {
   const { classSectionId, quizId, chapterId } = useParams();
@@ -36,6 +186,12 @@ export default function QuizDetail({ isAdmin = false }) {
   const [isViewMode, setIsViewMode] = useState(isEditMode);
   const [course, setCourse] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [quizBuildMode, setQuizBuildMode] = useState(QUIZ_BUILD_MODE.MANUAL);
+  const [questionBanks, setQuestionBanks] = useState([]);
+  const [questionBanksLoading, setQuestionBanksLoading] = useState(false);
+  const [bankSources, setBankSources] = useState([]);
+  const [bankDetailsById, setBankDetailsById] = useState({});
+  const [bankTagsById, setBankTagsById] = useState({});
 
   const location = useLocation();
   const isTemplateMode = location.state?.isTemplateMode || false;
@@ -58,12 +214,16 @@ export default function QuizDetail({ isAdmin = false }) {
     timeLimitMinutes: 30,
     minPassScore: null,
     maxAttempts: null,
+    generateQuestionsPerAttempt: false,
+    shuffleQuestions: false,
+    shuffleAnswers: false,
     questions: [
       {
         id: 1,
         type: "SINGLE_CHOICE",
         content: "",
         points: 1,
+        items: [],
         answers: [
           { id: 1, content: "", isCorrect: true },
           { id: 2, content: "", isCorrect: false },
@@ -95,6 +255,52 @@ export default function QuizDetail({ isAdmin = false }) {
       }
     };
 
+  const loadQuestionBanks = async () => {
+    if (isTemplateMode) {
+      return;
+    }
+
+    try {
+      setQuestionBanksLoading(true);
+      const response = await getQuestionBanks({ includeQuestions: false });
+      setQuestionBanks(response?.data || response || []);
+    } catch (err) {
+      console.error(err);
+      messageApi.error("Khong the tai danh sach question-bank");
+    } finally {
+      setQuestionBanksLoading(false);
+    }
+  };
+
+  const ensureQuestionBankDetail = async (questionBankId) => {
+    if (!questionBankId || bankDetailsById[questionBankId]) {
+      return;
+    }
+    try {
+      const response = await getQuestionBankById(questionBankId);
+      const detail = response?.data || response;
+      setBankDetailsById((prev) => ({ ...prev, [questionBankId]: detail }));
+    } catch (err) {
+      console.error(err);
+      messageApi.error("Khong the tai chi tiet question-bank");
+    }
+  };
+
+  const ensureBankTags = async (questionBankId) => {
+    if (!questionBankId || bankTagsById[questionBankId]) return;
+    try {
+      const res = await getTags(questionBankId);
+      const tags = res?.data || res || [];
+      setBankTagsById((prev) => ({ ...prev, [questionBankId]: tags }));
+    } catch {
+      // non-blocking
+    }
+  };
+
+  useEffect(() => {
+    loadQuestionBanks();
+  }, [isTemplateMode]);
+
   useEffect(() => {
     if (isEditMode && quizId) {
       fetchQuizData();
@@ -102,6 +308,18 @@ export default function QuizDetail({ isAdmin = false }) {
       setLoading(false);
     }
   }, [quizId]);
+
+  useEffect(() => {
+    if (isTemplateMode || bankSources.length === 0) {
+      return;
+    }
+
+    const uniqueBankIds = [...new Set(bankSources.map((source) => source.questionBankId).filter(Boolean))];
+    uniqueBankIds.forEach((questionBankId) => {
+      ensureQuestionBankDetail(questionBankId);
+      ensureBankTags(questionBankId);
+    });
+  }, [bankSources, isTemplateMode]);
 
   // Fix for: Warning: Instance created by `useForm` is not connected to any Form element.
   useEffect(() => {
@@ -114,6 +332,9 @@ export default function QuizDetail({ isAdmin = false }) {
         maxAttempts: quizData.maxAttempts || undefined,
         availableFrom: quizData.availableFrom ? dayjs(quizData.availableFrom) : null,
         availableUntil: quizData.availableUntil ? dayjs(quizData.availableUntil) : null,
+        generateQuestionsPerAttempt: !!quizData.generateQuestionsPerAttempt,
+        shuffleQuestions: !!quizData.shuffleQuestions,
+        shuffleAnswers: !!quizData.shuffleAnswers,
       });
     }
   }, [loading, quizData, isEditMode, form]);
@@ -123,7 +344,7 @@ export default function QuizDetail({ isAdmin = false }) {
       setLoading(true);
       setError(null);
 
-      if (isTemplateMode) {
+        if (isTemplateMode) {
         // Fetch QuizTemplate (settings only, no questions)
         const response = await getQuizTemplateById(quizId);
         const quiz = response.data || response;
@@ -146,21 +367,46 @@ export default function QuizDetail({ isAdmin = false }) {
           availableFrom: quiz.availableFrom ? dayjs(quiz.availableFrom) : null,
           availableUntil: quiz.availableTo ? dayjs(quiz.availableTo) : null,
         });
-      } else {
-        const response = await getQuizById(quizId);
-        const quiz = response.data || response;
+        } else {
+          const response = await getQuizById(quizId);
+          const quiz = response.data || response;
 
         const transformedQuestions = (quiz.questions || []).map(q => ({
           id: q.id,
           type: q.type || "SINGLE_CHOICE",
           content: q.content || "",
           points: q.points || 1,
+          items: (q.items || []).map((item) => ({
+            ...item,
+            id: item.id || createItemId(),
+            acceptedAnswers: item.acceptedAnswers || [],
+            acceptedAnswersText: (item.acceptedAnswers || []).join("\n"),
+          })),
           answers: (q.answers || []).map(a => ({
             id: a.id,
             content: a.content || "",
             isCorrect: a.isCorrect || false,
           })),
         }));
+
+        const transformedBankSources = (quiz.bankSources || []).map((source, index) => ({
+          sourceId: source.id ? String(source.id) : `${source.questionBankId || "bank"}-${index}`,
+          id: source.id || null,
+          questionBankId: source.questionBankId || null,
+          tagId: source.tagId || null,
+          selectionMode: source.selectionMode || "ALL_MATCHED",
+          questionCount: source.questionCount || null,
+          difficultyLevel: source.difficultyLevel || null,
+          manualQuestionIds: source.manualQuestionIds || [],
+        }));
+
+        if (transformedBankSources.length > 0) {
+          setQuizBuildMode(QUIZ_BUILD_MODE.QUESTION_BANK);
+          setBankSources(transformedBankSources);
+        } else {
+          setQuizBuildMode(QUIZ_BUILD_MODE.MANUAL);
+          setBankSources([]);
+        }
 
         setQuizData({
           title: quiz.title || "",
@@ -170,6 +416,9 @@ export default function QuizDetail({ isAdmin = false }) {
           maxAttempts: quiz.maxAttempts || null,
           availableFrom: quiz.availableFrom || null,
           availableUntil: quiz.availableUntil || null,
+          generateQuestionsPerAttempt: !!quiz.generateQuestionsPerAttempt,
+          shuffleQuestions: !!quiz.shuffleQuestions,
+          shuffleAnswers: !!quiz.shuffleAnswers,
           questions: transformedQuestions.length > 0 ? transformedQuestions : quizData.questions,
         });
       }
@@ -192,6 +441,7 @@ export default function QuizDetail({ isAdmin = false }) {
           type: "SINGLE_CHOICE",
           content: "",
           points: 1,
+          items: [],
           answers: [
             { id: 1, content: "", isCorrect: false },
             { id: 2, content: "", isCorrect: false },
@@ -213,12 +463,32 @@ export default function QuizDetail({ isAdmin = false }) {
       ...quizData,
       questions: quizData.questions.map((q) => {
         if (q.id === questionId) {
-          // If changing to ESSAY, initialize with empty model answer
-          if (type === "ESSAY" && (q.answers.length === 0 || q.type !== "ESSAY")) {
+          // If changing to SHORT_ANSWER, initialize with empty correct answer
+          if (type === "SHORT_ANSWER" && ((q.answers || []).length === 0 || q.type !== "SHORT_ANSWER")) {
             return {
               ...q,
               type,
+              items: [],
               answers: [{ id: Date.now(), content: "", isCorrect: true }]
+            };
+          }
+          if (isInteractionType(type)) {
+            return {
+              ...q,
+              type,
+              answers: [],
+              items: q.type === type && q.items?.length ? q.items : createDefaultItemsForType(type),
+            };
+          }
+          if (isInteractionType(q.type)) {
+            return {
+              ...q,
+              type,
+              items: [],
+              answers: [
+                { id: Date.now(), content: "", isCorrect: true },
+                { id: Date.now() + 1, content: "", isCorrect: false },
+              ],
             };
           }
           return { ...q, type };
@@ -322,9 +592,189 @@ export default function QuizDetail({ isAdmin = false }) {
     });
   };
 
+  const updateQuestionItems = (questionId, updater) => {
+    setQuizData({
+      ...quizData,
+      questions: quizData.questions.map((q) =>
+        q.id === questionId ? { ...q, items: updater(q.items || []) } : q
+      ),
+    });
+  };
+
+  const handleMatchingItemChange = (questionId, itemKey, content) => {
+    updateQuestionItems(questionId, (items) =>
+      items.map((item) => (item.itemKey === itemKey ? { ...item, content } : item))
+    );
+  };
+
+  const handleAddMatchingPair = (questionId) => {
+    updateQuestionItems(questionId, (items) => {
+      const nextOrder =
+        Math.max(0, ...items.filter((item) => item.role === "PROMPT").map((item) => item.orderIndex || 0)) + 1;
+      return [...items, ...createMatchingPairItems().map((item) => ({ ...item, orderIndex: nextOrder }))];
+    });
+  };
+
+  const handleDeleteMatchingPair = (questionId, promptItem) => {
+    updateQuestionItems(questionId, (items) =>
+      items.filter((item) => item.itemKey !== promptItem.itemKey && item.itemKey !== promptItem.correctMatchKey)
+    );
+  };
+
+  const handleDragItemChange = (questionId, itemId, content) => {
+    updateQuestionItems(questionId, (items) =>
+      items.map((item) => (item.id === itemId ? { ...item, content } : item))
+    );
+  };
+
+  const handleMoveDragItem = (questionId, itemId, direction) => {
+    updateQuestionItems(questionId, (items) => {
+      const orderItems = sortByOrder(items.filter((item) => item.role === "ORDER_ITEM"));
+      const index = orderItems.findIndex((item) => item.id === itemId);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= orderItems.length) return items;
+      const nextOrderItems = [...orderItems];
+      [nextOrderItems[index], nextOrderItems[nextIndex]] = [nextOrderItems[nextIndex], nextOrderItems[index]];
+      const reordered = nextOrderItems.map((item, orderIndex) => ({
+        ...item,
+        orderIndex: orderIndex + 1,
+        correctOrderIndex: orderIndex + 1,
+      }));
+      return [...items.filter((item) => item.role !== "ORDER_ITEM"), ...reordered];
+    });
+  };
+
+  const handleAddDragItem = (questionId) => {
+    updateQuestionItems(questionId, (items) => {
+      const nextOrder =
+        Math.max(0, ...items.filter((item) => item.role === "ORDER_ITEM").map((item) => item.orderIndex || 0)) + 1;
+      return [
+        ...items,
+        {
+          id: createItemId(),
+          content: "",
+          itemKey: `order-${createItemId()}`,
+          role: "ORDER_ITEM",
+          correctOrderIndex: nextOrder,
+          orderIndex: nextOrder,
+        },
+      ];
+    });
+  };
+
+  const handleDeleteDragItem = (questionId, itemId) => {
+    updateQuestionItems(questionId, (items) =>
+      sortByOrder(items.filter((item) => item.id !== itemId)).map((item, index) => ({
+        ...item,
+        orderIndex: index + 1,
+        correctOrderIndex: index + 1,
+      }))
+    );
+  };
+
+  const handleClozeBlankChange = (questionId, itemId, patch) => {
+    updateQuestionItems(questionId, (items) =>
+      items.map((item) => (item.id === itemId ? { ...item, ...patch } : item))
+    );
+  };
+
+  const handleAddClozeBlank = (questionId) => {
+    updateQuestionItems(questionId, (items) => {
+      const nextIndex =
+        Math.max(0, ...items.filter((item) => item.role === "BLANK").map((item) => item.blankIndex || 0)) + 1;
+      return [
+        ...items,
+        {
+          id: createItemId(),
+          content: `Blank ${nextIndex}`,
+          itemKey: `blank-${createItemId()}`,
+          role: "BLANK",
+          blankIndex: nextIndex,
+          acceptedAnswers: [],
+          acceptedAnswersText: "",
+          orderIndex: nextIndex,
+        },
+      ];
+    });
+  };
+
+  const handleDeleteClozeBlank = (questionId, itemId) => {
+    updateQuestionItems(questionId, (items) =>
+      sortByOrder(items.filter((item) => item.id !== itemId)).map((item, index) => ({
+        ...item,
+        blankIndex: index + 1,
+        orderIndex: index + 1,
+      }))
+    );
+  };
+
+  const updateBankSource = (sourceId, patch) => {
+    setBankSources((prev) =>
+      prev.map((source) => (source.sourceId === sourceId ? { ...source, ...patch } : source))
+    );
+  };
+
+  const handleBuildModeChange = (mode) => {
+    setQuizBuildMode(mode);
+    if (mode !== QUIZ_BUILD_MODE.QUESTION_BANK) {
+      form.setFieldsValue({ generateQuestionsPerAttempt: false });
+    }
+    if (mode === QUIZ_BUILD_MODE.QUESTION_BANK && bankSources.length === 0) {
+      setBankSources([createEmptyBankSource()]);
+    }
+  };
+
+  const handleAddBankSource = () => {
+    setBankSources((prev) => [...prev, createEmptyBankSource()]);
+  };
+
+  const handleRemoveBankSource = (sourceId) => {
+    setBankSources((prev) => prev.filter((source) => source.sourceId !== sourceId));
+  };
+
+  const handleBankSourceQuestionBankChange = async (sourceId, questionBankId) => {
+    updateBankSource(sourceId, {
+      questionBankId,
+      tagId: null,
+      manualQuestionIds: [],
+    });
+    await Promise.all([
+      ensureQuestionBankDetail(questionBankId),
+      ensureBankTags(questionBankId),
+    ]);
+  };
+
+  const getTagOptionsForSource = (source) => {
+    const tags = bankTagsById[source.questionBankId] || [];
+    return tags.map((t) => ({ value: t.id, label: t.name }));
+  };
+
+  const getQuestionOptionsForSource = (source) => {
+    const bankDetail = bankDetailsById[source.questionBankId];
+    if (!bankDetail?.questions) {
+      return [];
+    }
+
+    let filteredQuestions = bankDetail.questions;
+    if (source.tagId) {
+      filteredQuestions = filteredQuestions.filter((question) =>
+        (question.tags || []).some((tag) => tag?.id === source.tagId)
+      );
+    }
+    if (source.difficultyLevel) {
+      filteredQuestions = filteredQuestions.filter((question) => question.difficultyLevel === source.difficultyLevel);
+    }
+
+    return filteredQuestions.map((question) => ({
+      value: question.id,
+      label: `#${question.id} ${stripHtml(question.content || "").slice(0, 90) || "Cau hoi khong noi dung"}`,
+    }));
+  };
+
   const handleFormSubmit = async (values) => {
     try {
       setSubmitting(true);
+      let processedBankSources = null;
       
       // Validate form fields
       if (!values.title || values.title.trim() === "") {
@@ -339,8 +789,45 @@ export default function QuizDetail({ isAdmin = false }) {
         return;
       }
 
+      if (!isTemplateMode && quizBuildMode === QUIZ_BUILD_MODE.QUESTION_BANK) {
+        if (!bankSources.length) {
+          messageApi.error("Vui long them it nhat 1 nguon question-bank");
+          setSubmitting(false);
+          return;
+        }
+
+        for (let i = 0; i < bankSources.length; i++) {
+          const source = bankSources[i];
+          if (!source.questionBankId) {
+            messageApi.error(`Nguon #${i + 1}: vui long chon question-bank`);
+            setSubmitting(false);
+            return;
+          }
+          if (source.selectionMode === "RANDOM" && (!source.questionCount || Number(source.questionCount) <= 0)) {
+            messageApi.error(`Nguon #${i + 1}: vui long nhap so luong cau hoi > 0`);
+            setSubmitting(false);
+            return;
+          }
+          if (source.selectionMode === "MANUAL" && (!source.manualQuestionIds || source.manualQuestionIds.length === 0)) {
+            messageApi.error(`Nguon #${i + 1}: vui long chon it nhat 1 cau hoi thu cong`);
+            setSubmitting(false);
+            return;
+          }
+        }
+
+        processedBankSources = bankSources.map((source) => ({
+          id: source.id || null,
+          questionBankId: source.questionBankId,
+          tagId: source.tagId || null,
+          selectionMode: source.selectionMode,
+          questionCount: source.selectionMode === "RANDOM" ? Number(source.questionCount) : null,
+          difficultyLevel: source.difficultyLevel || null,
+          manualQuestionIds: source.selectionMode === "MANUAL" ? (source.manualQuestionIds || []) : [],
+        }));
+      }
+
       // Skip question validation in template mode (QuizTemplate has no questions)
-      if (!isTemplateMode) {
+      if (!isTemplateMode && quizBuildMode !== QUIZ_BUILD_MODE.QUESTION_BANK) {
 
       // Validate questions
       if (!quizData.questions || quizData.questions.length === 0) {
@@ -357,17 +844,34 @@ export default function QuizDetail({ isAdmin = false }) {
           return;
         }
         
-        if (q.type === "ESSAY") {
-          // Validate essay answers
+        if (isInteractionType(q.type)) {
+          const items = buildItemsForPayload(q);
+          if (q.type === "MATCHING" && items.some((item) => !item.content.trim())) {
+            messageApi.error(`Câu hỏi ghép cặp ${quizData.questions.indexOf(q) + 1} chưa nhập đủ cặp`);
+            setSubmitting(false);
+            return;
+          }
+          if (q.type === "DRAG_ORDER" && (items.length < 2 || items.some((item) => !item.content.trim()))) {
+            messageApi.error(`Câu hỏi sắp xếp ${quizData.questions.indexOf(q) + 1} cần ít nhất 2 mục`);
+            setSubmitting(false);
+            return;
+          }
+          if (q.type === "CLOZE" && items.some((item) => !item.acceptedAnswers || item.acceptedAnswers.length === 0)) {
+            messageApi.error(`Câu hỏi điền chỗ trống ${quizData.questions.indexOf(q) + 1} chưa có đáp án`);
+            setSubmitting(false);
+            return;
+          }
+        } else if (q.type === "SHORT_ANSWER") {
+          // Validate short answer
           if (!q.answers || q.answers.length === 0) {
-            messageApi.error(`Câu hỏi tự luận ${quizData.questions.indexOf(q) + 1} không có đáp án mẫu`);
+            messageApi.error(`Câu hỏi trả lời ngắn ${quizData.questions.indexOf(q) + 1} không có đáp án đúng`);
             setSubmitting(false);
             return;
           }
           // Validate answer content
           for (let a of q.answers) {
             if (!a.content || a.content.trim() === "") {
-              messageApi.error(`Câu hỏi tự luận ${quizData.questions.indexOf(q) + 1} có đáp án không có nội dung`);
+              messageApi.error(`Câu hỏi trả lời ngắn ${quizData.questions.indexOf(q) + 1} có đáp án không có nội dung`);
               setSubmitting(false);
               return;
             }
@@ -401,14 +905,17 @@ export default function QuizDetail({ isAdmin = false }) {
       // Process questions to ensure IDs are handled correctly for backend
       // Real IDs are small integers. Temp IDs are Date.now() (very large).
       // We set ID to null for temp IDs so backend treats them as new.
-      const processedQuestions = quizData.questions.map(q => {
+      const processedQuestions = quizBuildMode === QUIZ_BUILD_MODE.QUESTION_BANK || isTemplateMode
+        ? null
+        : quizData.questions.map(q => {
         const isTempId = q.id > 2000000000; // a simple heuristic, or check if it was present in initial load
         return {
           ...q,
           id: isTempId ? null : q.id,
           // Ensure points is sent (default 1)
           points: q.points || 1,
-          answers: q.answers.map(a => {
+          items: isInteractionType(q.type) ? buildItemsForPayload(q) : [],
+          answers: isInteractionType(q.type) ? [] : (q.answers || []).map(a => {
             const isTempAnswerId = a.id > 2000000000;
             return {
               ...a,
@@ -420,12 +927,16 @@ export default function QuizDetail({ isAdmin = false }) {
 
       const formData = {
         ...values,
+        generateQuestionsPerAttempt: quizBuildMode === QUIZ_BUILD_MODE.QUESTION_BANK && !!values.generateQuestionsPerAttempt,
+        shuffleQuestions: !!values.shuffleQuestions,
+        shuffleAnswers: !!values.shuffleAnswers,
         timeLimitMinutes: parseInt(values.timeLimitMinutes) || 30,
         minPassScore: values.minPassScore ? parseInt(values.minPassScore) : 0,
         maxAttempts: values.maxAttempts ? parseInt(values.maxAttempts) : null,
         availableFrom: values.availableFrom ? values.availableFrom.toISOString() : null,
         availableUntil: values.availableUntil ? values.availableUntil.toISOString() : null,
         questions: processedQuestions,
+        bankSources: processedBankSources,
       };
 
       // Template-specific payload (no questions)
@@ -498,6 +1009,160 @@ export default function QuizDetail({ isAdmin = false }) {
     }
   };
 
+  const renderInteractionEditor = (question) => {
+    const items = question.items || [];
+
+    if (question.type === "MATCHING") {
+      const prompts = sortByOrder(items.filter((item) => item.role === "PROMPT"));
+      const matchesByKey = new Map(
+        items.filter((item) => item.role === "MATCH").map((item) => [item.itemKey, item])
+      );
+
+      return (
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#617589] dark:text-gray-400 mb-3">
+            Các cặp ghép
+          </label>
+          <div className="flex flex-col gap-3">
+            {prompts.map((prompt, index) => {
+              const match = matchesByKey.get(prompt.correctMatchKey);
+              return (
+                <div key={prompt.itemKey} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3">
+                  <Input
+                    placeholder={`Vế trái ${index + 1}`}
+                    value={prompt.content || ""}
+                    onChange={(e) => handleMatchingItemChange(question.id, prompt.itemKey, e.target.value)}
+                    disabled={isViewMode}
+                  />
+                  <Input
+                    placeholder={`Vế phải ${index + 1}`}
+                    value={match?.content || ""}
+                    onChange={(e) => handleMatchingItemChange(question.id, prompt.correctMatchKey, e.target.value)}
+                    disabled={isViewMode}
+                  />
+                  <Button
+                    type="text"
+                    danger
+                    onClick={() => handleDeleteMatchingPair(question.id, prompt)}
+                    icon={<XMarkIcon className="h-5 w-5" />}
+                    disabled={isViewMode || prompts.length <= 1}
+                  />
+                </div>
+              );
+            })}
+            <button
+              onClick={() => handleAddMatchingPair(question.id)}
+              className="flex items-center gap-2 text-primary hover:text-blue-600 text-sm font-bold py-2 w-fit"
+              disabled={isViewMode}
+            >
+              <PlusCircleIcon className="h-5 w-5" />
+              Thêm cặp ghép
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (question.type === "DRAG_ORDER") {
+      const orderItems = sortByOrder(items.filter((item) => item.role === "ORDER_ITEM"));
+      return (
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#617589] dark:text-gray-400 mb-3">
+            Thứ tự đúng
+          </label>
+          <div className="flex flex-col gap-3">
+            {orderItems.map((item, index) => (
+              <div key={item.id} className="flex items-center gap-2">
+                <span className="w-8 text-center text-sm font-semibold text-[#617589] dark:text-gray-400">
+                  {index + 1}
+                </span>
+                <Input
+                  placeholder={`Mục ${index + 1}`}
+                  value={item.content || ""}
+                  onChange={(e) => handleDragItemChange(question.id, item.id, e.target.value)}
+                  disabled={isViewMode}
+                />
+                <Button onClick={() => handleMoveDragItem(question.id, item.id, -1)} disabled={isViewMode || index === 0}>
+                  ↑
+                </Button>
+                <Button onClick={() => handleMoveDragItem(question.id, item.id, 1)} disabled={isViewMode || index === orderItems.length - 1}>
+                  ↓
+                </Button>
+                <Button
+                  type="text"
+                  danger
+                  onClick={() => handleDeleteDragItem(question.id, item.id)}
+                  icon={<XMarkIcon className="h-5 w-5" />}
+                  disabled={isViewMode || orderItems.length <= 2}
+                />
+              </div>
+            ))}
+            <button
+              onClick={() => handleAddDragItem(question.id)}
+              className="flex items-center gap-2 text-primary hover:text-blue-600 text-sm font-bold py-2 w-fit"
+              disabled={isViewMode}
+            >
+              <PlusCircleIcon className="h-5 w-5" />
+              Thêm mục
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (question.type === "CLOZE") {
+      const blanks = sortByOrder(items.filter((item) => item.role === "BLANK"));
+      return (
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#617589] dark:text-gray-400 mb-3">
+            Chỗ trống
+          </label>
+          <div className="flex flex-col gap-3">
+            {blanks.map((blank, index) => (
+              <div key={blank.id} className="grid grid-cols-1 md:grid-cols-[150px_1fr_auto] gap-3">
+                <Input
+                  placeholder={`Blank ${index + 1}`}
+                  value={blank.content || ""}
+                  onChange={(e) => handleClozeBlankChange(question.id, blank.id, { content: e.target.value })}
+                  disabled={isViewMode}
+                />
+                <Input.TextArea
+                  rows={2}
+                  placeholder="Đáp án chấp nhận, mỗi dòng một đáp án"
+                  value={blank.acceptedAnswersText ?? (blank.acceptedAnswers || []).join("\n")}
+                  onChange={(e) =>
+                    handleClozeBlankChange(question.id, blank.id, {
+                      acceptedAnswersText: e.target.value,
+                      acceptedAnswers: splitAcceptedAnswers(e.target.value),
+                    })
+                  }
+                  disabled={isViewMode}
+                />
+                <Button
+                  type="text"
+                  danger
+                  onClick={() => handleDeleteClozeBlank(question.id, blank.id)}
+                  icon={<XMarkIcon className="h-5 w-5" />}
+                  disabled={isViewMode || blanks.length <= 1}
+                />
+              </div>
+            ))}
+            <button
+              onClick={() => handleAddClozeBlank(question.id)}
+              className="flex items-center gap-2 text-primary hover:text-blue-600 text-sm font-bold py-2 w-fit"
+              disabled={isViewMode}
+            >
+              <PlusCircleIcon className="h-5 w-5" />
+              Thêm chỗ trống
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
       <TeacherHeader />
@@ -547,16 +1212,27 @@ export default function QuizDetail({ isAdmin = false }) {
                     Thiết lập bài kiểm tra trắc nghiệm cho khóa học này.
                   </p>
                 </div>
-                {isEditMode && isViewMode && (
-                  <Button
-                    type="primary"
-                    onClick={() => setIsViewMode(false)}
-                    className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2"
-                    icon={<PencilIcon className="h-4 w-4" />}
-                  >
-                    Chỉnh sửa
-                  </Button>
-                )}
+                <div className="flex items-center gap-3">
+                  {isEditMode && isViewMode && (
+                    <Button
+                      type="primary"
+                      onClick={() => setIsViewMode(false)}
+                      className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2"
+                      icon={<PencilIcon className="h-4 w-4" />}
+                    >
+                      Chỉnh sửa
+                    </Button>
+                  )}
+                  {isEditMode && isViewMode && !isTemplateMode && classSectionId && quizId && (
+                    <Button
+                      onClick={() => navigate(`/teacher/class-sections/${classSectionId}/quizzes/${quizId}/preview`)}
+                      className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
+                      icon={<EyeIcon className="h-4 w-4" />}
+                    >
+                      Xem như học viên
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* General Settings Card */}
@@ -571,9 +1247,12 @@ export default function QuizDetail({ isAdmin = false }) {
                   timeLimitMinutes: "30",
                   minPassScore: undefined,
                   maxAttempts: undefined,
+                  generateQuestionsPerAttempt: false,
+                  shuffleQuestions: false,
+                  shuffleAnswers: false,
                 }}
               >
-                <div className="grid grid-cols-2 gap-x-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                   {/* Quiz Title */}
                   <Form.Item
                     label={
@@ -679,6 +1358,48 @@ export default function QuizDetail({ isAdmin = false }) {
                   >
                     <DatePicker showTime className="h-12 w-full" placeholder="Chọn ngày giờ đóng" disabled={isViewMode} />
                   </Form.Item>
+
+                  {!isTemplateMode && (
+                    <>
+                      <Form.Item
+                        label={
+                          <span className="text-[#111418] dark:text-gray-200 text-base font-medium">
+                            Sinh đề riêng cho mỗi lần làm
+                          </span>
+                        }
+                        name="generateQuestionsPerAttempt"
+                        valuePropName="checked"
+                      >
+                        <Switch
+                          disabled={isViewMode || quizBuildMode !== QUIZ_BUILD_MODE.QUESTION_BANK}
+                        />
+                      </Form.Item>
+
+                      <Form.Item
+                        label={
+                          <span className="text-[#111418] dark:text-gray-200 text-base font-medium">
+                            Đảo thứ tự câu hỏi
+                          </span>
+                        }
+                        name="shuffleQuestions"
+                        valuePropName="checked"
+                      >
+                        <Switch disabled={isViewMode} />
+                      </Form.Item>
+
+                      <Form.Item
+                        label={
+                          <span className="text-[#111418] dark:text-gray-200 text-base font-medium">
+                            Đảo thứ tự đáp án
+                          </span>
+                        }
+                        name="shuffleAnswers"
+                        valuePropName="checked"
+                      >
+                        <Switch disabled={isViewMode} />
+                      </Form.Item>
+                    </>
+                  )}
                   {/* Description */}
                   <Form.Item
                     label={
@@ -701,7 +1422,26 @@ export default function QuizDetail({ isAdmin = false }) {
               </Form>
 
               {/* Questions section — hidden in template mode (QuizTemplate has no questions) */}
-              {!isTemplateMode && (<>
+              {!isTemplateMode && (
+                <>
+              <div className="bg-white dark:bg-card-dark rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5">
+                <label className="block text-sm font-semibold text-[#111418] dark:text-gray-100 mb-2">
+                  Cach tao bo cau hoi
+                </label>
+                <Select
+                  value={quizBuildMode}
+                  onChange={handleBuildModeChange}
+                  className="w-full md:w-80"
+                  disabled={isViewMode}
+                  options={[
+                    { value: QUIZ_BUILD_MODE.MANUAL, label: "Nhap cau hoi thu cong" },
+                    { value: QUIZ_BUILD_MODE.QUESTION_BANK, label: "Lay cau hoi tu question-bank" },
+                  ]}
+                />
+              </div>
+
+              {quizBuildMode === QUIZ_BUILD_MODE.MANUAL ? (
+                <>
               <div className="flex items-center justify-between mt-4">
                 <h3 className="text-xl font-bold text-[#111418] dark:text-white">
                   Danh sách câu hỏi
@@ -741,7 +1481,10 @@ export default function QuizDetail({ isAdmin = false }) {
                               value: "MULTIPLE_CHOICE",
                               label: "Trắc nghiệm (Nhiều đáp án)",
                             },
-                            { value: "ESSAY", label: "Tự luận" },
+                            { value: "SHORT_ANSWER", label: "Trả lời ngắn" },
+                            { value: "MATCHING", label: "Ghép cặp" },
+                            { value: "DRAG_ORDER", label: "Sắp xếp" },
+                            { value: "CLOZE", label: "Điền chỗ trống" },
                           ]}
                         />
                         {/* Points Input */}
@@ -785,14 +1528,16 @@ export default function QuizDetail({ isAdmin = false }) {
                     </div>
                     {/* Answer Options */}
                     <div className="flex flex-col gap-3 mt-2">
-                      {question.type === "ESSAY" ? (
-                        // Essay answer input
+                      {isInteractionType(question.type) ? (
+                        renderInteractionEditor(question)
+                      ) : question.type === "SHORT_ANSWER" ? (
+                        // Short answer input
                         <div className="flex flex-col gap-2">
                           <label className="block text-xs font-bold uppercase tracking-wider text-[#617589] dark:text-gray-400">
-                            Đáp án mẫu (mô tả cách trả lời đúng)
+                            Đáp án đúng
                           </label>
                           <Input.TextArea
-                            placeholder="Nhập đáp án mẫu hoặc hướng dẫn chấm điểm..."
+                            placeholder="Nhập đáp án đúng..."
                             rows={4}
                             value={question.answers[0]?.content || ""}
                             onChange={(e) => {
@@ -925,7 +1670,172 @@ export default function QuizDetail({ isAdmin = false }) {
                 <PlusCircleIcon className="h-8 w-8 group-hover:scale-110 transition-transform" />
                 <span className="font-bold">Thêm câu hỏi mới</span>
               </button>)}
-              </>)}
+              </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mt-4">
+                    <h3 className="text-xl font-bold text-[#111418] dark:text-white">
+                      Nguon cau hoi tu question-bank
+                    </h3>
+                    <span className="text-sm text-[#617589] dark:text-gray-400">
+                      {bankSources.length} nguon
+                    </span>
+                  </div>
+
+                  {questionBanksLoading ? (
+                    <div className="bg-white dark:bg-card-dark rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
+                      <Spin size="small" />
+                      <span className="text-sm text-[#617589] dark:text-gray-400">Dang tai danh sach question-bank...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {bankSources.map((source, index) => {
+                        const tagOptions = getTagOptionsForSource(source);
+                        const questionOptions = getQuestionOptionsForSource(source);
+                        return (
+                          <div
+                            key={source.sourceId}
+                            className="bg-white dark:bg-card-dark rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5"
+                          >
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-sm font-semibold text-[#111418] dark:text-gray-100">
+                                Nguon #{index + 1}
+                              </h4>
+                              {!isViewMode && (
+                                <Button danger type="text" onClick={() => handleRemoveBankSource(source.sourceId)}>
+                                  Xoa nguon
+                                </Button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-semibold text-[#617589] dark:text-gray-400 mb-1">Question-bank</label>
+                                <Select
+                                  value={source.questionBankId}
+                                  onChange={(value) => handleBankSourceQuestionBankChange(source.sourceId, value)}
+                                  options={questionBanks.map((bank) => ({
+                                    value: bank.id,
+                                    label: bank.name || `Question bank #${bank.id}`,
+                                  }))}
+                                  placeholder="Chon question-bank"
+                                  className="w-full"
+                                  disabled={isViewMode}
+                                  showSearch
+                                  optionFilterProp="label"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-[#617589] dark:text-gray-400 mb-1">Cach lay cau hoi</label>
+                                <Select
+                                  value={source.selectionMode}
+                                  onChange={(value) =>
+                                    updateBankSource(source.sourceId, {
+                                      selectionMode: value,
+                                      questionCount: null,
+                                      manualQuestionIds: [],
+                                    })
+                                  }
+                                  options={SOURCE_SELECTION_OPTIONS}
+                                  className="w-full"
+                                  disabled={isViewMode}
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-[#617589] dark:text-gray-400 mb-1">Loc theo tag (tuy chon)</label>
+                                <Select
+                                  value={source.tagId}
+                                  onChange={(value) => updateBankSource(source.sourceId, { tagId: value || null, manualQuestionIds: [] })}
+                                  options={tagOptions}
+                                  placeholder="Tat ca tag"
+                                  allowClear
+                                  className="w-full"
+                                  disabled={isViewMode || !source.questionBankId}
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-[#617589] dark:text-gray-400 mb-1">Do kho (tuy chon)</label>
+                                <Select
+                                  value={source.difficultyLevel}
+                                  onChange={(value) =>
+                                    updateBankSource(source.sourceId, {
+                                      difficultyLevel: value || null,
+                                      manualQuestionIds: [],
+                                    })
+                                  }
+                                  options={DIFFICULTY_OPTIONS}
+                                  placeholder="Tat ca muc do"
+                                  allowClear
+                                  className="w-full"
+                                  disabled={isViewMode}
+                                />
+                              </div>
+
+                              {source.selectionMode === "RANDOM" && (
+                                <div className="md:col-span-2">
+                                  <label className="block text-xs font-semibold text-[#617589] dark:text-gray-400 mb-1">So cau hoi lay ngau nhien</label>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    value={source.questionCount || ""}
+                                    onChange={(event) =>
+                                      updateBankSource(source.sourceId, {
+                                        questionCount: event.target.value ? Number(event.target.value) : null,
+                                      })
+                                    }
+                                    disabled={isViewMode}
+                                  />
+                                </div>
+                              )}
+
+                              {source.selectionMode === "MANUAL" && (
+                                <div className="md:col-span-2">
+                                  <label className="block text-xs font-semibold text-[#617589] dark:text-gray-400 mb-1">
+                                    Chon cau hoi thu cong ({questionOptions.length} cau phu hop)
+                                  </label>
+                                  <Select
+                                    mode="multiple"
+                                    value={source.manualQuestionIds || []}
+                                    onChange={(value) => updateBankSource(source.sourceId, { manualQuestionIds: value })}
+                                    options={questionOptions}
+                                    placeholder="Chon cac cau hoi tu question-bank"
+                                    className="w-full"
+                                    disabled={isViewMode || !source.questionBankId}
+                                    showSearch
+                                    optionFilterProp="label"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {bankSources.length === 0 && (
+                        <div className="bg-white dark:bg-card-dark rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-5 text-sm text-[#617589] dark:text-gray-400">
+                          Chua co nguon question-bank nao. Hay them nguon de he thong tao de tu dong.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!isViewMode && (
+                    <Button
+                      type="dashed"
+                      className="w-full h-11 mt-2"
+                      icon={<PlusCircleIcon className="h-5 w-5" />}
+                      onClick={handleAddBankSource}
+                    >
+                      Them nguon question-bank
+                    </Button>
+                  )}
+                </>
+              )}
+              </>
+              )}
             </div>
             )}
           </div>

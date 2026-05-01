@@ -9,16 +9,70 @@ import {
   Squares2X2Icon,
   CloudArrowUpIcon,
   CheckCircleIcon,
+  Bars3Icon,
 } from "@heroicons/react/24/outline";
 import { FlagIcon as FlagIconSolid } from "@heroicons/react/24/solid";
-import { message, Spin, Modal } from "antd";
+import { message, Spin, Modal, Select } from "antd";
 import { getCurrentAttempt, startQuizAttempt, submitAnswer, submitQuiz, getQuizById } from "../../api/quiz";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import QuestionBlocksRenderer from "../../components/quiz/QuestionBlocksRenderer";
+
+const isInteractionQuestion = (type) => ["MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
+const sortByOrder = (items = []) =>
+  [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
+
+function SortableOrderItem({ itemId, content, index }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: itemId });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 p-4 rounded-lg border transition-shadow ${isDragging ? "border-primary shadow-lg bg-primary/5 dark:bg-primary/10" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50"}`}
+    >
+      <span className="w-8 h-8 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold shrink-0">
+        {index + 1}
+      </span>
+      <span className="flex-1 text-slate-700 dark:text-slate-200 font-medium select-none">{content}</span>
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 touch-none">
+        <Bars3Icon className="h-5 w-5" />
+      </div>
+    </div>
+  );
+}
+
+function DragOrderQuestion({ itemMap, currentOrder, onReorder }) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const orderedItems = currentOrder.map((id) => itemMap.get(id)).filter(Boolean);
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = currentOrder.indexOf(active.id);
+    const newIndex = currentOrder.indexOf(over.id);
+    onReorder(arrayMove(currentOrder, oldIndex, newIndex));
+  };
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={currentOrder} strategy={verticalListSortingStrategy}>
+        <div className="space-y-3">
+          {orderedItems.map((item, index) => (
+            <SortableOrderItem key={item.id} itemId={item.id} content={item.content} index={index} />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
 
 export default function QuizAttempt() {
   const { id, classSectionId } = useParams(); // quizId
   const navigate = useNavigate();
   const location = useLocation();
-  const chapterItemId = location.state?.chapterItemId;
+  const classContentItemId = location.state?.classContentItemId ?? location.state?.chapterItemId;
 
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(null);
@@ -34,11 +88,11 @@ export default function QuizAttempt() {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   useEffect(() => {
-    if (!chapterItemId) {
-      console.warn("Missing chapterItemId");
+    if (!classContentItemId) {
+      console.warn("Missing classContentItemId");
     }
     initializeQuiz();
-  }, [id, chapterItemId]);
+  }, [id, classContentItemId]);
 
   const initializeQuiz = async () => {
     try {
@@ -50,11 +104,11 @@ export default function QuizAttempt() {
       setQuizInfo(quiz);
 
       // 2. Get or Start Attempt
-      if (chapterItemId) {
+      if (classContentItemId) {
           let attemptData = null;
           
           try {
-             const currentRes = await getCurrentAttempt(chapterItemId);
+             const currentRes = await getCurrentAttempt(classContentItemId);
              attemptData = currentRes?.data || currentRes;
           } catch(e) { 
             console.log("No current attempt found, will start new one");
@@ -62,7 +116,7 @@ export default function QuizAttempt() {
           
           // If no current attempt, start a new one
           if (!attemptData) {
-            const startRes = await startQuizAttempt(id, chapterItemId);
+            const startRes = await startQuizAttempt(id, classContentItemId);
             attemptData = startRes?.data || startRes;
           }
 
@@ -75,14 +129,19 @@ export default function QuizAttempt() {
                   ...a.quizQuestion,
                   attemptAnswerId: a.id,
                   userSelectedAnswers: a.selectedAnswers || [],
-                  userTextAnswer: a.textAnswer
+                  userTextAnswer: a.textAnswer,
+                  userAnswerItems: a.answerItems || [],
                 }));
                 setQuestions(qs);
 
                 // Initialize answers state from server data
                 const initialAnswers = {};
                 qs.forEach(q => {
-                   if (q.userSelectedAnswers && q.userSelectedAnswers.length > 0) {
+                   if (isInteractionQuestion(q.type) && q.userAnswerItems && q.userAnswerItems.length > 0) {
+                       initialAnswers[q.id] = buildInitialInteractionAnswer(q, q.userAnswerItems);
+                   } else if (q.type === "SHORT_ANSWER" && q.userTextAnswer) {
+                       initialAnswers[q.id] = [q.userTextAnswer];
+                   } else if (q.userSelectedAnswers && q.userSelectedAnswers.length > 0) {
                        initialAnswers[q.id] = q.userSelectedAnswers.map(ans => ans.id);
                    }
                 });
@@ -112,7 +171,7 @@ export default function QuizAttempt() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleSubmit(true); // Force submit
+          handleConfirmSubmit(); // Force submit on timeout
           return 0;
         }
         return prev - 1;
@@ -127,8 +186,14 @@ export default function QuizAttempt() {
         return 'Trắc nghiệm 1 đáp án';
       case 'MULTIPLE_CHOICE':
         return 'Trắc nghiệm nhiều đáp án';
-      case 'ESSAY':
-        return 'Tự luận';
+      case 'SHORT_ANSWER':
+        return 'Trả lời ngắn';
+      case 'MATCHING':
+        return 'Ghép cặp';
+      case 'DRAG_ORDER':
+        return 'Sắp xếp';
+      case 'CLOZE':
+        return 'Điền chỗ trống';
       default:
         return '';
     }
@@ -140,8 +205,14 @@ export default function QuizAttempt() {
         return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
       case 'MULTIPLE_CHOICE':
         return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
-      case 'ESSAY':
+      case 'SHORT_ANSWER':
         return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
+      case 'MATCHING':
+        return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400';
+      case 'DRAG_ORDER':
+        return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
+      case 'CLOZE':
+        return 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400';
       default:
         return '';
     }
@@ -151,6 +222,105 @@ export default function QuizAttempt() {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const getItemsByRole = (question, role) =>
+    sortByOrder((question.items || []).filter((item) => item.role === role));
+
+  const buildInitialInteractionAnswer = (question, answerItems = []) => {
+    if (question.type === "MATCHING") {
+      const matches = {};
+      answerItems.forEach((item) => {
+        if (item.itemId && item.selectedItemId) {
+          matches[item.itemId] = item.selectedItemId;
+        }
+      });
+      return { matches };
+    }
+
+    if (question.type === "DRAG_ORDER") {
+      const order = [...answerItems]
+        .filter((item) => item.itemId && item.submittedOrderIndex)
+        .sort((left, right) => left.submittedOrderIndex - right.submittedOrderIndex)
+        .map((item) => item.itemId);
+      return order.length > 0 ? { order } : {};
+    }
+
+    if (question.type === "CLOZE") {
+      const blanks = {};
+      answerItems.forEach((item) => {
+        if (item.itemId) {
+          blanks[item.itemId] = item.answerText || "";
+        }
+      });
+      return { blanks };
+    }
+
+    return {};
+  };
+
+  const buildInteractionPayload = (question, answerState = {}) => {
+    if (question.type === "MATCHING") {
+      const prompts = getItemsByRole(question, "PROMPT");
+      return prompts
+        .filter((prompt) => answerState.matches?.[prompt.id])
+        .map((prompt) => ({
+          itemId: prompt.id,
+          selectedItemId: answerState.matches[prompt.id],
+        }));
+    }
+
+    if (question.type === "DRAG_ORDER") {
+      const defaultOrder = getItemsByRole(question, "ORDER_ITEM").map((item) => item.id);
+      const order = answerState.order || defaultOrder;
+      return order.map((itemId, index) => ({
+        itemId,
+        submittedOrderIndex: index + 1,
+      }));
+    }
+
+    if (question.type === "CLOZE") {
+      const blanks = getItemsByRole(question, "BLANK");
+      return blanks.map((blank, index) => ({
+        itemId: blank.id,
+        blankIndex: blank.blankIndex || index + 1,
+        answerText: answerState.blanks?.[blank.id] || "",
+      }));
+    }
+
+    return [];
+  };
+
+  const saveInteractionAnswer = async (question, answerState) => {
+    if (!attempt) return;
+    try {
+      await submitAnswer(attempt.id, question.id, {
+        questionId: question.id,
+        selectedAnswerIds: [],
+        textAnswer: null,
+        answerItems: buildInteractionPayload(question, answerState),
+      });
+    } catch (err) {
+      console.error("Failed to submit interaction answer", err);
+    }
+  };
+
+  const isQuestionAnswered = (question) => {
+    const answer = answers[question.id];
+    if (!answer) return false;
+    if (Array.isArray(answer)) {
+      return answer.some((item) => String(item || "").trim() !== "");
+    }
+    if (question.type === "MATCHING") {
+      return Object.values(answer.matches || {}).some(Boolean);
+    }
+    if (question.type === "DRAG_ORDER") {
+      return Array.isArray(answer.order) && answer.order.length > 0;
+    }
+    if (question.type === "CLOZE") {
+      return Object.values(answer.blanks || {}).some((value) => String(value || "").trim() !== "");
+    }
+    return false;
   };
 
   const handleAnswerSelect = async (questionId, answerId) => {
@@ -188,6 +358,45 @@ export default function QuizAttempt() {
     }
   };
 
+  const handleMatchingSelect = (question, promptId, selectedItemId) => {
+    const current = answers[question.id] || { matches: {} };
+    const next = {
+      ...current,
+      matches: {
+        ...(current.matches || {}),
+        [promptId]: selectedItemId,
+      },
+    };
+    setAnswers({ ...answers, [question.id]: next });
+    saveInteractionAnswer(question, next);
+  };
+
+  const handleDragMove = (question, itemId, direction) => {
+    const defaultOrder = getItemsByRole(question, "ORDER_ITEM").map((item) => item.id);
+    const currentOrder = answers[question.id]?.order || defaultOrder;
+    const index = currentOrder.indexOf(itemId);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= currentOrder.length) return;
+    const nextOrder = [...currentOrder];
+    [nextOrder[index], nextOrder[nextIndex]] = [nextOrder[nextIndex], nextOrder[index]];
+    const next = { order: nextOrder };
+    setAnswers({ ...answers, [question.id]: next });
+    saveInteractionAnswer(question, next);
+  };
+
+  const handleClozeChange = (question, blankId, value) => {
+    const current = answers[question.id] || { blanks: {} };
+    const next = {
+      ...current,
+      blanks: {
+        ...(current.blanks || {}),
+        [blankId]: value,
+      },
+    };
+    setAnswers({ ...answers, [question.id]: next });
+    saveInteractionAnswer(question, next);
+  };
+
   const handleSubmitClick = () => {
     setShowSubmitConfirm(true);
   };
@@ -203,7 +412,7 @@ export default function QuizAttempt() {
           const submitRes = await submitQuiz(attempt.id);
           const result = submitRes?.data || submitRes;
           message.success("Nộp bài thành công!");
-          navigate(`/class-sections/${classSectionId}/quizzes/${id}/result`, { state: { attemptId: result.id || attempt.id } });
+          navigate(`/class-sections/${classSectionId}/quizzes/${id}/result`, { state: { attemptId: result.id || attempt.id, classContentItemId } });
       } catch (err) {
           message.error("Lỗi nộp bài: " + err.message);
           setSubmitting(false);
@@ -241,7 +450,7 @@ export default function QuizAttempt() {
     const qId = q.id;
     
     const isCurrent = currentQuestionIndex === index;
-    const isAnswered = answers[qId] && answers[qId].length > 0;
+    const isAnswered = isQuestionAnswered(q);
     const isFlagged = flaggedQuestions.includes(qId);
 
     let baseClass = "aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors relative ";
@@ -257,12 +466,83 @@ export default function QuizAttempt() {
     }
     return baseClass + "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700";
   };
+
+  const renderInteractionAnswer = (question) => {
+    if (question.type === "MATCHING") {
+      const prompts = getItemsByRole(question, "PROMPT");
+      const matches = getItemsByRole(question, "MATCH");
+      const current = answers[question.id] || { matches: {} };
+      return (
+        <div className="space-y-3">
+          {prompts.map((prompt, index) => (
+            <div
+              key={prompt.id}
+              className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-3 items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50"
+            >
+              <div className="font-medium text-slate-700 dark:text-slate-200">
+                {index + 1}. {prompt.content}
+              </div>
+              <Select
+                value={current.matches?.[prompt.id]}
+                onChange={(value) => handleMatchingSelect(question, prompt.id, value)}
+                options={matches.map((match) => ({ value: match.id, label: match.content }))}
+                placeholder="Chọn đáp án"
+                className="w-full"
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (question.type === "DRAG_ORDER") {
+      const itemMap = new Map(getItemsByRole(question, "ORDER_ITEM").map((item) => [item.id, item]));
+      const defaultOrder = [...itemMap.keys()];
+      const currentOrder = answers[question.id]?.order || defaultOrder;
+      return (
+        <DragOrderQuestion
+          itemMap={itemMap}
+          currentOrder={currentOrder}
+          onReorder={(nextOrder) => {
+            const next = { order: nextOrder };
+            setAnswers({ ...answers, [question.id]: next });
+            saveInteractionAnswer(question, next);
+          }}
+        />
+      );
+    }
+
+    if (question.type === "CLOZE") {
+      const blanks = getItemsByRole(question, "BLANK");
+      const current = answers[question.id] || { blanks: {} };
+      return (
+        <div className="space-y-3">
+          {blanks.map((blank, index) => (
+            <div key={blank.id} className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                {blank.content || `Blank ${index + 1}`}
+              </label>
+              <input
+                value={current.blanks?.[blank.id] || ""}
+                onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
+                placeholder="Nhập đáp án"
+                className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return null;
+  };
   
   if (loading) return <div className="h-screen flex items-center justify-center"><Spin size="large" /></div>;
-  if (!chapterItemId) return <div className="p-8">Yêu cầu truy cập từ bài học để ghi nhận kết quả.</div>;
+  if (!classContentItemId) return <div className="p-8">Yêu cầu truy cập từ bài học để ghi nhận kết quả.</div>;
   if (!attempt || questions.length === 0) return <div className="p-8">Không tìm thấy dữ liệu bài kiểm tra.</div>;
 
   const currentQuestion = questions[currentQuestionIndex];
+  const answeredQuestionCount = questions.filter(isQuestionAnswered).length;
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display flex flex-col h-screen overflow-hidden antialiased selection:bg-primary/20 selection:text-primary">
@@ -336,13 +616,21 @@ export default function QuizAttempt() {
                 </div>
 
                 <div className="p-6 md:p-8">
-                  <p className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-6 whitespace-pre-wrap">
+                  <p className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-4 whitespace-pre-wrap">
                     {currentQuestion.content}
                   </p>
 
+                  {currentQuestion.blocks?.length > 0 && (
+                    <div className="mb-6">
+                      <QuestionBlocksRenderer blocks={currentQuestion.blocks} />
+                    </div>
+                  )}
+
                   <div className="space-y-3">
-                    {currentQuestion.type === 'ESSAY' ? (
-                      // Essay Question - Text Area
+                    {isInteractionQuestion(currentQuestion.type) ? (
+                      renderInteractionAnswer(currentQuestion)
+                    ) : currentQuestion.type === 'SHORT_ANSWER' ? (
+                      // Short answer - Text Area
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                           Nhập câu trả lời của bạn:
@@ -512,8 +800,8 @@ export default function QuizAttempt() {
             </p>
             <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
               <li>• Tổng câu hỏi: <span className="font-bold">{questions.length}</span></li>
-              <li>• Câu đã làm: <span className="font-bold">{Object.keys(answers).length}</span></li>
-              <li>• Câu chưa làm: <span className="font-bold">{questions.length - Object.keys(answers).length}</span></li>
+              <li>• Câu đã làm: <span className="font-bold">{answeredQuestionCount}</span></li>
+              <li>• Câu chưa làm: <span className="font-bold">{questions.length - answeredQuestionCount}</span></li>
             </ul>
           </div>
           <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">

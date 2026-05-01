@@ -14,6 +14,11 @@ export const updateQuestionBank = async (id, bankData) => {
   return response.data;
 };
 
+export const deleteQuestionBank = async (id) => {
+  const response = await axiosClient.delete(`question-banks/${id}`);
+  return response.data;
+};
+
 export const getQuestionBankById = async (id) => {
   const response = await axiosClient.get(`question-banks/${id}`);
   return response.data;
@@ -57,19 +62,38 @@ export const importGiftQuestions = async (bankId, file) => {
   return response.data;
 };
 
+export const exportGiftQuestions = async (bankId) => {
+  return axiosClient.get(`question-banks/${bankId}/export-gift`, {
+    responseType: "blob",
+  });
+};
+
 // ==========================================
 // Tags Management
 // ==========================================
 
-export const createTag = async (tagData) => {
-  const response = await axiosClient.post(`question-banks/tags`, tagData);
+export const createTag = async (bankId, tagData) => {
+  const response = await axiosClient.post(`question-banks/${bankId}/tags`, tagData);
   return response.data;
 };
 
-export const getTags = async (params) => {
-  const response = await axiosClient.get(`question-banks/tags`, {
-    params, // { subjectId }
-  });
+export const createTagsBatch = async (bankId, names) => {
+  const response = await axiosClient.post(`question-banks/${bankId}/tags/batch`, { names });
+  return response.data;
+};
+
+export const getTags = async (bankId, params) => {
+  const response = await axiosClient.get(`question-banks/${bankId}/tags`, { params });
+  return response.data;
+};
+
+export const updateTag = async (bankId, tagId, tagData) => {
+  const response = await axiosClient.put(`question-banks/${bankId}/tags/${tagId}`, tagData);
+  return response.data;
+};
+
+export const deleteTag = async (bankId, tagId) => {
+  const response = await axiosClient.delete(`question-banks/${bankId}/tags/${tagId}`);
   return response.data;
 };
 
