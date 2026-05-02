@@ -5,6 +5,7 @@ import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AdminSidebar from "../../components/layout/AdminSidebar";
 import NotificationDetailModal from "../../components/common/NotificationDetailModal";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -76,7 +77,7 @@ export default function NotificationsPage() {
       // Update local state
       setNotifications((prev) =>
         prev.map((notif) =>
-          notif.id === notificationId ? { ...notif, isRead: true } : notif
+          notif.id === notificationId ? { ...notif, isRead: true, readStatus: true } : notif
         )
       );
     } catch (err) {
@@ -87,11 +88,11 @@ export default function NotificationsPage() {
   const handleMarkAllAsRead = async () => {
     try {
       for (const notification of notifications) {
-        if (!notification.isRead) {
+        if (!notification.isRead && !notification.readStatus) {
           await markNotificationAsRead(notification.id);
         }
       }
-      setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
+      setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true, readStatus: true })));
     } catch (err) {
       console.error("Failed to mark all as read:", err);
     }
@@ -101,13 +102,14 @@ export default function NotificationsPage() {
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedNotifications = notifications?.slice(startIndex, endIndex);
-  const unreadCount = notifications?.filter((n) => !n.isRead).length;
+  const unreadCount = notifications?.filter((n) => !n.isRead && !n.readStatus).length;
 
   return (
     <div className={`${isTeacherOrAdmin && "min-h-screen"} bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white`}>
       {isTeacherOrAdmin && <TeacherHeader />}
       <div className="flex">
-        {isTeacherOrAdmin && <TeacherSidebar />}
+        {isTeacher && <TeacherSidebar />}
+        {isAdmin && <AdminSidebar />}
         {/* {!isTeacherOrAdmin && <Header />} */}
         <main className={`flex-1 w-full ${isTeacherOrAdmin ? "mt-16 ml-20 lg:ml-64" : ""}`}>
           <div className="px-4 sm:px-6 lg:px-8 py-8">
@@ -174,20 +176,24 @@ export default function NotificationsPage() {
                     <div
                       key={notification.id}
                       className={`p-4 rounded-lg border transition-all cursor-pointer ${
-                        notification.isRead
+                        notification.isRead || notification.readStatus
                           ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                           : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
                       } hover:shadow-md`}
                       onClick={() => {
                         setSelectedNotification(notification);
-                        setIsNotificationDetailOpen(true);
-                        if (!notification.isRead) {
+                        if (!notification.isRead && !notification.readStatus) {
                           handleMarkAsRead(notification.id);
                         }
+                        if (notification.actionUrl) {
+                          navigate(notification.actionUrl);
+                          return;
+                        }
+                        setIsNotificationDetailOpen(true);
                       }}
                     >
                       <div className="flex gap-4">
-                        {!notification.isRead && (
+                        {!notification.isRead && !notification.readStatus && (
                           <div className="h-3 w-3 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -195,13 +201,18 @@ export default function NotificationsPage() {
                             {notification.title}
                           </h3>
                           <p className="text-gray-600 dark:text-gray-400 mb-3">
-                            {notification.message}
+                            {notification.summary || notification.description || notification.message}
                           </p>
+                          {notification.classSectionTitle && (
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                              Lớp: {notification.classSectionTitle}
+                            </p>
+                          )}
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-gray-500 dark:text-gray-500">
                               {notification.time}
                             </p>
-                            {!notification.isRead && (
+                            {!notification.isRead && !notification.readStatus && (
                               <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">
                                 Chưa đọc
                               </span>

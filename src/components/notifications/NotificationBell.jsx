@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { BellIcon } from "@heroicons/react/24/outline";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useRealtimeNotifications from "../../hooks/useRealtimeNotifications";
 import NotificationToastStack from "./NotificationToastStack";
 
@@ -12,6 +12,7 @@ function formatTimestamp(value) {
 }
 
 export default function NotificationBell() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const {
@@ -73,8 +74,12 @@ export default function NotificationBell() {
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      if (!item.readStatus) {
+                      if (!item.readStatus && !item.isRead) {
                         markAsRead(item.id);
+                      }
+                      if (item.actionUrl) {
+                        setOpen(false);
+                        navigate(item.actionUrl);
                       }
                     }}
                     className="w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
@@ -85,13 +90,18 @@ export default function NotificationBell() {
                           {item.title}
                         </p>
                         <p className="mt-1 line-clamp-2 text-xs text-slate-600 dark:text-slate-300">
-                          {item.message}
+                          {item.summary || item.description || item.message}
                         </p>
+                        {item.classSectionTitle && (
+                          <p className="mt-1 truncate text-[11px] font-medium text-slate-500">
+                            Lớp: {item.classSectionTitle}
+                          </p>
+                        )}
                         <p className="mt-1 text-[11px] text-slate-400">
-                          {formatTimestamp(item.createdAt)}
+                          {formatTimestamp(item.createdAt || item.time)}
                         </p>
                       </div>
-                      {!item.readStatus && (
+                      {!item.readStatus && !item.isRead && (
                         <span className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-sky-500" />
                       )}
                     </div>

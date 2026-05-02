@@ -10,7 +10,7 @@ const POLLING_INTERVAL_MS = 15000;
 function normalizeNotification(item) {
   return {
     ...item,
-    readStatus: Boolean(item.readStatus),
+    readStatus: Boolean(item.readStatus || item.isRead),
   };
 }
 
@@ -31,9 +31,11 @@ export default function useRealtimeNotifications(enabled = true) {
         countUnreadNotifications(),
       ]);
 
-      const normalized = (list || []).map(normalizeNotification);
+      const listData = Array.isArray(list) ? list : list?.data || [];
+      const unreadData = typeof unread === "number" ? unread : unread?.data;
+      const normalized = (listData || []).map(normalizeNotification);
       setNotifications(normalized);
-      setUnreadCount(Number(unread || 0));
+      setUnreadCount(Number(unreadData || 0));
 
       const incomingIds = new Set(normalized.map((item) => item.id));
       if (initializedRef.current) {
@@ -47,7 +49,7 @@ export default function useRealtimeNotifications(enabled = true) {
               .map((item) => ({
                 id: `toast-${item.id}-${Date.now()}`,
                 title: item.title,
-                message: item.message,
+                message: item.summary || item.description || item.message,
               })),
             ...prev,
           ]);

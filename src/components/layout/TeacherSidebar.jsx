@@ -11,6 +11,7 @@ import {
   BellIcon,
   BookOpenIcon,
   RectangleGroupIcon,
+  MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 
 export default function TeacherSidebar() {
@@ -71,6 +72,13 @@ export default function TeacherSidebar() {
           label={t("teacher.quanLyHocVien")}
           active={currentPath === "/teacher/students"}
           to="/teacher/students"
+          isCollapsed={isCollapsed}
+        />
+        <SidebarLink
+          icon={<MegaphoneIcon className="h-6 w-6" />}
+          label="Announcements"
+          active={currentPath.startsWith("/teacher/announcements")}
+          to="/teacher/announcements"
           isCollapsed={isCollapsed}
         />
         <SidebarLink

@@ -18,6 +18,7 @@ import StudentLectureDetail from "./pages/student/StudentLectureDetail";
 import StudentAssignmentDetail from "./pages/student/StudentAssignmentDetail";
 import ProfilePage from "./pages/student/ProfilePage";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import TeacherAnnouncements from "./pages/teacher/TeacherAnnouncements";
 import TeacherReport from "./pages/teacher/TeacherReport";
 import TeacherClassSections from "./pages/teacher/TeacherClassSections";
 import TeacherCurriculums from "./pages/teacher/TeacherCurriculums";
@@ -190,6 +191,10 @@ function AppContent() {
         element={<ProtectedRoute element={<TeacherReport />} allowedRoles={["TEACHER"]} />}
       />
       <Route
+        path="/teacher/announcements"
+        element={<ProtectedRoute element={<TeacherAnnouncements />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
         path="/teacher/class-sections"
         element={<ProtectedRoute element={<TeacherClassSections />} allowedRoles={["TEACHER"]} />}
       />
@@ -338,6 +343,10 @@ function AppContent() {
       <Route
         path="/admin/class-sections"
         element={<ProtectedRoute element={<TeacherClassSections isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/announcements"
+        element={<ProtectedRoute element={<TeacherAnnouncements isAdmin={true} />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/class-sections/:id"

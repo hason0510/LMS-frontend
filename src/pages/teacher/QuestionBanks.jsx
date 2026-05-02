@@ -8,8 +8,8 @@ import AdminSidebar from "../../components/layout/AdminSidebar";
 import { useAuth } from "../../contexts/AuthContext";
 import { getQuestionBanks, createQuestionBank } from "../../api/questionBank";
 import { getAllCategories } from "../../api/category";
-import { getSubjectsByCategory } from "../../api/subject";
-import { PlusCircleIcon } from "@heroicons/react/24/outline";
+import { getAllSubjects, getSubjectsByCategory } from "../../api/subject";
+import { ArrowPathIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 
 const { TextArea } = Input;
 
@@ -20,6 +20,7 @@ export default function QuestionBanks({ isAdmin = false }) {
   
   const [banks, setBanks] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subjectsLoading, setSubjectsLoading] = useState(false);
@@ -27,6 +28,9 @@ export default function QuestionBanks({ isAdmin = false }) {
   const [form] = Form.useForm();
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [filters, setFilters] = useState({
+    subjectId: undefined,
+  });
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -36,21 +40,45 @@ export default function QuestionBanks({ isAdmin = false }) {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchInitialData();
   }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchBanks();
+  }, [filters.subjectId]);
+
+  const formatSubjectLabel = (subject) =>
+    [subject?.code, subject?.title].filter(Boolean).join(" - ") || "Chưa gán môn học";
+
+  const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [banksRes, catRes] = await Promise.all([
-        getQuestionBanks({}),
-        getAllCategories(1, 100)
+      const [banksRes, catRes, subjectRes] = await Promise.all([
+        getQuestionBanks({ subjectId: filters.subjectId }),
+        getAllCategories(1, 100),
+        getAllSubjects()
       ]);
       setBanks(banksRes.data || banksRes);
       setCategories(catRes.data?.pageList.map(cat => ({ value: cat.id, label: cat.title })) || []);
+      setAllSubjects(subjectRes.data || subjectRes || []);
     } catch (err) {
       console.error(err);
       message.error("Lỗi khi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchBanks = async () => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (filters.subjectId) params.subjectId = filters.subjectId;
+      const banksRes = await getQuestionBanks(params);
+      setBanks(banksRes.data || banksRes);
+    } catch (err) {
+      console.error(err);
+      message.error("Lỗi khi tải ngân hàng câu hỏi");
     } finally {
       setLoading(false);
     }
@@ -63,7 +91,7 @@ export default function QuestionBanks({ isAdmin = false }) {
         setSubjectsLoading(true);
         const res = await getSubjectsByCategory(value);
         const subjectList = res.data || [];
-        setSubjects(subjectList.map(sub => ({ value: sub.id, label: sub.title })));
+        setSubjects(subjectList.map(sub => ({ value: sub.id, label: formatSubjectLabel(sub) })));
       } catch (err) {
         console.error(err);
       } finally {
@@ -86,7 +114,7 @@ export default function QuestionBanks({ isAdmin = false }) {
       message.success("Tạo Ngân hàng câu hỏi thành công");
       setIsModalOpen(false);
       form.resetFields();
-      fetchData();
+      fetchBanks();
     } catch (err) {
       message.error("Lỗi khi tạo Ngân hàng câu hỏi");
     }
@@ -109,10 +137,23 @@ export default function QuestionBanks({ isAdmin = false }) {
       key: "description",
     },
     {
-      title: "Phạm vi",
-      dataIndex: "scopeType",
-      key: "scopeType",
-      render: (type) => <Tag color="blue">{type}</Tag>
+      title: "Môn học",
+      key: "subject",
+      render: (_, record) => (
+        <span>{[record.subjectCode, record.subjectTitle].filter(Boolean).join(" - ") || record.subjectId || "-"}</span>
+      )
+    },
+    {
+      title: "Owner",
+      dataIndex: "ownerName",
+      key: "ownerName",
+      render: (ownerName, record) => ownerName || (record.ownerId ? `#${record.ownerId}` : "-")
+    },
+    {
+      title: "Vai trò của tôi",
+      dataIndex: "myRole",
+      key: "myRole",
+      render: (role) => role ? <Tag color="blue">{role}</Tag> : "-"
     },
     {
       title: "Hành động",
@@ -147,6 +188,30 @@ export default function QuestionBanks({ isAdmin = false }) {
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+              <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end">
+                <div className="w-full md:max-w-sm">
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Môn học / mã học phần</label>
+                  <Select
+                    className="w-full"
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    placeholder="Tất cả môn học"
+                    value={filters.subjectId}
+                    onChange={(value) => setFilters((prev) => ({ ...prev, subjectId: value }))}
+                    options={allSubjects.map((subject) => ({
+                      value: subject.id,
+                      label: formatSubjectLabel(subject),
+                    }))}
+                  />
+                </div>
+                <Button
+                  icon={<ArrowPathIcon className="h-4 w-4" />}
+                  onClick={() => setFilters({ subjectId: undefined })}
+                >
+                  Reset
+                </Button>
+              </div>
               <Table 
                 columns={columns} 
                 dataSource={banks} 

@@ -78,7 +78,7 @@ const useNotificationStore = create((set, get) => ({
         // Show Real-time Toast
         antdNotification.info({
           message: newNotification.title || 'Thông báo mới',
-          description: newNotification.message,
+          description: newNotification.summary || newNotification.description || newNotification.message,
           placement: 'topRight',
           duration: 4.5,
         });

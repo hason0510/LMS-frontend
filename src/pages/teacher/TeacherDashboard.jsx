@@ -97,12 +97,12 @@ export default function TeacherDashboard() {
                     <QuickActionCard
                       icon={<PlusCircleIcon className="h-8 w-8" />}
                       label="Tạo lớp học"
-                      to="/teacher/class-sections/create"
+                      to="/teacher/curriculums"
                     />
                     <QuickActionCard
                       icon={<DocumentPlusIcon className="h-8 w-8" />}
                       label="Tạo bài giảng"
-                      to={totalCourses > 0 ? `/teacher/class-sections/${courses[0].id}/chapters/create` : "#"}
+                      to="/teacher/curriculums"
                     />
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export default function TeacherDashboard() {
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                       <p>Chưa có lớp học nào. Hãy tạo lớp học đầu tiên của bạn!</p>
                       <button
-                        onClick={() => navigate("/teacher/class-sections/create")}
+                        onClick={() => navigate("/teacher/curriculums")}
                         className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                       >
                         Tạo lớp học

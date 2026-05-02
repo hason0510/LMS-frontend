@@ -13,6 +13,7 @@ import {
   RectangleGroupIcon,
   TagIcon,
   BookmarkIcon,
+  MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar() {
@@ -64,6 +65,12 @@ export default function AdminSidebar() {
           label={t("admin.nganHangCauHoi") || "Ngân hàng câu hỏi"}
           active={currentPath.startsWith("/admin/question-banks")}
           to="/admin/question-banks"
+        />
+        <SidebarLink
+          icon={<MegaphoneIcon className="h-6 w-6" />}
+          label="Announcements"
+          active={currentPath.startsWith("/admin/announcements")}
+          to="/admin/announcements"
         />
         <SidebarLink
           icon={<CheckCircleIcon className="h-6 w-6" />}

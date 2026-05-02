@@ -82,6 +82,7 @@ export default function QuizAttempt() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // Map questionId -> array of answerIds
+  const [contentBlockBlanks, setContentBlockBlanks] = useState({});
   const [flaggedQuestions, setFlaggedQuestions] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -131,11 +132,13 @@ export default function QuizAttempt() {
                   userSelectedAnswers: a.selectedAnswers || [],
                   userTextAnswer: a.textAnswer,
                   userAnswerItems: a.answerItems || [],
+                  userContentBlockAnswers: a.contentBlockAnswers || [],
                 }));
                 setQuestions(qs);
 
                 // Initialize answers state from server data
                 const initialAnswers = {};
+                const initialContentBlockBlanks = {};
                 qs.forEach(q => {
                    if (isInteractionQuestion(q.type) && q.userAnswerItems && q.userAnswerItems.length > 0) {
                        initialAnswers[q.id] = buildInitialInteractionAnswer(q, q.userAnswerItems);
@@ -144,8 +147,18 @@ export default function QuizAttempt() {
                    } else if (q.userSelectedAnswers && q.userSelectedAnswers.length > 0) {
                        initialAnswers[q.id] = q.userSelectedAnswers.map(ans => ans.id);
                    }
+
+                   if (q.userContentBlockAnswers && q.userContentBlockAnswers.length > 0) {
+                     initialContentBlockBlanks[q.id] = q.userContentBlockAnswers.reduce((acc, item) => {
+                       if (item.blankKey) {
+                         acc[item.blankKey] = item.answerText || "";
+                       }
+                       return acc;
+                     }, {});
+                   }
                 });
                 setAnswers(initialAnswers);
+                setContentBlockBlanks(initialContentBlockBlanks);
             }
 
             // Timer Setup - use remaining time from attempt if available, else use quiz time limit
@@ -226,6 +239,36 @@ export default function QuizAttempt() {
 
   const getItemsByRole = (question, role) =>
     sortByOrder((question.items || []).filter((item) => item.role === role));
+
+  const getContentBlockBlanks = (questionId) => contentBlockBlanks[questionId] || {};
+
+  const buildContentBlockAnswers = (question, blanksMap = {}) =>
+    sortByOrder((question.blocks || []).filter((block) => block.blockType === "BLANK_REF" && block.blankKey))
+      .map((block) => ({
+        blankKey: block.blankKey,
+        answerText: blanksMap[block.blankKey] || "",
+      }));
+
+  const handleContentBlockBlankChange = (questionId, blankKey, value) => {
+    if (!blankKey) return;
+    const question = questions.find((item) => item.id === questionId);
+    const nextQuestionBlanks = {
+      ...(contentBlockBlanks[questionId] || {}),
+      [blankKey]: value,
+    };
+    setContentBlockBlanks((prev) => ({
+      ...prev,
+      [questionId]: nextQuestionBlanks,
+    }));
+    if (attempt && question) {
+      submitAnswer(attempt.id, questionId, {
+        questionId,
+        contentBlockAnswers: buildContentBlockAnswers(question, nextQuestionBlanks),
+      }).catch((err) => {
+        console.error("Failed to save content block answer", err);
+      });
+    }
+  };
 
   const buildInitialInteractionAnswer = (question, answerItems = []) => {
     if (question.type === "MATCHING") {
@@ -622,7 +665,14 @@ export default function QuizAttempt() {
 
                   {currentQuestion.blocks?.length > 0 && (
                     <div className="mb-6">
-                      <QuestionBlocksRenderer blocks={currentQuestion.blocks} />
+                      <QuestionBlocksRenderer
+                        blocks={currentQuestion.blocks}
+                        blanks={getContentBlockBlanks(currentQuestion.id)}
+                        onBlankChange={(blankKey, value) =>
+                          handleContentBlockBlankChange(currentQuestion.id, blankKey, value)
+                        }
+                        showBlanks={true}
+                      />
                     </div>
                   )}
 

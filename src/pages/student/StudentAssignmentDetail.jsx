@@ -207,6 +207,9 @@ export default function StudentAssignmentDetail() {
             {assignment?.dueAt && (
               <Tag color="blue">Hạn nộp: {dayjs(assignment.dueAt).format("DD/MM/YYYY HH:mm")}</Tag>
             )}
+            {assignment?.closeAt && (
+              <Tag color="red">Đóng nhận bài: {dayjs(assignment.closeAt).format("DD/MM/YYYY HH:mm")}</Tag>
+            )}
             <Tag color={assignment?.allowLateSubmission ? "green" : "orange"}>
               {assignment?.allowLateSubmission ? "Cho phép nộp muộn" : "Không cho nộp muộn"}
             </Tag>

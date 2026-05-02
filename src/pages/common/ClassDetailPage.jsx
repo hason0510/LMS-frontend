@@ -6,7 +6,8 @@ import AdminSidebar from "../../components/layout/AdminSidebar";
 import CourseTabs from "../../components/course/CourseTabs";
 import CourseContent from "../../components/course/CourseContent";
 import TeacherTab from "../../components/course/TeacherTab";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import AnnouncementsTab from "../../components/course/AnnouncementsTab";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getClassSectionById,
@@ -53,6 +54,7 @@ export default function ClassSectionDetailPage() {
   const { id: paramId, classSectionId } = useParams();
   const id = paramId || classSectionId;
   const navigate = useNavigate();
+  const location = useLocation();
 
   const isTeacher = user?.role === "TEACHER";
   const isAdmin = user?.role === "ADMIN";
@@ -324,10 +326,15 @@ export default function ClassSectionDetailPage() {
   // ── Teacher / Admin layout ───────────────────────────────────────────────
   if (isTeacherOrAdmin) {
     const userRole = isAdmin ? "admin" : "teacher";
+    const hasLinkedAnnouncement = new URLSearchParams(location.search).has("announcementId");
     const teacherTabs = [
       {
         label: "Nội dung",
         content: <CourseContent enrollmentStatus="APPROVED" />,
+      },
+      {
+        label: "Announcements",
+        content: <AnnouncementsTab classSectionId={id} />,
       },
       {
         label: "Thông tin",
@@ -543,7 +550,7 @@ export default function ClassSectionDetailPage() {
                 {/* Main tabs */}
                 <div className="col-span-12 lg:col-span-8">
                   <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-                    <CourseTabs tabs={teacherTabs} defaultIndex={0} />
+                    <CourseTabs tabs={teacherTabs} defaultIndex={hasLinkedAnnouncement ? 1 : 0} />
                   </div>
                 </div>
 
@@ -614,10 +621,15 @@ export default function ClassSectionDetailPage() {
       content: <CourseContent enrollmentStatus={enrollmentStatus} />,
     },
     {
+      label: "Announcements",
+      content: <AnnouncementsTab classSectionId={id} />,
+    },
+    {
       label: "Giảng viên",
       content: <TeacherTab course={course} />,
     },
   ];
+  const hasLinkedAnnouncement = new URLSearchParams(location.search).has("announcementId");
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-gray-100">
@@ -690,7 +702,7 @@ export default function ClassSectionDetailPage() {
           {/* Main tabs */}
           <div className="col-span-12 lg:col-span-8">
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-              <CourseTabs tabs={studentTabs} defaultIndex={0} />
+              <CourseTabs tabs={studentTabs} defaultIndex={hasLinkedAnnouncement ? 1 : 0} />
             </div>
           </div>
 

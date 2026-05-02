@@ -72,6 +72,7 @@ export default function AssignmentDetail({ isAdmin = false }) {
             title: assignment.title,
             maxScore: assignment.maxScore,
             dueAt: assignment.dueAt ? dayjs(assignment.dueAt) : null,
+            closeAt: assignment.closeAt ? dayjs(assignment.closeAt) : null,
             allowLateSubmission: Boolean(assignment.allowLateSubmission),
           });
 
@@ -181,6 +182,7 @@ export default function AssignmentDetail({ isAdmin = false }) {
     instruction,
     maxScore: values.maxScore,
     dueAt: values.dueAt ? values.dueAt.toISOString() : null,
+    closeAt: values.closeAt ? values.closeAt.toISOString() : null,
     allowLateSubmission: Boolean(values.allowLateSubmission),
     classSectionId: Number(classSectionId),
     resources: resources.map((resource) => ({
@@ -300,6 +302,25 @@ export default function AssignmentDetail({ isAdmin = false }) {
                   </Form.Item>
 
                   <Form.Item label="Hạn nộp" name="dueAt">
+                    <DatePicker showTime className="w-full" />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="Đóng nhận bài"
+                    name="closeAt"
+                    dependencies={["dueAt"]}
+                    rules={[
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          const dueAt = getFieldValue("dueAt");
+                          if (!value || !dueAt || value.isAfter(dueAt) || value.isSame(dueAt)) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(new Error("Đóng nhận bài phải sau hạn nộp"));
+                        },
+                      }),
+                    ]}
+                  >
                     <DatePicker showTime className="w-full" />
                   </Form.Item>
 
