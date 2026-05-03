@@ -17,9 +17,11 @@ import { getCurrentAttempt, startQuizAttempt, submitAnswer, submitQuiz, getQuizB
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import QuestionBlocksRenderer from "../../components/quiz/QuestionBlocksRenderer";
+import ResourcePreview from "../../components/common/ResourcePreview";
 
-const isInteractionQuestion = (type) => ["MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
+const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
+const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
+const isTextAnswerQuestion = (type) => ["SHORT_ANSWER", "ESSAY"].includes(type);
 const sortByOrder = (items = []) =>
   [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
 
@@ -82,7 +84,6 @@ export default function QuizAttempt() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // Map questionId -> array of answerIds
-  const [contentBlockBlanks, setContentBlockBlanks] = useState({});
   const [flaggedQuestions, setFlaggedQuestions] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -132,33 +133,21 @@ export default function QuizAttempt() {
                   userSelectedAnswers: a.selectedAnswers || [],
                   userTextAnswer: a.textAnswer,
                   userAnswerItems: a.answerItems || [],
-                  userContentBlockAnswers: a.contentBlockAnswers || [],
                 }));
                 setQuestions(qs);
 
                 // Initialize answers state from server data
                 const initialAnswers = {};
-                const initialContentBlockBlanks = {};
                 qs.forEach(q => {
                    if (isInteractionQuestion(q.type) && q.userAnswerItems && q.userAnswerItems.length > 0) {
                        initialAnswers[q.id] = buildInitialInteractionAnswer(q, q.userAnswerItems);
-                   } else if (q.type === "SHORT_ANSWER" && q.userTextAnswer) {
+                   } else if (isTextAnswerQuestion(q.type) && q.userTextAnswer) {
                        initialAnswers[q.id] = [q.userTextAnswer];
                    } else if (q.userSelectedAnswers && q.userSelectedAnswers.length > 0) {
                        initialAnswers[q.id] = q.userSelectedAnswers.map(ans => ans.id);
                    }
-
-                   if (q.userContentBlockAnswers && q.userContentBlockAnswers.length > 0) {
-                     initialContentBlockBlanks[q.id] = q.userContentBlockAnswers.reduce((acc, item) => {
-                       if (item.blankKey) {
-                         acc[item.blankKey] = item.answerText || "";
-                       }
-                       return acc;
-                     }, {});
-                   }
                 });
                 setAnswers(initialAnswers);
-                setContentBlockBlanks(initialContentBlockBlanks);
             }
 
             // Timer Setup - use remaining time from attempt if available, else use quiz time limit
@@ -201,8 +190,14 @@ export default function QuizAttempt() {
         return 'Trắc nghiệm nhiều đáp án';
       case 'SHORT_ANSWER':
         return 'Trả lời ngắn';
+      case 'ESSAY':
+        return 'Tự luận';
+      case 'TRUE_FALSE':
+        return 'Đúng / Sai';
       case 'MATCHING':
         return 'Ghép cặp';
+      case 'IMAGE_MATCHING':
+        return 'Ghép ảnh';
       case 'DRAG_ORDER':
         return 'Sắp xếp';
       case 'CLOZE':
@@ -220,7 +215,12 @@ export default function QuizAttempt() {
         return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
       case 'SHORT_ANSWER':
         return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
+      case 'ESSAY':
+        return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
+      case 'TRUE_FALSE':
+        return 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400';
       case 'MATCHING':
+      case 'IMAGE_MATCHING':
         return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400';
       case 'DRAG_ORDER':
         return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
@@ -240,38 +240,8 @@ export default function QuizAttempt() {
   const getItemsByRole = (question, role) =>
     sortByOrder((question.items || []).filter((item) => item.role === role));
 
-  const getContentBlockBlanks = (questionId) => contentBlockBlanks[questionId] || {};
-
-  const buildContentBlockAnswers = (question, blanksMap = {}) =>
-    sortByOrder((question.blocks || []).filter((block) => block.blockType === "BLANK_REF" && block.blankKey))
-      .map((block) => ({
-        blankKey: block.blankKey,
-        answerText: blanksMap[block.blankKey] || "",
-      }));
-
-  const handleContentBlockBlankChange = (questionId, blankKey, value) => {
-    if (!blankKey) return;
-    const question = questions.find((item) => item.id === questionId);
-    const nextQuestionBlanks = {
-      ...(contentBlockBlanks[questionId] || {}),
-      [blankKey]: value,
-    };
-    setContentBlockBlanks((prev) => ({
-      ...prev,
-      [questionId]: nextQuestionBlanks,
-    }));
-    if (attempt && question) {
-      submitAnswer(attempt.id, questionId, {
-        questionId,
-        contentBlockAnswers: buildContentBlockAnswers(question, nextQuestionBlanks),
-      }).catch((err) => {
-        console.error("Failed to save content block answer", err);
-      });
-    }
-  };
-
   const buildInitialInteractionAnswer = (question, answerItems = []) => {
-    if (question.type === "MATCHING") {
+    if (isMatchingQuestion(question.type)) {
       const matches = {};
       answerItems.forEach((item) => {
         if (item.itemId && item.selectedItemId) {
@@ -303,7 +273,7 @@ export default function QuizAttempt() {
   };
 
   const buildInteractionPayload = (question, answerState = {}) => {
-    if (question.type === "MATCHING") {
+    if (isMatchingQuestion(question.type)) {
       const prompts = getItemsByRole(question, "PROMPT");
       return prompts
         .filter((prompt) => answerState.matches?.[prompt.id])
@@ -354,7 +324,7 @@ export default function QuizAttempt() {
     if (Array.isArray(answer)) {
       return answer.some((item) => String(item || "").trim() !== "");
     }
-    if (question.type === "MATCHING") {
+    if (isMatchingQuestion(question.type)) {
       return Object.values(answer.matches || {}).some(Boolean);
     }
     if (question.type === "DRAG_ORDER") {
@@ -511,10 +481,23 @@ export default function QuizAttempt() {
   };
 
   const renderInteractionAnswer = (question) => {
-    if (question.type === "MATCHING") {
+    if (isMatchingQuestion(question.type)) {
       const prompts = getItemsByRole(question, "PROMPT");
       const matches = getItemsByRole(question, "MATCH");
       const current = answers[question.id] || { matches: {} };
+      const renderItem = (item, fallback) => (
+        <div className="space-y-2">
+          {item?.resource && <ResourcePreview resource={item.resource} />}
+          {!item?.resource && item?.resourceId && (
+            <img
+              src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/lms/resources/${item.resourceId}/view`}
+              className="max-h-40 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 object-contain"
+              alt=""
+            />
+          )}
+          <span>{item?.content || fallback}</span>
+        </div>
+      );
       return (
         <div className="space-y-3">
           {prompts.map((prompt, index) => (
@@ -523,12 +506,16 @@ export default function QuizAttempt() {
               className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-3 items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50"
             >
               <div className="font-medium text-slate-700 dark:text-slate-200">
-                {index + 1}. {prompt.content}
+                <span>{index + 1}. </span>
+                {renderItem(prompt, `Ảnh ${index + 1}`)}
               </div>
               <Select
                 value={current.matches?.[prompt.id]}
                 onChange={(value) => handleMatchingSelect(question, prompt.id, value)}
-                options={matches.map((match) => ({ value: match.id, label: match.content }))}
+                options={matches.map((match, matchIndex) => ({
+                  value: match.id,
+                  label: renderItem(match, `Đáp án ${matchIndex + 1}`),
+                }))}
                 placeholder="Chọn đáp án"
                 className="w-full"
               />
@@ -663,27 +650,14 @@ export default function QuizAttempt() {
                     {currentQuestion.content}
                   </p>
 
-                  {currentQuestion.blocks?.length > 0 && (
-                    <div className="mb-6">
-                      <QuestionBlocksRenderer
-                        blocks={currentQuestion.blocks}
-                        blanks={getContentBlockBlanks(currentQuestion.id)}
-                        onBlankChange={(blankKey, value) =>
-                          handleContentBlockBlankChange(currentQuestion.id, blankKey, value)
-                        }
-                        showBlanks={true}
-                      />
-                    </div>
-                  )}
-
                   <div className="space-y-3">
                     {isInteractionQuestion(currentQuestion.type) ? (
                       renderInteractionAnswer(currentQuestion)
-                    ) : currentQuestion.type === 'SHORT_ANSWER' ? (
+                    ) : isTextAnswerQuestion(currentQuestion.type) ? (
                       // Short answer - Text Area
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Nhập câu trả lời của bạn:
+                          {currentQuestion.type === "ESSAY" ? "Nhập bài tự luận của bạn:" : "Nhập câu trả lời của bạn:"}
                         </label>
                         <textarea
                           value={answers[currentQuestion.id]?.[0] || ''}
@@ -738,9 +712,12 @@ export default function QuizAttempt() {
                                   )}
                                 </div>
                               )}
-                              <span className="text-slate-700 dark:text-slate-200 font-medium select-none">
-                                {option.content}
-                              </span>
+                              <div className="min-w-0 flex-1">
+                                <span className="block text-slate-700 dark:text-slate-200 font-medium select-none">
+                                  {option.content}
+                                </span>
+                                <ResourcePreview resource={option.resource} className="mt-2" />
+                              </div>
                             </div>
                           </label>
                         );

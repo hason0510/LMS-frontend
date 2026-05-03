@@ -12,6 +12,8 @@ import {
   BookOpenIcon,
   RectangleGroupIcon,
   MegaphoneIcon,
+  ClipboardDocumentCheckIcon,
+  ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
 
 export default function TeacherSidebar() {
@@ -61,6 +63,13 @@ export default function TeacherSidebar() {
           isCollapsed={isCollapsed}
         />
         <SidebarLink
+          icon={<ClipboardDocumentListIcon className="h-6 w-6" />}
+          label={t("teacher.assignments")}
+          active={currentPath.startsWith("/teacher/assignments")}
+          to="/teacher/assignments"
+          isCollapsed={isCollapsed}
+        />
+        <SidebarLink
           icon={<RectangleGroupIcon className="h-6 w-6" />}
           label={t("teacher.nganHangCauHoi") || "Ngân hàng câu hỏi"}
           active={currentPath.startsWith("/teacher/question-banks")}
@@ -79,6 +88,13 @@ export default function TeacherSidebar() {
           label="Announcements"
           active={currentPath.startsWith("/teacher/announcements")}
           to="/teacher/announcements"
+          isCollapsed={isCollapsed}
+        />
+        <SidebarLink
+          icon={<ClipboardDocumentCheckIcon className="h-6 w-6" />}
+          label={t("teacher.quizAttempts")}
+          active={currentPath.startsWith("/teacher/quiz-attempts")}
+          to="/teacher/quiz-attempts"
           isCollapsed={isCollapsed}
         />
         <SidebarLink

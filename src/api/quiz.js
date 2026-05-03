@@ -73,6 +73,16 @@ export async function getAttemptDetail(attemptId) {
   return response.data;
 }
 
+export async function getManagedQuizAttempts(params = {}) {
+  const response = await axiosClient.get("quiz-attempts/manage", { params });
+  return response.data;
+}
+
+export async function reviewQuizAttempt(attemptId, reviewData) {
+  const response = await axiosClient.put(`quiz-attempts/${attemptId}/review`, reviewData);
+  return response.data;
+}
+
 export async function getStudentAttemptsHistory(contentItemId) {
   try {
     const response = await axiosClient.get(`class-content-items/${contentItemId}/my-attempts`);

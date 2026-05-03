@@ -14,6 +14,8 @@ import {
   TagIcon,
   BookmarkIcon,
   MegaphoneIcon,
+  ClipboardDocumentCheckIcon,
+  ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar() {
@@ -55,6 +57,12 @@ export default function AdminSidebar() {
           to="/admin/class-sections"
         />
         <SidebarLink
+          icon={<ClipboardDocumentListIcon className="h-6 w-6" />}
+          label={t("admin.assignments")}
+          active={currentPath.startsWith("/admin/assignments")}
+          to="/admin/assignments"
+        />
+        <SidebarLink
           icon={<BookOpenIcon className="h-6 w-6" />}
           label={t("admin.chuongTrinhHoc") || "Chương trình học"}
           active={currentPath.startsWith("/admin/curriculums")}
@@ -71,6 +79,12 @@ export default function AdminSidebar() {
           label="Announcements"
           active={currentPath.startsWith("/admin/announcements")}
           to="/admin/announcements"
+        />
+        <SidebarLink
+          icon={<ClipboardDocumentCheckIcon className="h-6 w-6" />}
+          label={t("admin.quizAttempts")}
+          active={currentPath.startsWith("/admin/quiz-attempts")}
+          to="/admin/quiz-attempts"
         />
         <SidebarLink
           icon={<CheckCircleIcon className="h-6 w-6" />}

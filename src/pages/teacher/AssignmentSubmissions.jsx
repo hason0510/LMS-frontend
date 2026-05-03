@@ -131,7 +131,12 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
         title: "Học viên",
         dataIndex: "studentName",
         key: "studentName",
-        render: (_, record) => record.studentName || `Student #${record.studentId ?? "N/A"}`,
+        render: (_, record) => (
+          <div>
+            <p className="font-medium text-slate-900 dark:text-white">{record.studentName || `Student #${record.studentId ?? "N/A"}`}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">MSSV: {record.studentNumber || "N/A"}</p>
+          </div>
+        ),
       },
       {
         title: "Trạng thái",
@@ -225,6 +230,9 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
             <div className="text-sm text-slate-600">
               <p>
                 <strong>Học viên:</strong> {selectedSubmission.studentName}
+              </p>
+              <p>
+                <strong>MSSV:</strong> {selectedSubmission.studentNumber || "N/A"}
               </p>
               <p>
                 <strong>Nộp lúc:</strong> {formatSubmissionTime(selectedSubmission.submissionTime)}

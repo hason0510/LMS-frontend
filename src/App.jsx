@@ -16,6 +16,7 @@ import QuizDetail from "./pages/student/QuizDetail";
 import TeacherQuizDetail from "./pages/teacher/QuizDetail";
 import StudentLectureDetail from "./pages/student/StudentLectureDetail";
 import StudentAssignmentDetail from "./pages/student/StudentAssignmentDetail";
+import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
 import ProfilePage from "./pages/student/ProfilePage";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherAnnouncements from "./pages/teacher/TeacherAnnouncements";
@@ -29,10 +30,13 @@ import CreateChapter from "./pages/teacher/CreateChapter";
 import LectureDetail from "./pages/teacher/LectureDetail";
 import AssignmentDetail from "./pages/teacher/AssignmentDetail";
 import AssignmentSubmissions from "./pages/teacher/AssignmentSubmissions";
+import TeacherAssignmentsPage from "./pages/teacher/TeacherAssignmentsPage";
 import TeacherLessonPreview from "./pages/teacher/TeacherLessonPreview";
 import TeacherQuizPreview from "./pages/teacher/TeacherQuizPreview";
 import TeacherQuizAttemptPreview from "./pages/teacher/TeacherQuizAttemptPreview";
 import TeacherQuizResultPreview from "./pages/teacher/TeacherQuizResultPreview";
+import TeacherQuizAttempts from "./pages/teacher/TeacherQuizAttempts";
+import TeacherQuizAttemptReview from "./pages/teacher/TeacherQuizAttemptReview";
 import TeacherAssignmentPreview from "./pages/teacher/TeacherAssignmentPreview";
 import TemplateDetailPage from "./pages/teacher/TemplateDetailPage";
 import TeacherProfilePage from "./pages/teacher/TeacherProfilePage";
@@ -143,6 +147,10 @@ function AppContent() {
         element={<ProtectedRoute element={<ProfilePage />} allowedRoles={["STUDENT"]} />}
       />
       <Route
+        path="/student/assignments"
+        element={<ProtectedRoute element={<StudentAssignmentsPage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
         path="/class-sections/:classSectionId/quizzes/:id/attempt"
         element={<ProtectedRoute element={<QuizAttempt />} allowedRoles={["STUDENT"]} />}
       />
@@ -160,6 +168,10 @@ function AppContent() {
       />
       <Route
         path="/class-sections/:classSectionId/quizzes/:id/result"
+        element={<ProtectedRoute element={<QuizResult />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/class-sections/:classSectionId/quizzes/:id/attempts/:attemptId"
         element={<ProtectedRoute element={<QuizResult />} allowedRoles={["STUDENT"]} />}
       />
 
@@ -189,6 +201,14 @@ function AppContent() {
       <Route
         path="/teacher/report"
         element={<ProtectedRoute element={<TeacherReport />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/quiz-attempts"
+        element={<ProtectedRoute element={<TeacherQuizAttempts />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/quiz-attempts/:attemptId"
+        element={<ProtectedRoute element={<TeacherQuizAttemptReview />} allowedRoles={["TEACHER"]} />}
       />
       <Route
         path="/teacher/announcements"
@@ -314,6 +334,10 @@ function AppContent() {
         path="/teacher/settings"
         element={<ProtectedRoute element={<TeacherSettingsPage />} allowedRoles={["TEACHER"]} />}
       />
+      <Route
+        path="/teacher/assignments"
+        element={<ProtectedRoute element={<TeacherAssignmentsPage />} allowedRoles={["TEACHER"]} />}
+      />
 
       {/* Admin Routes */}
       <Route
@@ -363,6 +387,18 @@ function AppContent() {
       <Route
         path="/admin/class-sections/:classSectionId/quizzes/:quizId"
         element={<ProtectedRoute element={<TeacherQuizDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:classSectionId/quizzes/:quizId/preview"
+        element={<ProtectedRoute element={<TeacherQuizPreview isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:classSectionId/quizzes/:quizId/preview/attempt"
+        element={<ProtectedRoute element={<TeacherQuizAttemptPreview isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:classSectionId/quizzes/:quizId/preview/result"
+        element={<ProtectedRoute element={<TeacherQuizResultPreview isAdmin={true} />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/class-sections/:classSectionId/chapters/:chapterId/quizzes/create"
@@ -439,6 +475,18 @@ function AppContent() {
       <Route
         path="/admin/reports"
         element={<ProtectedRoute element={<TeacherReport isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/assignments"
+        element={<ProtectedRoute element={<TeacherAssignmentsPage isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/quiz-attempts"
+        element={<ProtectedRoute element={<TeacherQuizAttempts isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/quiz-attempts/:attemptId"
+        element={<ProtectedRoute element={<TeacherQuizAttemptReview isAdmin={true} />} allowedRoles={["ADMIN"]} />}
       />
     </Routes>
   );

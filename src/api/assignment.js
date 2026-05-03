@@ -24,3 +24,13 @@ export async function deleteAssignment(id) {
   const response = await axiosClient.delete(`assignments/${id}`);
   return response.data;
 }
+
+export async function getStudentAssignmentFeed(params = {}) {
+  const response = await axiosClient.get("assignments/me/feed", { params });
+  return response.data;
+}
+
+export async function getTeachingAssignments(params = {}) {
+  const response = await axiosClient.get("assignments/teaching", { params });
+  return response.data;
+}

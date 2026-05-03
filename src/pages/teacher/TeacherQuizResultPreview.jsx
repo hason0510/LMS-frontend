@@ -9,18 +9,23 @@ import {
   ArrowLeftIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
+import ResourcePreview from "../../components/common/ResourcePreview";
 
 const sortByOrder = (items = []) =>
   [...items].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
+const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
+
 const getItemsByRole = (question, role) =>
   sortByOrder((question.items || []).filter((item) => item.role === role));
+
+const itemLabel = (item, fallback) => item?.content || (item?.resource || item?.resourceId ? "Ảnh" : fallback);
 
 const formatUserAnswer = (question, answers) => {
   const answer = answers[question.id];
   if (!answer) return "Không có câu trả lời";
 
-  if (question.type === "SINGLE_CHOICE" || question.type === "MULTIPLE_CHOICE") {
+  if (question.type === "SINGLE_CHOICE" || question.type === "MULTIPLE_CHOICE" || question.type === "TRUE_FALSE" || question.type === "IMAGE_ANSWERING") {
     const selectedIds = Array.isArray(answer) ? answer : [];
     if (selectedIds.length === 0) return "Không có câu trả lời";
     const contents = selectedIds
@@ -29,11 +34,11 @@ const formatUserAnswer = (question, answers) => {
     return contents.join(", ") || "Không có câu trả lời";
   }
 
-  if (question.type === "SHORT_ANSWER") {
+  if (question.type === "SHORT_ANSWER" || question.type === "ESSAY") {
     return answer[0]?.trim() || "Không có câu trả lời";
   }
 
-  if (question.type === "MATCHING") {
+  if (isMatchingQuestion(question.type)) {
     const prompts = getItemsByRole(question, "PROMPT");
     const matchItems = getItemsByRole(question, "MATCH");
     const matchById = new Map(matchItems.map((m) => [m.id, m]));
@@ -41,7 +46,7 @@ const formatUserAnswer = (question, answers) => {
     return prompts
       .map((p) => {
         const matched = matchById.get(matches[p.id]);
-        return `${p.content} → ${matched?.content || "Không chọn"}`;
+        return `${itemLabel(p, "Prompt")} → ${itemLabel(matched, "Không chọn")}`;
       })
       .join("; ");
   }
@@ -64,7 +69,7 @@ const formatUserAnswer = (question, answers) => {
 };
 
 const formatCorrectAnswer = (question) => {
-  if (question.type === "SINGLE_CHOICE" || question.type === "MULTIPLE_CHOICE") {
+  if (question.type === "SINGLE_CHOICE" || question.type === "MULTIPLE_CHOICE" || question.type === "TRUE_FALSE" || question.type === "IMAGE_ANSWERING") {
     const correct = (question.answers || []).filter((a) => a.isCorrect).map((a) => a.content);
     return correct.join(", ") || "—";
   }
@@ -74,14 +79,18 @@ const formatCorrectAnswer = (question) => {
     return accepted.join(" / ") || "—";
   }
 
-  if (question.type === "MATCHING") {
+  if (question.type === "ESSAY") {
+    return "Chấm tay";
+  }
+
+  if (isMatchingQuestion(question.type)) {
     const prompts = getItemsByRole(question, "PROMPT");
     const matchItems = getItemsByRole(question, "MATCH");
     const matchByKey = new Map(matchItems.map((m) => [m.itemKey, m]));
     return prompts
       .map((p) => {
         const correct = matchByKey.get(p.correctMatchKey);
-        return `${p.content} → ${correct?.content || "?"}`;
+        return `${itemLabel(p, "Prompt")} → ${itemLabel(correct, "?")}`;
       })
       .join("; ");
   }
@@ -104,11 +113,12 @@ const formatCorrectAnswer = (question) => {
   return "—";
 };
 
-export default function TeacherQuizResultPreview() {
+export default function TeacherQuizResultPreview({ isAdmin = false }) {
   const { classSectionId, quizId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { quizData, answers = {}, scoredQuestions = [], score = 0, isPassed = false, correctCount = 0, incorrectCount = 0, unansweredCount = 0 } = location.state || {};
+  const base = isAdmin ? "/admin" : "/teacher";
 
   if (!quizData) {
     return (
@@ -118,7 +128,7 @@ export default function TeacherQuizResultPreview() {
             Không có dữ liệu kết quả. Vui lòng thực hiện xem trước lại.
           </p>
           <button
-            onClick={() => navigate(`/teacher/class-sections/${classSectionId}/quizzes/${quizId}/preview`)}
+            onClick={() => navigate(`${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`)}
             className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
           >
             Quay lại
@@ -137,7 +147,7 @@ export default function TeacherQuizResultPreview() {
           Kết quả xem trước — Không được lưu vào hệ thống
         </div>
         <button
-          onClick={() => navigate(`/teacher/class-sections/${classSectionId}/quizzes/${quizId}`)}
+          onClick={() => navigate(`${base}/class-sections/${classSectionId}/quizzes/${quizId}`)}
           className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
         >
           <ArrowLeftIcon className="h-3.5 w-3.5" />
@@ -191,14 +201,14 @@ export default function TeacherQuizResultPreview() {
 
               <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
                 <button
-                  onClick={() => navigate(`/teacher/class-sections/${classSectionId}/quizzes/${quizId}/preview`, { state: { quizData } })}
+                  onClick={() => navigate(`${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`, { state: { quizData } })}
                   className="flex h-10 min-w-[140px] items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 text-sm font-bold text-white transition"
                 >
                   <ArrowPathIcon className="h-5 w-5" />
                   Xem trước lại
                 </button>
                 <button
-                  onClick={() => navigate(`/teacher/class-sections/${classSectionId}/quizzes/${quizId}`)}
+                  onClick={() => navigate(`${base}/class-sections/${classSectionId}/quizzes/${quizId}`)}
                   className="flex h-10 min-w-[140px] items-center justify-center gap-2 rounded-lg bg-[#f0f2f4] px-4 text-sm font-bold text-[#111418] transition hover:bg-[#e0e2e4] dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                 >
                   <ArrowLeftIcon className="h-5 w-5" />
@@ -247,7 +257,9 @@ export default function TeacherQuizResultPreview() {
                         <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${isCorrect ? "bg-[#e6f4ea] text-[#1d8f44] dark:bg-green-900/40 dark:text-green-400" : isCorrect === false ? "bg-[#fdecea] text-[#d32f2f] dark:bg-red-900/40 dark:text-red-400" : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}>
                           {index + 1}
                         </span>
-                        <h4 className="text-lg font-medium text-[#111418] dark:text-white">{question.content}</h4>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-lg font-medium text-[#111418] dark:text-white">{question.content}</h4>
+                        </div>
                       </div>
                       <span className={`self-start rounded-full px-3 py-1 text-xs font-bold ${isCorrect === true ? "bg-[#e6f4ea] text-[#1d8f44] dark:bg-green-900/40 dark:text-green-400" : isCorrect === false ? "bg-[#fdecea] text-[#d32f2f] dark:bg-red-900/40 dark:text-red-400" : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}>
                         {isCorrect === true ? "Đúng" : isCorrect === false ? "Sai" : "Chưa chấm"}
@@ -267,6 +279,13 @@ export default function TeacherQuizResultPreview() {
                         <div className="flex flex-col min-w-0">
                           <span className="text-sm font-medium text-[#617589] dark:text-gray-400">Câu trả lời đã chọn</span>
                           <span className="font-medium text-[#111418] dark:text-white max-w-2xl break-words">{userAnswer}</span>
+                          {Array.isArray(answers[question.id]) &&
+                            answers[question.id].map((answerId) => {
+                              const option = (question.answers || []).find((item) => item.id === answerId);
+                              return option?.resource ? (
+                                <ResourcePreview key={answerId} resource={option.resource} className="mt-2" />
+                              ) : null;
+                            })}
                         </div>
                       </div>
 

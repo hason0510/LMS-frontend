@@ -4,9 +4,10 @@ import { Spin, Modal } from "antd";
 import { ArrowLeftIcon, EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AdminSidebar from "../../components/layout/AdminSidebar";
 import { getQuizById } from "../../api/quiz";
 
-export default function TeacherQuizPreview() {
+export default function TeacherQuizPreview({ isAdmin = false }) {
   const { classSectionId, quizId } = useParams();
   const navigate = useNavigate();
   const [quiz, setQuiz] = useState(null);
@@ -14,6 +15,7 @@ export default function TeacherQuizPreview() {
   const [error, setError] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const base = isAdmin ? "/admin" : "/teacher";
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -40,7 +42,7 @@ export default function TeacherQuizPreview() {
   const handleConfirmStart = () => {
     setShowConfirm(false);
     navigate(
-      `/teacher/class-sections/${classSectionId}/quizzes/${quizId}/preview/attempt`,
+      `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview/attempt`,
       { state: { quizData: quiz } }
     );
   };
@@ -50,7 +52,7 @@ export default function TeacherQuizPreview() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <TeacherHeader />
         <div className="flex">
-          <TeacherSidebar />
+          {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
           <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
             <Spin size="large" />
           </main>
@@ -64,7 +66,7 @@ export default function TeacherQuizPreview() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <TeacherHeader />
         <div className="flex">
-          <TeacherSidebar />
+          {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
           <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
             <div className="text-center">
               <p className="text-lg font-semibold text-red-600 mb-4">{error || "Không tải được dữ liệu"}</p>
@@ -87,7 +89,7 @@ export default function TeacherQuizPreview() {
     <div className="min-h-screen bg-background-light dark:bg-background-dark">
       <TeacherHeader />
       <div className="flex">
-        <TeacherSidebar />
+        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           {/* Preview Banner */}
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">

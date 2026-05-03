@@ -11,18 +11,24 @@ import {
 } from "@heroicons/react/24/outline";
 import { FlagIcon as FlagIconSolid } from "@heroicons/react/24/solid";
 import { Modal, Select } from "antd";
+import ResourcePreview from "../../components/common/ResourcePreview";
 
 const sortByOrder = (items = []) =>
   [...items].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
-const isInteractionQuestion = (type) => ["MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
+const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
+const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
+const isTextAnswerQuestion = (type) => ["SHORT_ANSWER", "ESSAY"].includes(type);
 
 const getQuestionTypeLabel = (type) => {
   const labels = {
     SINGLE_CHOICE: "Trắc nghiệm 1 đáp án",
     MULTIPLE_CHOICE: "Trắc nghiệm nhiều đáp án",
+    TRUE_FALSE: "Đúng / Sai",
     SHORT_ANSWER: "Trả lời ngắn",
+    ESSAY: "Tự luận",
     MATCHING: "Ghép cặp",
+    IMAGE_MATCHING: "Ghép ảnh",
     DRAG_ORDER: "Sắp xếp",
     CLOZE: "Điền chỗ trống",
   };
@@ -33,8 +39,11 @@ const getTypeBgColor = (type) => {
   const colors = {
     SINGLE_CHOICE: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
     MULTIPLE_CHOICE: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
+    TRUE_FALSE: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400",
     SHORT_ANSWER: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+    ESSAY: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
     MATCHING: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400",
+    IMAGE_MATCHING: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400",
     DRAG_ORDER: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
     CLOZE: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400",
   };
@@ -53,7 +62,7 @@ const getItemsByRole = (question, role) =>
 const scoreQuestion = (question, answers) => {
   const selected = answers[question.id];
 
-  if (question.type === "SINGLE_CHOICE" || question.type === "MULTIPLE_CHOICE") {
+  if (question.type === "SINGLE_CHOICE" || question.type === "MULTIPLE_CHOICE" || question.type === "TRUE_FALSE" || question.type === "IMAGE_ANSWERING") {
     const correctIds = (question.answers || [])
       .filter((a) => a.isCorrect)
       .map((a) => String(a.id))
@@ -76,7 +85,11 @@ const scoreQuestion = (question, answers) => {
     return accepted.length > 0 && accepted.some((t) => t === text);
   }
 
-  if (question.type === "MATCHING") {
+  if (question.type === "ESSAY") {
+    return null;
+  }
+
+  if (isMatchingQuestion(question.type)) {
     const prompts = getItemsByRole(question, "PROMPT");
     const matchItems = getItemsByRole(question, "MATCH");
     const matchByKey = new Map(matchItems.map((m) => [m.itemKey, m]));
@@ -117,7 +130,7 @@ const scoreQuestion = (question, answers) => {
   return null;
 };
 
-export default function TeacherQuizAttemptPreview() {
+export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
   const { classSectionId, quizId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -132,6 +145,7 @@ export default function TeacherQuizAttemptPreview() {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const submittedRef = useRef(false);
+  const base = isAdmin ? "/admin" : "/teacher";
 
   useEffect(() => {
     if (!hasTimeLimit) return;
@@ -148,7 +162,7 @@ export default function TeacherQuizAttemptPreview() {
     return () => clearInterval(timer);
   }, []);
 
-  const previewRoot = `/teacher/class-sections/${classSectionId}/quizzes/${quizId}/preview`;
+  const previewRoot = `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`;
 
   if (!quizData) {
     // State lost (e.g. page refresh) — redirect to quiz preview page which fetches fresh data
@@ -176,7 +190,7 @@ export default function TeacherQuizAttemptPreview() {
     const answer = answers[question.id];
     if (!answer) return false;
     if (Array.isArray(answer)) return answer.some((v) => String(v || "").trim() !== "");
-    if (question.type === "MATCHING") return Object.values(answer.matches || {}).some(Boolean);
+    if (isMatchingQuestion(question.type)) return Object.values(answer.matches || {}).some(Boolean);
     if (question.type === "DRAG_ORDER") return Array.isArray(answer.order) && answer.order.length > 0;
     if (question.type === "CLOZE") return Object.values(answer.blanks || {}).some((v) => String(v || "").trim() !== "");
     return false;
@@ -258,7 +272,7 @@ export default function TeacherQuizAttemptPreview() {
     const isPassed = score >= (quizData.minPassScore || 0);
 
     navigate(
-      `/teacher/class-sections/${classSectionId}/quizzes/${quizId}/preview/result`,
+      `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview/result`,
       {
         state: {
           quizData,
@@ -296,19 +310,38 @@ export default function TeacherQuizAttemptPreview() {
   };
 
   const renderInteractionAnswer = (question) => {
-    if (question.type === "MATCHING") {
+    if (isMatchingQuestion(question.type)) {
       const prompts = getItemsByRole(question, "PROMPT");
       const matches = getItemsByRole(question, "MATCH");
       const current = answers[question.id] || { matches: {} };
+      const renderItem = (item, fallback) => (
+        <div className="space-y-2">
+          {item?.resource && <ResourcePreview resource={item.resource} />}
+          {!item?.resource && item?.resourceId && (
+            <img
+              src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/lms/resources/${item.resourceId}/view`}
+              className="max-h-40 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 object-contain"
+              alt=""
+            />
+          )}
+          <span>{item?.content || fallback}</span>
+        </div>
+      );
       return (
         <div className="space-y-3">
           {prompts.map((prompt, index) => (
             <div key={prompt.id} className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-3 items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50">
-              <div className="font-medium text-slate-700 dark:text-slate-200">{index + 1}. {prompt.content}</div>
+              <div className="font-medium text-slate-700 dark:text-slate-200">
+                <span>{index + 1}. </span>
+                {renderItem(prompt, `Ảnh ${index + 1}`)}
+              </div>
               <Select
                 value={current.matches?.[prompt.id]}
                 onChange={(value) => handleMatchingSelect(question, prompt.id, value)}
-                options={matches.map((m) => ({ value: m.id, label: m.content }))}
+                options={matches.map((match, matchIndex) => ({
+                  value: match.id,
+                  label: renderItem(match, `Đáp án ${matchIndex + 1}`),
+                }))}
                 placeholder="Chọn đáp án"
                 className="w-full"
               />
@@ -434,10 +467,10 @@ export default function TeacherQuizAttemptPreview() {
                   <div className="space-y-3">
                     {isInteractionQuestion(currentQuestion.type) ? (
                       renderInteractionAnswer(currentQuestion)
-                    ) : currentQuestion.type === "SHORT_ANSWER" ? (
+                    ) : isTextAnswerQuestion(currentQuestion.type) ? (
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Nhập câu trả lời của bạn:
+                          {currentQuestion.type === "ESSAY" ? "Nhập bài tự luận của bạn:" : "Nhập câu trả lời của bạn:"}
                         </label>
                         <textarea
                           value={answers[currentQuestion.id]?.[0] || ""}
@@ -476,7 +509,10 @@ export default function TeacherQuizAttemptPreview() {
                                   {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                                 </div>
                               )}
-                              <span className="text-slate-700 dark:text-slate-200 font-medium select-none">{option.content}</span>
+                              <div className="min-w-0 flex-1">
+                                <span className="block text-slate-700 dark:text-slate-200 font-medium select-none">{option.content}</span>
+                                <ResourcePreview resource={option.resource} className="mt-2" />
+                              </div>
                             </div>
                           </label>
                         );

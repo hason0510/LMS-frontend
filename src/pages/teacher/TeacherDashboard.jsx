@@ -8,6 +8,7 @@ import DashboardCourseCard from "../../components/teacher/dashboard/DashboardCou
 import StatItem from "../../components/teacher/dashboard/StatItem";
 import NotificationItem from "../../components/teacher/dashboard/NotificationItem";
 import { getTeacherCourses } from "../../api/classSection";
+import { getTeachingAssignments } from "../../api/assignment";
 import { Spin, Alert } from "antd";
 import {
   AcademicCapIcon,
@@ -23,8 +24,11 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [assignmentError, setAssignmentError] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [upcomingAssignments, setUpcomingAssignments] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -38,6 +42,7 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     fetchTeacherCourses();
+    fetchUpcomingAssignments();
   }, []);
 
   const fetchTeacherCourses = async () => {
@@ -52,6 +57,21 @@ export default function TeacherDashboard() {
       console.error("Error fetching courses:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUpcomingAssignments = async () => {
+    try {
+      setAssignmentsLoading(true);
+      setAssignmentError(null);
+      const response = await getTeachingAssignments({ tab: "UPCOMING" });
+      const payload = response?.data || response;
+      setUpcomingAssignments(Array.isArray(payload?.pageList) ? payload.pageList.slice(0, 5) : []);
+    } catch (err) {
+      console.error("Error fetching assignments:", err);
+      setAssignmentError(err.message || "Lỗi khi tải assignments");
+    } finally {
+      setAssignmentsLoading(false);
     }
   };
 
@@ -153,6 +173,47 @@ export default function TeacherDashboard() {
                       >
                         Tạo lớp học
                       </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">Assignments</h3>
+                    <button
+                      onClick={() => navigate("/teacher/assignments")}
+                      className="flex items-center gap-2 text-sm font-bold text-primary hover:underline"
+                    >
+                      <span>Xem tất cả</span>
+                      <ArrowRightIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                  {assignmentsLoading ? (
+                    <div className="flex justify-center py-6">
+                      <Spin />
+                    </div>
+                  ) : assignmentError ? (
+                    <Alert title="Lỗi" description={assignmentError} type="error" showIcon />
+                  ) : upcomingAssignments.length === 0 ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Không có assignment sắp đến hạn.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingAssignments.map((assignment) => (
+                        <button
+                          key={`${assignment.assignmentId}-${assignment.classSectionId}`}
+                          onClick={() =>
+                            navigate(
+                              `/teacher/class-sections/${assignment.classSectionId}/assignments/${assignment.assignmentId}/submissions`
+                            )
+                          }
+                          className="w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-3 hover:border-primary/60 transition-colors"
+                        >
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {assignment.assignmentTitle}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{assignment.classSectionTitle}</p>
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>

@@ -11,9 +11,13 @@ import {
 import { Spin, message } from "antd";
 import { getAttemptDetail } from "../../api/quiz";
 import Header from "../../components/layout/Header";
+import ResourcePreview from "../../components/common/ResourcePreview";
 
 const sortByOrder = (items = []) =>
   [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
+
+const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
+const itemLabel = (item, fallback) => item?.content || (item?.resource || item?.resourceId ? "Ảnh" : fallback);
 
 const formatInteractiveAnswer = (attemptAnswer) => {
   const question = attemptAnswer.quizQuestion || {};
@@ -21,12 +25,12 @@ const formatInteractiveAnswer = (attemptAnswer) => {
   const answerItems = attemptAnswer.answerItems || [];
   const itemsById = new Map(items.map((item) => [item.id, item]));
 
-  if (question.type === "MATCHING") {
+  if (isMatchingQuestion(question.type)) {
     return answerItems
       .map((answerItem) => {
         const prompt = itemsById.get(answerItem.itemId);
         const selected = itemsById.get(answerItem.selectedItemId);
-        return `${prompt?.content || "Prompt"} → ${selected?.content || "Không chọn"}`;
+        return `${itemLabel(prompt, "Prompt")} → ${itemLabel(selected, "Không chọn")}`;
       })
       .join("; ");
   }
@@ -50,10 +54,10 @@ const formatInteractiveAnswer = (attemptAnswer) => {
 };
 
 export default function QuizResult() {
-  const { id, classSectionId } = useParams();
+  const { id, classSectionId, attemptId: attemptIdParam } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const attemptId = location.state?.attemptId;
+  const attemptId = location.state?.attemptId || attemptIdParam;
   const classContentItemId = location.state?.classContentItemId;
 
   const [loading, setLoading] = useState(true);
@@ -93,9 +97,14 @@ export default function QuizResult() {
           id: data.id,
           score: data.grade || 0,
           totalScore: 100,
+          earnedPoints: data.earnedPoints,
+          totalPoints: data.totalPoints,
+          gradingStatus: data.gradingStatus,
           isPassed: data.isPassed || false,
           completedAt: data.completedTime ? new Date(data.completedTime).toLocaleString('vi-VN') : 'N/A',
-          feedback: data.isPassed ? "Làm tốt lắm! Bạn đã vượt qua kỳ thi." : "Bạn chưa đạt điểm yêu cầu. Hãy cố gắng thêm!",
+          feedback: data.gradingStatus === "NEEDS_REVIEW"
+            ? "Bài làm đã nộp. Một số câu tự luận đang chờ giáo viên chấm."
+            : (data.instructorFeedback || (data.isPassed ? "Làm tốt lắm! Bạn đã vượt qua kỳ thi." : "Bạn chưa đạt điểm yêu cầu. Hãy cố gắng thêm!")),
           timeTaken: timeTaken,
           correctCount: data.correctAnswers || 0,
           wrongCount: data.incorrectAnswers || 0,
@@ -207,12 +216,14 @@ export default function QuizResult() {
                     </h1>
                     <span
                       className={`rounded-full px-3 py-1 text-sm font-bold ${
-                        resultData.isPassed
+                        resultData.gradingStatus === "NEEDS_REVIEW"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                          : resultData.isPassed
                           ? "bg-[#e6f4ea] text-[#1d8f44] dark:bg-green-900/40 dark:text-green-400"
                           : "bg-[#fdecea] text-[#d32f2f] dark:bg-red-900/40 dark:text-red-400"
                       }`}
                     >
-                      {resultData.isPassed ? "Đạt" : "Không đạt"}
+                      {resultData.gradingStatus === "NEEDS_REVIEW" ? "Chờ chấm" : resultData.isPassed ? "Đạt" : "Không đạt"}
                     </span>
                   </div>
                   <p className="text-base font-normal leading-normal text-[#617589] dark:text-gray-400">
@@ -221,6 +232,11 @@ export default function QuizResult() {
                   <p className="text-base font-medium text-[#111418] dark:text-gray-200">
                     {resultData.feedback}
                   </p>
+                  {resultData.earnedPoints != null && resultData.totalPoints != null && (
+                    <p className="text-sm font-semibold text-primary">
+                      Điểm: {Number(resultData.earnedPoints).toFixed(2)} / {Number(resultData.totalPoints).toFixed(2)}
+                    </p>
+                  )}
                 </div>
               </div>
               {/* Actions */}
@@ -291,6 +307,13 @@ export default function QuizResult() {
                 resultData.answers.map((attemptAnswer, index) => {
                   const question = attemptAnswer.quizQuestion || {};
                   const isCorrect = attemptAnswer.isCorrect;
+                  const isPending = attemptAnswer.gradingStatus === "NEEDS_REVIEW";
+                  const isPartial =
+                    !isPending &&
+                    attemptAnswer.earnedPoints != null &&
+                    attemptAnswer.maxPoints != null &&
+                    Number(attemptAnswer.earnedPoints) > 0 &&
+                    Number(attemptAnswer.earnedPoints) < Number(attemptAnswer.maxPoints);
                   const userAnswer = formatInteractiveAnswer(attemptAnswer)
                     || attemptAnswer.selectedAnswers?.map(a => a.content).join(", ")
                     || attemptAnswer.textAnswer
@@ -307,6 +330,10 @@ export default function QuizResult() {
                             className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                               isCorrect
                                 ? "bg-[#e6f4ea] text-[#1d8f44] dark:bg-green-900/40 dark:text-green-400"
+                                : isPending
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                : isPartial
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
                                 : isCorrect === false
                                 ? "bg-[#fdecea] text-[#d32f2f] dark:bg-red-900/40 dark:text-red-400"
                                 : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
@@ -322,12 +349,16 @@ export default function QuizResult() {
                           className={`self-start rounded-full px-3 py-1 text-xs font-bold ${
                             isCorrect === true
                               ? "bg-[#e6f4ea] text-[#1d8f44] dark:bg-green-900/40 dark:text-green-400"
+                              : isPending
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                              : isPartial
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
                               : isCorrect === false
                               ? "bg-[#fdecea] text-[#d32f2f] dark:bg-red-900/40 dark:text-red-400"
                               : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                           }`}
                         >
-                          {isCorrect === true ? "Đúng" : isCorrect === false ? "Sai" : "Chưa chấm"}
+                          {isPending ? "Chờ chấm" : isPartial ? "Một phần" : isCorrect === true ? "Đúng" : isCorrect === false ? "Sai" : "Chưa chấm"}
                         </span>
                       </div>
                       <div className="mt-2 flex flex-col gap-3 pl-0 sm:pl-11">
@@ -336,6 +367,10 @@ export default function QuizResult() {
                           className={`flex items-center gap-3 rounded-lg border p-3 ${
                             isCorrect
                               ? "border-[#e6f4ea] bg-[#f7fbf8] dark:border-green-900/30 dark:bg-green-900/10"
+                              : isPending
+                              ? "border-amber-200 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-900/10"
+                              : isPartial
+                              ? "border-blue-200 bg-blue-50 dark:border-blue-900/30 dark:bg-blue-900/10"
                               : isCorrect === false
                               ? "border-[#fdecea] bg-[#fff8f8] dark:border-red-900/30 dark:bg-red-900/10"
                               : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50"
@@ -355,6 +390,23 @@ export default function QuizResult() {
                             <span className="font-medium text-[#111418] dark:text-white max-w-2xl break-words">
                               {userAnswer}
                             </span>
+                            {(attemptAnswer.selectedAnswers || []).map((answer) => (
+                              <ResourcePreview
+                                key={answer.id}
+                                resource={answer.resource}
+                                className="mt-2"
+                              />
+                            ))}
+                            {attemptAnswer.earnedPoints != null && attemptAnswer.maxPoints != null && (
+                              <span className="mt-1 text-xs font-semibold text-primary">
+                                {Number(attemptAnswer.earnedPoints).toFixed(2)} / {Number(attemptAnswer.maxPoints).toFixed(2)} điểm
+                              </span>
+                            )}
+                            {attemptAnswer.teacherFeedback && (
+                              <span className="mt-2 text-sm text-[#617589] dark:text-gray-300">
+                                Phản hồi: {attemptAnswer.teacherFeedback}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

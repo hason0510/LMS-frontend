@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Form, Input, Select, Button, Checkbox, Radio, Divider, Spin } from "antd";
-import { PlusCircleIcon, TrashIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import { PlusCircleIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { getTags as getQuestionBankTags } from "../../api/questionBank";
-import QuestionBlocksEditor from "../quiz/QuestionBlocksEditor";
+import { uploadStandaloneResource } from "../../api/resource";
 
 const { TextArea } = Input;
 
@@ -19,17 +19,29 @@ const createDragItem = (content = "") => ({
   content,
 });
 
-const createClozeBlank = (answersText = "", label = "") => ({
-  id: createLocalId(),
-  label,
-  answersText,
-});
-
-const splitAcceptedAnswers = (value = "") =>
-  value
-    .split(/\r?\n|,/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+const parseClozeToItems = (syntax = "") => {
+  const items = [];
+  const regex = /\[\[([^\]]+)\]\]/g;
+  let match;
+  let idx = 0;
+  while ((match = regex.exec(syntax)) !== null) {
+    idx++;
+    const parts = match[1].split("|");
+    const correct = parts[0].trim();
+    const opts = parts.slice(1).map((p) => p.trim()).filter(Boolean);
+    items.push({
+      content: correct,
+      itemKey: `blank-${idx}`,
+      role: "BLANK",
+      blankIndex: idx,
+      acceptedAnswers: [correct],
+      blankType: opts.length > 0 ? "SELECT" : "TEXT_INPUT",
+      blankOptions: opts.length > 0 ? JSON.stringify(opts) : null,
+      orderIndex: idx,
+    });
+  }
+  return items;
+};
 
 const sortByOrder = (items = []) =>
   [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
@@ -56,16 +68,11 @@ const buildDragItemsFromItems = (items = []) => {
   return orderItems.length > 0 ? orderItems : [createDragItem(), createDragItem()];
 };
 
-const buildClozeBlanksFromItems = (items = []) => {
-  const blanks = [...items]
-    .filter((item) => item.role === "BLANK")
-    .sort((left, right) => (left.blankIndex || 0) - (right.blankIndex || 0))
-    .map((item) => createClozeBlank((item.acceptedAnswers || []).join("\n"), item.content || ""));
-  return blanks.length > 0 ? blanks : [createClozeBlank()];
-};
-
 const isInteractionType = (questionType) =>
   ["MATCHING", "DRAG_ORDER", "CLOZE"].includes(questionType);
+
+const isSingleSelectType = (questionType) =>
+  ["SINGLE_CHOICE", "TRUE_FALSE", "IMAGE_ANSWERING"].includes(questionType);
 
 const DIFFICULTY_ALIAS_HINT = "easy, de, dễ, medium, trung bình, hard, kho, khó";
 
@@ -103,11 +110,10 @@ export default function QuestionForm({
   ]);
   const [matchingPairs, setMatchingPairs] = useState([createMatchingPair(), createMatchingPair()]);
   const [dragItems, setDragItems] = useState([createDragItem(), createDragItem()]);
-  const [clozeBlanks, setClozeBlanks] = useState([createClozeBlank()]);
-  const [blocks, setBlocks] = useState(initialValues?.blocks || []);
   const [tagOptions, setTagOptions] = useState(buildTagOptions((existingTags || []).map((tag) => tag.name)));
   const [tagSearchValue, setTagSearchValue] = useState("");
   const [tagSearchLoading, setTagSearchLoading] = useState(false);
+  const [optionUploading, setOptionUploading] = useState({});
   const tagSearchRequestIdRef = useRef(0);
 
   useEffect(() => {
@@ -126,8 +132,6 @@ export default function QuestionForm({
       ]);
       setMatchingPairs(buildMatchingPairsFromItems(initialValues.items || []));
       setDragItems(buildDragItemsFromItems(initialValues.items || []));
-      setClozeBlanks(buildClozeBlanksFromItems(initialValues.items || []));
-      setBlocks(initialValues.blocks || []);
     }
   }, [initialValues, form]);
 
@@ -207,6 +211,13 @@ export default function QuestionForm({
     setType(val);
     if (val === "SHORT_ANSWER") {
       setOptions([{ content: "Đáp án đúng", isCorrect: true }]);
+    } else if (val === "ESSAY") {
+      setOptions([]);
+    } else if (val === "TRUE_FALSE") {
+      setOptions([
+        { content: "True", isCorrect: true },
+        { content: "False", isCorrect: false },
+      ]);
     } else if (isInteractionType(val)) {
       setOptions([]);
     } else if (options.length <= 1) {
@@ -234,9 +245,27 @@ export default function QuestionForm({
     setOptions(newOptions);
   };
 
+  const handleOptionResourceChange = (index, resourceId) => {
+    const newOptions = [...options];
+    newOptions[index].resourceId = resourceId ? Number(resourceId) : undefined;
+    setOptions(newOptions);
+  };
+
+  const handleOptionFileUpload = async (index, file) => {
+    if (!file) return;
+    try {
+      setOptionUploading((prev) => ({ ...prev, [index]: true }));
+      const response = await uploadStandaloneResource(file);
+      const uploaded = response?.data || response;
+      handleOptionResourceChange(index, uploaded?.resourceId || uploaded?.id);
+    } finally {
+      setOptionUploading((prev) => ({ ...prev, [index]: false }));
+    }
+  };
+
   const handleCorrectChange = (index) => {
     const newOptions = [...options];
-    if (type === "SINGLE_CHOICE") {
+    if (isSingleSelectType(type)) {
       newOptions.forEach((opt, i) => (opt.isCorrect = i === index));
     } else {
       newOptions[index].isCorrect = !newOptions[index].isCorrect;
@@ -261,10 +290,6 @@ export default function QuestionForm({
       [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
       return next;
     });
-  };
-
-  const updateClozeBlank = (id, patch) => {
-    setClozeBlanks((prev) => prev.map((blank) => (blank.id === id ? { ...blank, ...patch } : blank)));
   };
 
   const buildInteractionItems = () => {
@@ -301,14 +326,7 @@ export default function QuestionForm({
     }
 
     if (type === "CLOZE") {
-      return clozeBlanks.map((blank, index) => ({
-        content: blank.label.trim() || `Blank ${index + 1}`,
-        itemKey: `blank-${blank.id}`,
-        role: "BLANK",
-        blankIndex: index + 1,
-        acceptedAnswers: splitAcceptedAnswers(blank.answersText),
-        orderIndex: index + 1,
-      }));
+      return parseClozeToItems(form.getFieldValue("content") || "");
     }
 
     return [];
@@ -330,8 +348,9 @@ export default function QuestionForm({
     }
 
     if (type === "CLOZE") {
-      if (clozeBlanks.length === 0 || clozeBlanks.some((blank) => splitAcceptedAnswers(blank.answersText).length === 0)) {
-        alert("Vui lòng nhập đáp án cho tất cả chỗ trống");
+      const items = parseClozeToItems(form.getFieldValue("content") || "");
+      if (items.length === 0) {
+        alert("Vui lòng thêm ít nhất một chỗ trống với cú pháp [[đáp án]] trong nội dung câu hỏi");
         return false;
       }
     }
@@ -349,9 +368,19 @@ export default function QuestionForm({
         ...values,
         tagNames,
         type,
-        blocks,
         options: [],
         items: buildInteractionItems(),
+      });
+      return;
+    }
+
+    if (type === "ESSAY") {
+      onFinish({
+        ...values,
+        tagNames,
+        type,
+        options: [],
+        items: [],
       });
       return;
     }
@@ -367,10 +396,11 @@ export default function QuestionForm({
       ...values,
       tagNames,
       type,
-      blocks,
       options: options.map((opt) => ({
         content: opt.content,
         isCorrect: opt.isCorrect,
+        explanation: opt.explanation || null,
+        resourceId: opt.resourceId || null,
       })),
       items: [],
     });
@@ -443,37 +473,13 @@ export default function QuestionForm({
   );
 
   const renderClozeEditor = () => (
-    <div className="space-y-3">
-      {clozeBlanks.map((blank, index) => (
-        <div key={blank.id} className="grid grid-cols-1 md:grid-cols-[160px_1fr_auto] gap-3 items-start">
-          <Input
-            placeholder={`Blank ${index + 1}`}
-            value={blank.label}
-            onChange={(e) => updateClozeBlank(blank.id, { label: e.target.value })}
-          />
-          <TextArea
-            rows={2}
-            placeholder="Đáp án chấp nhận, mỗi dòng một đáp án"
-            value={blank.answersText}
-            onChange={(e) => updateClozeBlank(blank.id, { answersText: e.target.value })}
-          />
-          <Button
-            type="text"
-            danger
-            icon={<TrashIcon className="h-4 w-4" />}
-            onClick={() => setClozeBlanks((prev) => prev.filter((item) => item.id !== blank.id))}
-            disabled={clozeBlanks.length <= 1}
-          />
-        </div>
-      ))}
-      <Button
-        type="dashed"
-        block
-        icon={<PlusCircleIcon className="h-4 w-4" />}
-        onClick={() => setClozeBlanks((prev) => [...prev, createClozeBlank()])}
-      >
-        Thêm chỗ trống
-      </Button>
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <p className="text-sm font-semibold text-blue-700 mb-2">Cú pháp điền chỗ trống (CLOZE):</p>
+      <ul className="text-sm text-blue-600 space-y-1 list-disc list-inside">
+        <li><code className="bg-blue-100 px-1 rounded">{"[[đáp án]]"}</code> — chỗ trống nhập tay</li>
+        <li><code className="bg-blue-100 px-1 rounded">{"[[đúng|lựa chọn 1|lựa chọn 2]]"}</code> — chỗ trống chọn từ danh sách</li>
+      </ul>
+      <p className="text-xs text-blue-500 mt-2">Nhúng cú pháp trực tiếp vào ô &quot;Nội dung câu hỏi&quot; ở trên. Ví dụ: <em>Thủ đô của Việt Nam là <strong>[[Hà Nội]]</strong>.</em></p>
     </div>
   );
 
@@ -500,7 +506,9 @@ export default function QuestionForm({
           <Select value={type} onChange={handleTypeChange}>
             <Select.Option value="SINGLE_CHOICE">Trắc nghiệm (1 đáp án)</Select.Option>
             <Select.Option value="MULTIPLE_CHOICE">Trắc nghiệm (Nhiều đáp án)</Select.Option>
+            <Select.Option value="TRUE_FALSE">Đúng / Sai</Select.Option>
             <Select.Option value="SHORT_ANSWER">Trả lời ngắn</Select.Option>
+            <Select.Option value="ESSAY">Tự luận / chấm tay</Select.Option>
             <Select.Option value="MATCHING">Ghép cặp</Select.Option>
             <Select.Option value="DRAG_ORDER">Sắp xếp</Select.Option>
             <Select.Option value="CLOZE">Điền chỗ trống</Select.Option>
@@ -516,16 +524,8 @@ export default function QuestionForm({
         </Form.Item>
 
         <Form.Item label="Điểm mặc định" name="defaultPoints">
-          <Input type="number" min={1} />
+          <Input type="number" min={0} step="0.25" />
         </Form.Item>
-      </div>
-
-      <Divider orientation="left">Nội dung mở rộng (Blocks)</Divider>
-      <div className="mb-4">
-        <p className="text-xs text-gray-500 mb-2">
-          Thêm code, hình ảnh, audio/video, công thức toán hoặc chỗ trống điền (CLOZE) vào đề bài.
-        </p>
-        <QuestionBlocksEditor blocks={blocks} onChange={setBlocks} />
       </div>
 
       <Divider orientation="left">Đáp án</Divider>
@@ -542,6 +542,12 @@ export default function QuestionForm({
             onChange={(e) => handleOptionContentChange(0, e.target.value)}
           />
         </div>
+      ) : type === "ESSAY" ? (
+        <div className="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            Câu tự luận sẽ được lưu để giáo viên chấm tay sau khi học viên nộp bài.
+          </p>
+        </div>
       ) : type === "MATCHING" ? (
         renderMatchingEditor()
       ) : type === "DRAG_ORDER" ? (
@@ -552,8 +558,8 @@ export default function QuestionForm({
         <div className="space-y-3">
           {options.map((option, index) => (
             <div key={index} className="flex items-center gap-3 group">
-              <div className="flex-shrink-0">
-                {type === "SINGLE_CHOICE" ? (
+              <div className="shrink-0">
+                {isSingleSelectType(type) ? (
                   <Radio
                     checked={option.isCorrect}
                     onChange={() => handleCorrectChange(index)}
@@ -571,12 +577,31 @@ export default function QuestionForm({
                 onChange={(e) => handleOptionContentChange(index, e.target.value)}
                 className={option.isCorrect ? "border-green-500 bg-green-50 dark:bg-green-900/10" : ""}
               />
+              <Input
+                type="number"
+                min={1}
+                placeholder="Resource ID"
+                value={option.resourceId || ""}
+                onChange={(e) => handleOptionResourceChange(index, e.target.value)}
+                className="w-32"
+              />
+              <Button loading={!!optionUploading[index]}>
+                <label className="cursor-pointer">
+                  File
+                  <input
+                    type="file"
+                    accept="image/*,audio/*,video/*"
+                    className="hidden"
+                    onChange={(event) => handleOptionFileUpload(index, event.target.files?.[0])}
+                  />
+                </label>
+              </Button>
               <Button
                 type="text"
                 danger
                 icon={<TrashIcon className="h-4 w-4" />}
                 onClick={() => handleRemoveOption(index)}
-                disabled={options.length <= 2}
+                disabled={options.length <= 2 || type === "TRUE_FALSE"}
               />
             </div>
           ))}
@@ -585,6 +610,7 @@ export default function QuestionForm({
             block
             icon={<PlusCircleIcon className="h-4 w-4" />}
             onClick={handleAddOption}
+            disabled={type === "TRUE_FALSE"}
             className="mt-2"
           >
             Thêm lựa chọn
