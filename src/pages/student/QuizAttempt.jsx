@@ -681,6 +681,7 @@ export default function QuizAttempt() {
                   <div className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-4">
                     {parse(currentQuestion.content || "")}
                   </div>
+                  <ResourcePreview resource={currentQuestion.resource} className="mb-5" />
 
                   <div className="space-y-3">
                     {isInteractionQuestion(currentQuestion.type) ? (

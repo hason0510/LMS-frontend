@@ -1,62 +1,40 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import {
   UserGroupIcon,
   AcademicCapIcon,
   UserPlusIcon,
-  PlusCircleIcon,
-  DocumentArrowDownIcon,
+  BookOpenIcon,
+  UsersIcon,
+  CheckBadgeIcon,
+  TagIcon,
+  ListBulletIcon,
 } from "@heroicons/react/24/outline";
 import { Spin } from "antd";
 import { getAllUsers } from "../../api/user";
-import { getAdminCourses as getAdminClassSections, getPendingCourses as getPendingClassSections } from "../../api/classSection";
+import { getAdminCourses as getAdminClassSections } from "../../api/classSection";
 import { getAllEnrollments } from "../../api/enrollment";
+import { getAllSubjects } from "../../api/subject";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function AdminDashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [stats, setStats] = useState([
-    {
-      label: "Tổng số người dùng",
-      value: "...",
-      change: "+0%",
-      changeType: "positive",
-      icon: UserGroupIcon,
-    },
-    {
-      label: "Số lớp học đang hoạt động",
-      value: "...",
-      change: "+0%",
-      changeType: "positive",
-      icon: AcademicCapIcon,
-    },
-    {
-      label: "Yêu cầu đăng ký mới",
-      value: "...",
-      change: "+0%",
-      changeType: "positive",
-      icon: UserPlusIcon,
-    },
+    { label: "Tổng số người dùng", value: "...", icon: UserGroupIcon, color: "blue" },
+    { label: "Lớp học đang hoạt động", value: "...", icon: AcademicCapIcon, color: "green" },
+    { label: "Yêu cầu đăng ký mới", value: "...", icon: UserPlusIcon, color: "amber" },
+    { label: "Tổng môn học", value: "...", icon: BookOpenIcon, color: "purple" },
   ]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [chartData, setChartData] = useState([
-    { month: "Tháng 1", users: 0 },
-    { month: "Tháng 2", users: 0 },
-    { month: "Tháng 3", users: 0 },
-    { month: "Tháng 4", users: 0 },
-    { month: "Tháng 5", users: 0 },
-    { month: "Tháng 6", users: 0 },
-  ]);
+  const [chartData, setChartData] = useState([]);
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    const handleResize = () => {
-      setSidebarCollapsed(window.innerWidth < 1024);
-    };
-
+    const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -71,99 +49,100 @@ export default function AdminDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch users - chỉ cần 1 bản ghi để lấy totalElements
-      const usersRes = await getAllUsers(0, 1);
+      const [usersRes, classSectionsRes, subjectsRes] = await Promise.all([
+        getAllUsers(0, 1),
+        getAdminClassSections(1, 1000),
+        getAllSubjects(),
+      ]);
+
       const totalUsers = usersRes.data?.totalElements || 0;
 
-      // Fetch ClassSections
-      const classSectionsRes = await getAdminClassSections(1, 1000);
-      // classSectionsRes.data is List<ClassSectionResponse> or PageResponse?
-      // getClassSections returns List on backend, but getAdminCourses might return PageResponse.
-      // Let's be safe and check both.
-      const totalClassSections = classSectionsRes.data?.totalElements ?? classSectionsRes.data?.length ?? 0;
+      const classSectionsList = Array.isArray(classSectionsRes.data)
+        ? classSectionsRes.data
+        : classSectionsRes.data?.pageList || [];
+      const totalClassSections = classSectionsRes.data?.totalElements ?? classSectionsList.length;
 
-      // Fetch pending ClassSections for alerts
-      let pendingClassSectionsCount = 0;
+      const totalSubjects = Array.isArray(subjectsRes.data)
+        ? subjectsRes.data.length
+        : subjectsRes.data?.totalElements || 0;
+
+      // Pending enrollments — null = fetch failed (unknown), number = confirmed count
+      let pendingEnrollmentsCount = null;
       try {
-        const pendingRes = await getPendingClassSections(1, 100);
-        // pendingRes.data is List<ClassSectionResponse> (backend returns List)
-        pendingClassSectionsCount = pendingRes.data?.length || 0;
-      } catch (err) {
-        console.error("Failed to fetch pending class sections:", err);
+        const pendingRes = await getAllEnrollments(1, 1, "PENDING");
+        pendingEnrollmentsCount = pendingRes.data?.totalElements ?? 0;
+      } catch {
+        // leave null so we don't falsely claim "all clear"
       }
 
-      // Fetch all enrollments to count pending ones
-      let pendingEnrollmentsCount = 0;
-      try {
-        const enrollmentsResponse = await getAllEnrollments(1, 1000);
-        const enrollments = enrollmentsResponse.data?.pageList || [];
-        pendingEnrollmentsCount = enrollments.filter(e => e.approvalStatus === 'PENDING').length;
-      } catch (err) {
-        console.error("Failed to fetch pending enrollments:", err);
-      }
+      // Chart: class sections grouped by subject
+      const subjectMap = {};
+      classSectionsList.forEach((cs) => {
+        const subject = cs.subjectTitle || "Chưa phân loại";
+        subjectMap[subject] = (subjectMap[subject] || 0) + 1;
+      });
+      const rawChartData = Object.entries(subjectMap)
+        .map(([subject, count]) => ({ subject, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8);
+      setChartData(rawChartData);
 
-      // Generate realistic chart data based on total users
-      const monthlyGrowth = totalUsers > 0 ? Math.floor(totalUsers / 6) : 0;
-      const newChartData = Array.from({ length: 6 }, (_, i) => ({
-        month: `T${i + 1}`,
-        users: Math.floor(monthlyGrowth * (i + 1) * 0.85 + Math.random() * monthlyGrowth * 0.3),
-      }));
-      if (newChartData[5]) newChartData[5].users = totalUsers;
-      setChartData(newChartData);
-
-      // Update alerts with real data
+      // Alerts
       const newAlerts = [];
-      if (pendingClassSectionsCount > 0) {
+      if (pendingEnrollmentsCount === null) {
         newAlerts.push({
           id: 1,
           type: "warning",
-          icon: "warning",
-          title: "Lớp học chờ duyệt",
-          message: `Có ${pendingClassSectionsCount} lớp học mới đang chờ xét duyệt từ quản trị viên.`,
+          title: "Không thể tải yêu cầu tham gia",
+          message: "Không thể xác nhận trạng thái yêu cầu đăng ký. Hãy kiểm tra lại.",
+          action: null,
+          actionLabel: null,
         });
-      }
-      if (pendingEnrollmentsCount > 0) {
+      } else if (pendingEnrollmentsCount > 0) {
         newAlerts.push({
-          id: 2,
+          id: 1,
           type: "info",
-          icon: "approval",
           title: "Yêu cầu tham gia chờ xử lý",
           message: `Có ${pendingEnrollmentsCount} yêu cầu tham gia lớp học đang chờ phê duyệt.`,
+          action: null,
+          actionLabel: null,
         });
-      }
-      if (newAlerts.length === 0) {
+      } else {
         newAlerts.push({
-          id: 3,
-          type: "info",
-          icon: "check_circle",
+          id: 1,
+          type: "success",
           title: "Hệ thống ổn định",
-          message: "Không có lớp học hoặc yêu cầu tham gia nào đang chờ xử lý.",
+          message: "Không có yêu cầu tham gia lớp học nào đang chờ xử lý.",
+          action: null,
+          actionLabel: null,
         });
       }
       setAlerts(newAlerts);
 
-      // Update stats with real data
       setStats([
         {
           label: "Tổng số người dùng",
           value: totalUsers.toLocaleString(),
-          change: "+2.5%",
-          changeType: "positive",
           icon: UserGroupIcon,
+          color: "blue",
         },
         {
           label: "Lớp học đang hoạt động",
           value: totalClassSections.toLocaleString(),
-          change: "+1.2%",
-          changeType: "positive",
           icon: AcademicCapIcon,
+          color: "green",
         },
         {
           label: "Yêu cầu đăng ký mới",
-          value: pendingEnrollmentsCount.toString(),
-          change: pendingEnrollmentsCount > 0 ? "+1" : "0",
-          changeType: "positive",
+          value: pendingEnrollmentsCount !== null ? pendingEnrollmentsCount.toLocaleString() : "—",
           icon: UserPlusIcon,
+          color: "amber",
+        },
+        {
+          label: "Tổng môn học",
+          value: totalSubjects.toLocaleString(),
+          icon: BookOpenIcon,
+          color: "purple",
         },
       ]);
     } catch (err) {
@@ -174,9 +153,37 @@ export default function AdminDashboard() {
     }
   };
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+  const colorMap = {
+    blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    green: "bg-green-500/10 text-green-600 dark:text-green-400",
+    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    purple: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
   };
+
+  const alertColorMap = {
+    warning: {
+      card: "bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20",
+      title: "text-amber-900 dark:text-amber-200",
+      message: "text-amber-800/80 dark:text-amber-400/80",
+    },
+    info: {
+      card: "bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20",
+      title: "text-blue-900 dark:text-blue-200",
+      message: "text-blue-800/80 dark:text-blue-400/80",
+    },
+    success: {
+      card: "bg-green-50 dark:bg-green-500/10 border border-green-100 dark:border-green-500/20",
+      title: "text-green-900 dark:text-green-200",
+      message: "text-green-800/80 dark:text-green-400/80",
+    },
+  };
+
+  const quickActions = [
+    { label: "Quản lý người dùng", icon: UsersIcon, to: "/admin/users" },
+    { label: "Duyệt lớp học", icon: CheckBadgeIcon, to: "/admin/class-sections" },
+    { label: "Danh mục", icon: TagIcon, to: "/admin/categories" },
+    { label: "Môn học", icon: ListBulletIcon, to: "/admin/subjects" },
+  ];
 
   if (loading) {
     return (
@@ -188,12 +195,14 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark">
-      <TeacherHeader toggleSidebar={toggleSidebar} />
+      <TeacherHeader />
       <AdminSidebar />
-      
-      <main className={`pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
-        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
-      }`}>
+
+      <main
+        className={`pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+        }`}
+      >
         <div className="mx-auto max-w-7xl">
           {error && (
             <div className="mb-6 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4">
@@ -201,7 +210,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Header Section */}
+          {/* Header */}
           <div className="flex flex-wrap mt-3 items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -211,10 +220,37 @@ export default function AdminDashboard() {
                 Quản lý tổng thể tài khoản, lớp học và đăng ký.
               </p>
             </div>
+            <button
+              onClick={fetchDashboardData}
+              className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Làm mới
+            </button>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.to}
+                  onClick={() => navigate(action.to)}
+                  className="flex items-center gap-3 p-4 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 shadow-sm hover:border-primary/50 hover:shadow-md transition-all text-left"
+                >
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    {action.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
@@ -231,13 +267,10 @@ export default function AdminDashboard() {
                         {stat.value}
                       </p>
                     </div>
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <Icon className="h-6 w-6 text-primary" />
+                    <div className={`p-3 rounded-lg ${colorMap[stat.color]}`}>
+                      <Icon className="h-6 w-6" />
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                    {stat.change} <span className="text-gray-500 dark:text-gray-500 font-normal">so với tháng trước</span>
-                  </p>
                 </div>
               );
             })}
@@ -245,60 +278,68 @@ export default function AdminDashboard() {
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            {/* Chart Section */}
+            {/* Chart: class sections per subject */}
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-800/50 lg:col-span-3 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-base font-semibold text-gray-900 dark:text-white">
-                    Tăng trưởng người dùng
-                  </p>
-                  <p className="text-sm text-gray-500">Thống kê 6 tháng gần nhất</p>
-                </div>
-                <div className="px-3 py-1 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 text-xs font-bold rounded-full">
-                  +15%
-                </div>
+              <div className="mb-6">
+                <p className="text-base font-semibold text-gray-900 dark:text-white">
+                  Lớp học theo môn học
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Phân bổ lớp học hiện có theo từng môn
+                </p>
               </div>
-              
-              <div className="w-full h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="month" 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#9ca3af', fontSize: 12 }}
-                    />
-                    <YAxis 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#9ca3af', fontSize: 12 }}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'transparent' }}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          return (
-                            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-xl">
-                              <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
-                                {payload[0].payload.month}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-primary"></div>
+
+              {chartData.length === 0 ? (
+                <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500 text-sm">
+                  Chưa có dữ liệu lớp học.
+                </div>
+              ) : (
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ left: -10 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="subject"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#9ca3af", fontSize: 11 }}
+                        interval={0}
+                        angle={-20}
+                        textAnchor="end"
+                        height={50}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#9ca3af", fontSize: 12 }}
+                        allowDecimals={false}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "transparent" }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-xl">
+                                <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                                  {payload[0].payload.subject}
+                                </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                                  Người dùng: <span className="font-bold text-gray-900 dark:text-white">{payload[0].value}</span>
+                                  Lớp học:{" "}
+                                  <span className="font-bold text-gray-900 dark:text-white">
+                                    {payload[0].value}
+                                  </span>
                                 </p>
                               </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar dataKey="users" fill="#137fec" radius={[4, 4, 0, 0]} barSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar dataKey="count" fill="#137fec" radius={[4, 4, 0, 0]} barSize={36} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
 
             {/* Alerts Section */}
@@ -307,47 +348,31 @@ export default function AdminDashboard() {
                 Việc cần xử lý
               </h3>
               <div className="space-y-4">
-                {alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`flex items-start gap-4 p-4 rounded-xl transition-all duration-200 ${
-                      alert.type === "warning"
-                        ? "bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20"
-                        : "bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20"
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg ${
-                      alert.type === "warning" ? "bg-amber-100 dark:bg-amber-500/20" : "bg-blue-100 dark:bg-blue-500/20"
-                    }`}>
-                      <span
-                        className={`material-symbols-outlined text-xl ${
-                          alert.type === "warning" ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
-                        }`}
-                      >
-                        {alert.icon}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-sm font-bold mb-1 ${
-                        alert.type === "warning" ? "text-amber-900 dark:text-amber-200" : "text-blue-900 dark:text-blue-200"
-                      }`}>
+                {alerts.map((alert) => {
+                  const colors = alertColorMap[alert.type] || alertColorMap.info;
+                  return (
+                    <div
+                      key={alert.id}
+                      className={`p-4 rounded-xl ${colors.card}`}
+                    >
+                      <p className={`text-sm font-bold mb-1 ${colors.title}`}>
                         {alert.title}
                       </p>
-                      <p className={`text-xs leading-relaxed ${
-                        alert.type === "warning" ? "text-amber-800/80 dark:text-amber-400/80" : "text-blue-800/80 dark:text-blue-400/80"
-                      }`}>
+                      <p className={`text-xs leading-relaxed ${colors.message}`}>
                         {alert.message}
                       </p>
+                      {alert.action && (
+                        <button
+                          onClick={alert.action}
+                          className="mt-2 text-xs font-semibold text-primary hover:underline"
+                        >
+                          {alert.actionLabel}
+                        </button>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              <button 
-                onClick={fetchDashboardData}
-                className="w-full mt-6 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Làm mới dữ liệu
-              </button>
             </div>
           </div>
         </div>
@@ -355,7 +380,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-const AdminSidebarCollapsed = ({ collapsed }) => {
-  return <AdminSidebar collapsed={collapsed} />;
-};

@@ -7,6 +7,7 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { getAttemptDetail, reviewQuizAttempt } from "../../api/quiz";
+import ResourcePreview from "../../components/common/ResourcePreview";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-");
 
@@ -298,6 +299,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
         <div className="prose prose-sm max-w-none">
           {previewQuestion && parse(previewQuestion.content || "")}
         </div>
+        {previewQuestion && <ResourcePreview resource={previewQuestion.resource} className="mt-4" />}
       </Modal>
     </div>
   );

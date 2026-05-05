@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import {
@@ -14,13 +14,15 @@ import {
   SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { createQuiz, getQuizById, updateQuiz } from "../../api/quiz";
 import { getQuestionBankById, getQuestionBanks, getTags } from "../../api/questionBank";
-import { uploadStandaloneResource } from "../../api/resource";
 import { createClassContentItem } from "../../api/classSection";
+import MediaAttachButton from "../../components/media/MediaAttachButton";
+import ResourceRenderer from "../../components/media/ResourceRenderer";
 import {
   createContentItemTemplate,
   getQuizTemplateById,
@@ -174,7 +176,7 @@ const transformApiQuestion = (q) => {
       content: a.content || "",
       isCorrect: !!a.isCorrect,
       explanation: a.explanation ?? null,
-      resourceId: a.resourceId ?? null,
+      resourceId: a.resource?.id ?? a.resourceId ?? null,
       resource: a.resource ?? null,
     })),
     items: (q.items || []).map((item) => ({
@@ -189,7 +191,8 @@ const transformApiQuestion = (q) => {
       blankType: item.blankType || "TEXT_INPUT",
       acceptedAnswers: item.acceptedAnswers || [],
       blankOptions: item.blankOptions,
-      resourceId: item.resourceId,
+      resourceId: item.resource?.id ?? item.resourceId ?? null,
+      resource: item.resource ?? null,
       orderIndex: item.orderIndex,
     })),
     clozeSyntax: "",
@@ -213,8 +216,8 @@ const convertBankQToLocal = (bq) => {
       content: o.content || "",
       isCorrect: !!o.isCorrect,
       explanation: o.explanation ?? null,
-      resourceId: o.resourceId ?? null,
-      resource: null,
+      resourceId: o.resource?.id ?? o.resourceId ?? null,
+      resource: o.resource ?? null,
     })),
     items: (bq.items || []).map((item) => ({
       localId: `item-${uid()}`,
@@ -228,7 +231,8 @@ const convertBankQToLocal = (bq) => {
       blankType: item.blankType || "TEXT_INPUT",
       acceptedAnswers: item.acceptedAnswers || [],
       blankOptions: item.blankOptions,
-      resourceId: item.resourceId,
+      resourceId: item.resource?.id ?? item.resourceId ?? null,
+      resource: item.resource ?? null,
     })),
     clozeSyntax: "",
   };
@@ -239,7 +243,17 @@ const convertBankQToLocal = (bq) => {
 /* ─────────────────────────────────────────────
    Answer sub-components
 ───────────────────────────────────────────── */
-function AnswerRow({ answer, isSingle, onToggleCorrect, onChangeContent, onChangeExplanation, onDelete, showDelete = true }) {
+function AnswerRow({
+  answer,
+  isSingle,
+  onToggleCorrect,
+  onChangeContent,
+  onChangeExplanation,
+  onChangeResource,
+  onDelete,
+  showDelete = true,
+}) {
+  const { t } = useTranslation();
   const [showExp, setShowExp] = useState(false);
   const [expVal, setExpVal] = useState(answer.explanation || "");
 
@@ -253,16 +267,22 @@ function AnswerRow({ answer, isSingle, onToggleCorrect, onChangeContent, onChang
           className="flex-1 border-none shadow-none bg-transparent text-sm"
           value={answer.content}
           onChange={(e) => onChangeContent(e.target.value)}
-          placeholder="Answer text..."
+          placeholder={t("quizBuilder.answerTextPlaceholder")}
         />
         {!showExp && (
           <button
             className="text-xs text-blue-500 hover:text-blue-700 whitespace-nowrap"
             onClick={() => setShowExp(true)}
           >
-            {answer.explanation ? "Edit explanation" : "+ Add explanation"}
+            {answer.explanation ? t("quizBuilder.editExplanation") : t("quizBuilder.addExplanation")}
           </button>
         )}
+        <MediaAttachButton
+          compact
+          resource={answer.resource}
+          allowedTypes={["IMAGE"]}
+          onChange={onChangeResource}
+        />
         {showDelete && (
           <button onClick={onDelete} className="text-red-400 hover:text-red-600 p-1 rounded shrink-0">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -270,7 +290,7 @@ function AnswerRow({ answer, isSingle, onToggleCorrect, onChangeContent, onChang
             </svg>
           </button>
         )}
-        <span className="text-xs text-gray-500 shrink-0">Correct</span>
+        <span className="text-xs text-gray-500 shrink-0">{t("quizBuilder.correct")}</span>
         {isSingle ? (
           <Radio checked={answer.isCorrect} onChange={onToggleCorrect} />
         ) : (
@@ -283,7 +303,7 @@ function AnswerRow({ answer, isSingle, onToggleCorrect, onChangeContent, onChang
             <Input.TextArea
               autoSize={{ minRows: 1, maxRows: 3 }}
               className="text-sm"
-              placeholder="Explanation shown after submission..."
+              placeholder={t("quizBuilder.explanationPlaceholder")}
               value={expVal}
               onChange={(e) => setExpVal(e.target.value)}
               onBlur={() => {
@@ -303,28 +323,44 @@ function AnswerRow({ answer, isSingle, onToggleCorrect, onChangeContent, onChang
           </div>
         </div>
       )}
+      {answer.resource && (
+        <div className="px-3 pb-3">
+          <div className="relative rounded-lg bg-gray-50 p-2">
+            <ResourceRenderer resource={answer.resource} compact />
+            <button
+              type="button"
+              onClick={() => onChangeResource({ resourceId: null, resource: null })}
+              className="absolute right-3 top-3 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
+            >
+              {t("quizMedia.remove")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function AddAnswerInput({ onAdd }) {
+  const { t } = useTranslation();
   const [val, setVal] = useState("");
   const submit = () => { if (val.trim()) { onAdd(val.trim()); setVal(""); } };
   return (
     <div className="flex items-center gap-2 mt-2 border border-dashed border-gray-300 rounded-lg px-3 py-2">
       <Input
         className="flex-1 border-none shadow-none bg-transparent text-sm"
-        placeholder="Add new answer"
+        placeholder={t("quizBuilder.addNewAnswer")}
         value={val}
         onChange={(e) => setVal(e.target.value)}
         onPressEnter={submit}
       />
-      <button onClick={submit} className="text-blue-500 hover:text-blue-700 font-semibold text-sm">Add</button>
+      <button onClick={submit} className="text-blue-500 hover:text-blue-700 font-semibold text-sm">{t("quizBuilder.add")}</button>
     </div>
   );
 }
 
 function ChoiceAnswers({ question, onChange }) {
+  const { t } = useTranslation();
   const isSingle = question.type === "SINGLE_CHOICE" || question.type === "TRUE_FALSE";
   const { answers } = question;
 
@@ -342,7 +378,7 @@ function ChoiceAnswers({ question, onChange }) {
 
   return (
     <div>
-      <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Answer</div>
+      <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{t("quizBuilder.answers")}</div>
       <div className="space-y-2">
         {answers.map((a, idx) => (
           <AnswerRow
@@ -352,6 +388,7 @@ function ChoiceAnswers({ question, onChange }) {
             onToggleCorrect={() => setCorrect(idx)}
             onChangeContent={(v) => update(idx, { content: v })}
             onChangeExplanation={(v) => update(idx, { explanation: v || null })}
+            onChangeResource={(mediaPatch) => update(idx, mediaPatch)}
             onDelete={() => remove(idx)}
             showDelete={question.type !== "TRUE_FALSE"}
           />
@@ -362,53 +399,8 @@ function ChoiceAnswers({ question, onChange }) {
   );
 }
 
-function ImageUploadCell({ resourceId, onUpload }) {
-  const [uploading, setUploading] = useState(false);
-  const inputRef = useRef();
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const res = await uploadStandaloneResource(file);
-      onUpload(res.id || res.resourceId);
-    } catch { message.error("Upload failed"); }
-    finally { setUploading(false); }
-  };
-  if (resourceId) {
-    return (
-      <div className="relative">
-        <img
-          src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/lms/resources/${resourceId}/view`}
-          className="w-full h-28 object-contain rounded"
-          alt=""
-        />
-        <button
-          onClick={() => onUpload(null)}
-          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-        >×</button>
-      </div>
-    );
-  }
-  return (
-    <div
-      className="flex flex-col items-center justify-center h-28 cursor-pointer border border-dashed border-gray-300 rounded-lg hover:border-blue-400 transition-colors"
-      onClick={() => inputRef.current?.click()}
-    >
-      {uploading ? <Spin size="small" /> : (
-        <>
-          <svg className="w-8 h-8 text-gray-300 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span className="text-xs text-gray-400">Upload image</span>
-        </>
-      )}
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-    </div>
-  );
-}
-
 function MatchingPairs({ question, onChange }) {
+  const { t } = useTranslation();
   const isImage = question.type === "IMAGE_MATCHING";
   const { items } = question;
   const prompts = items.filter((i) => i.role === "PROMPT");
@@ -449,33 +441,43 @@ function MatchingPairs({ question, onChange }) {
         {Array.from({ length: pairCount }, (_, i) => (
           <div key={prompts[i]?.localId} className="grid grid-cols-2 gap-3 items-start">
             <div className="border border-dashed border-gray-300 rounded-lg p-3">
-              <div className="text-xs text-gray-400 mb-1">Question</div>
+              <div className="text-xs text-gray-400 mb-1">{t("quizBuilder.question")}</div>
               {isImage ? (
-                <ImageUploadCell
-                  resourceId={prompts[i]?.resourceId}
-                  onUpload={(id) => updatePrompt(prompts[i].localId, { resourceId: id })}
-                />
+                <div className="space-y-2">
+                  {prompts[i]?.resource && <ResourceRenderer resource={prompts[i].resource} compact />}
+                  <MediaAttachButton
+                    allowedTypes={["IMAGE"]}
+                    resource={prompts[i]?.resource}
+                    label={prompts[i]?.resource ? t("quizMedia.changeImage") : t("quizMedia.uploadImage")}
+                    onChange={(mediaPatch) => updatePrompt(prompts[i].localId, mediaPatch)}
+                  />
+                </div>
               ) : (
                 <Input
                   value={prompts[i]?.content}
                   onChange={(e) => updatePrompt(prompts[i].localId, { content: e.target.value })}
-                  placeholder="Enter question"
+                  placeholder={t("quizBuilder.enterQuestion")}
                   className="text-sm"
                 />
               )}
             </div>
             <div className="border border-dashed border-gray-300 rounded-lg p-3 relative">
-              <div className="text-xs text-gray-400 mb-1">Answer</div>
+              <div className="text-xs text-gray-400 mb-1">{t("quizBuilder.answer")}</div>
               {isImage ? (
-                <ImageUploadCell
-                  resourceId={matches[i]?.resourceId}
-                  onUpload={(id) => updateMatch(matches[i].localId, { resourceId: id })}
-                />
+                <div className="space-y-2">
+                  {matches[i]?.resource && <ResourceRenderer resource={matches[i].resource} compact />}
+                  <MediaAttachButton
+                    allowedTypes={["IMAGE"]}
+                    resource={matches[i]?.resource}
+                    label={matches[i]?.resource ? t("quizMedia.changeImage") : t("quizMedia.uploadImage")}
+                    onChange={(mediaPatch) => updateMatch(matches[i].localId, mediaPatch)}
+                  />
+                </div>
               ) : (
                 <Input
                   value={matches[i]?.content}
                   onChange={(e) => updateMatch(matches[i].localId, { content: e.target.value })}
-                  placeholder="Enter answer"
+                  placeholder={t("quizBuilder.enterAnswer")}
                   className="text-sm"
                 />
               )}
@@ -495,7 +497,7 @@ function MatchingPairs({ question, onChange }) {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
-        Add new answer
+        {t("quizBuilder.addNewAnswer")}
       </button>
     </div>
   );
@@ -657,6 +659,7 @@ function AnswerSection({ question, onChange }) {
    QuestionCard
 ───────────────────────────────────────────── */
 function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -665,6 +668,12 @@ function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) 
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
         <span className="cursor-grab text-gray-300 hover:text-gray-500 select-none" {...dragHandleProps}>⋮⋮</span>
         <span className="text-sm font-semibold text-gray-400 w-6 shrink-0">{index + 1}.</span>
+        <MediaAttachButton
+          compact
+          resource={question.resource}
+          allowedTypes={["IMAGE", "VIDEO", "AUDIO"]}
+          onChange={onChange}
+        />
         <Select
           size="small"
           value={question.type}
@@ -677,7 +686,7 @@ function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) 
           popupMatchSelectWidth={false}
         />
         <div className="flex items-center gap-1 ml-auto">
-          <span className="text-xs text-gray-500">Points:</span>
+          <span className="text-xs text-gray-500">{t("quizBuilder.points")}:</span>
           <InputNumber
             size="small"
             min={0}
@@ -711,7 +720,19 @@ function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) 
           <div className="px-4 pt-3">
             {question.type === "CLOZE" && (
               <div className="mb-2">
-                <div className="text-xs text-gray-500 mb-1">Question instruction (optional)</div>
+                <div className="text-xs text-gray-500 mb-1">{t("quizBuilder.questionInstruction")}</div>
+              </div>
+            )}
+            {question.resource && (
+              <div className="relative mb-3 rounded-lg bg-gray-50 p-3">
+                <ResourceRenderer resource={question.resource} />
+                <button
+                  type="button"
+                  onClick={() => onChange({ resourceId: null, resource: null })}
+                  className="absolute right-4 top-4 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
+                >
+                  {t("quizMedia.remove")}
+                </button>
               </div>
             )}
             <ReactQuill
@@ -719,7 +740,7 @@ function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) 
               value={question.content}
               onChange={(v) => onChange({ content: v })}
               modules={QUILL_MODULES}
-              placeholder="Enter your question..."
+              placeholder={t("quizBuilder.enterQuestion")}
               className="quiz-quill"
             />
           </div>

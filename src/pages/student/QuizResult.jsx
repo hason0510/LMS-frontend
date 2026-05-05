@@ -362,6 +362,7 @@ export default function QuizResult() {
                           {isPending ? "Chờ chấm" : isPartial ? "Một phần" : isCorrect === true ? "Đúng" : isCorrect === false ? "Sai" : "Chưa chấm"}
                         </span>
                       </div>
+                      <ResourcePreview resource={question.resource} className="pl-0 sm:pl-11" />
                       <div className="mt-2 flex flex-col gap-3 pl-0 sm:pl-11">
                         {/* User Answer */}
                         <div

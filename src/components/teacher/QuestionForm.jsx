@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Form, Input, Select, Button, Checkbox, Radio, Divider, Spin } from "antd";
 import { PlusCircleIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 import { getTags as getQuestionBankTags } from "../../api/questionBank";
-import { uploadStandaloneResource } from "../../api/resource";
+import MediaAttachButton from "../media/MediaAttachButton";
+import ResourceRenderer from "../media/ResourceRenderer";
 
 const { TextArea } = Input;
 
@@ -100,8 +102,10 @@ export default function QuestionForm({
   existingTags = [],
   questionBankId,
 }) {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const [type, setType] = useState(initialValues?.type || "SINGLE_CHOICE");
+  const [questionResource, setQuestionResource] = useState(initialValues?.resource || null);
   const [options, setOptions] = useState(initialValues?.options || [
     { content: "", isCorrect: true },
     { content: "", isCorrect: false },
@@ -113,7 +117,6 @@ export default function QuestionForm({
   const [tagOptions, setTagOptions] = useState(buildTagOptions((existingTags || []).map((tag) => tag.name)));
   const [tagSearchValue, setTagSearchValue] = useState("");
   const [tagSearchLoading, setTagSearchLoading] = useState(false);
-  const [optionUploading, setOptionUploading] = useState({});
   const tagSearchRequestIdRef = useRef(0);
 
   useEffect(() => {
@@ -123,8 +126,10 @@ export default function QuestionForm({
         explanation: initialValues.explanation,
         difficultyLevel: initialValues.difficultyLevel || "MEDIUM",
         defaultPoints: initialValues.defaultPoints || 1,
+        resourceId: initialValues.resource?.id || initialValues.resourceId || null,
         tagNames: (initialValues.tags || []).map((t) => t.name),
       });
+      setQuestionResource(initialValues.resource || null);
       setType(initialValues.type || "SINGLE_CHOICE");
       setOptions(initialValues.options || [
         { content: "", isCorrect: true },
@@ -162,7 +167,7 @@ export default function QuestionForm({
         return;
       }
 
-      const fetchedTags = (response?.data || []).map((tag) => tag?.name).filter(Boolean);
+      const fetchedTags = (response || []).map((tag) => tag?.name).filter(Boolean);
       const selectedTags = form.getFieldValue("tagNames") || [];
       setTagOptions(
         buildTagOptions([
@@ -245,22 +250,14 @@ export default function QuestionForm({
     setOptions(newOptions);
   };
 
-  const handleOptionResourceChange = (index, resourceId) => {
+  const handleOptionMediaChange = (index, mediaPatch) => {
     const newOptions = [...options];
-    newOptions[index].resourceId = resourceId ? Number(resourceId) : undefined;
+    newOptions[index] = {
+      ...newOptions[index],
+      resourceId: mediaPatch.resourceId ? Number(mediaPatch.resourceId) : undefined,
+      resource: mediaPatch.resource || null,
+    };
     setOptions(newOptions);
-  };
-
-  const handleOptionFileUpload = async (index, file) => {
-    if (!file) return;
-    try {
-      setOptionUploading((prev) => ({ ...prev, [index]: true }));
-      const response = await uploadStandaloneResource(file);
-      const uploaded = response?.data;
-      handleOptionResourceChange(index, uploaded?.resourceId || uploaded?.id);
-    } finally {
-      setOptionUploading((prev) => ({ ...prev, [index]: false }));
-    }
   };
 
   const handleCorrectChange = (index) => {
@@ -367,6 +364,7 @@ export default function QuestionForm({
       onFinish({
         ...values,
         tagNames,
+        resourceId: values.resourceId || null,
         type,
         options: [],
         items: buildInteractionItems(),
@@ -378,6 +376,7 @@ export default function QuestionForm({
       onFinish({
         ...values,
         tagNames,
+        resourceId: values.resourceId || null,
         type,
         options: [],
         items: [],
@@ -395,6 +394,7 @@ export default function QuestionForm({
     onFinish({
       ...values,
       tagNames,
+      resourceId: values.resourceId || null,
       type,
       options: options.map((opt) => ({
         content: opt.content,
@@ -494,41 +494,76 @@ export default function QuestionForm({
       }}
     >
       <Form.Item
-        label="Nội dung câu hỏi"
+        label={t("quizBuilder.questionContent")}
         name="content"
-        rules={[{ required: true, message: "Vui lòng nhập nội dung câu hỏi" }]}
+        rules={[{ required: true, message: t("quizBuilder.questionContentRequired") }]}
       >
-        <TextArea rows={4} placeholder="Nhập nội dung câu hỏi (hỗ trợ HTML)..." />
+        <TextArea rows={4} placeholder={t("quizBuilder.questionContentPlaceholder")} />
+      </Form.Item>
+      <Form.Item name="resourceId" hidden>
+        <Input />
       </Form.Item>
 
+      <div className="mb-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-slate-700">{t("quizMedia.questionMedia")}</span>
+          <MediaAttachButton
+            resource={questionResource}
+            allowedTypes={["IMAGE", "VIDEO", "AUDIO"]}
+            label={questionResource ? t("quizMedia.changeMedia") : t("quizMedia.addMedia")}
+            onChange={(mediaPatch) => {
+              setQuestionResource(mediaPatch.resource || null);
+              form.setFieldValue("resourceId", mediaPatch.resourceId || null);
+            }}
+          />
+        </div>
+        {questionResource ? (
+          <div className="relative">
+            <ResourceRenderer resource={questionResource} compact />
+            <button
+              type="button"
+              onClick={() => {
+                setQuestionResource(null);
+                form.setFieldValue("resourceId", null);
+              }}
+              className="absolute right-2 top-2 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
+            >
+              {t("quizMedia.remove")}
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500">{t("quizMedia.questionMediaHint")}</p>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Form.Item label="Loại câu hỏi" required>
+        <Form.Item label={t("quizBuilder.questionType")} required>
           <Select value={type} onChange={handleTypeChange}>
-            <Select.Option value="SINGLE_CHOICE">Trắc nghiệm (1 đáp án)</Select.Option>
-            <Select.Option value="MULTIPLE_CHOICE">Trắc nghiệm (Nhiều đáp án)</Select.Option>
-            <Select.Option value="TRUE_FALSE">Đúng / Sai</Select.Option>
-            <Select.Option value="SHORT_ANSWER">Trả lời ngắn</Select.Option>
-            <Select.Option value="ESSAY">Tự luận / chấm tay</Select.Option>
-            <Select.Option value="MATCHING">Ghép cặp</Select.Option>
-            <Select.Option value="DRAG_ORDER">Sắp xếp</Select.Option>
-            <Select.Option value="CLOZE">Điền chỗ trống</Select.Option>
+            <Select.Option value="SINGLE_CHOICE">{t("quizBuilder.types.SINGLE_CHOICE")}</Select.Option>
+            <Select.Option value="MULTIPLE_CHOICE">{t("quizBuilder.types.MULTIPLE_CHOICE")}</Select.Option>
+            <Select.Option value="TRUE_FALSE">{t("quizBuilder.types.TRUE_FALSE")}</Select.Option>
+            <Select.Option value="SHORT_ANSWER">{t("quizBuilder.types.SHORT_ANSWER")}</Select.Option>
+            <Select.Option value="ESSAY">{t("quizBuilder.types.ESSAY")}</Select.Option>
+            <Select.Option value="MATCHING">{t("quizBuilder.types.MATCHING")}</Select.Option>
+            <Select.Option value="DRAG_ORDER">{t("quizBuilder.types.DRAG_ORDER")}</Select.Option>
+            <Select.Option value="CLOZE">{t("quizBuilder.types.CLOZE")}</Select.Option>
           </Select>
         </Form.Item>
 
-        <Form.Item label="Độ khó" name="difficultyLevel">
+        <Form.Item label={t("quizBuilder.difficulty")} name="difficultyLevel">
           <Select>
-            <Select.Option value="EASY">Dễ</Select.Option>
-            <Select.Option value="MEDIUM">Trung bình</Select.Option>
-            <Select.Option value="HARD">Khó</Select.Option>
+            <Select.Option value="EASY">{t("quizBuilder.difficulties.EASY")}</Select.Option>
+            <Select.Option value="MEDIUM">{t("quizBuilder.difficulties.MEDIUM")}</Select.Option>
+            <Select.Option value="HARD">{t("quizBuilder.difficulties.HARD")}</Select.Option>
           </Select>
         </Form.Item>
 
-        <Form.Item label="Điểm mặc định" name="defaultPoints">
+        <Form.Item label={t("quizBuilder.defaultPoints")} name="defaultPoints">
           <Input type="number" min={0} step="0.25" />
         </Form.Item>
       </div>
 
-      <Divider orientation="left">Đáp án</Divider>
+      <Divider orientation="left">{t("quizBuilder.answers")}</Divider>
 
       {type === "SHORT_ANSWER" ? (
         <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -557,52 +592,53 @@ export default function QuestionForm({
       ) : (
         <div className="space-y-3">
           {options.map((option, index) => (
-            <div key={index} className="flex items-center gap-3 group">
-              <div className="shrink-0">
-                {isSingleSelectType(type) ? (
-                  <Radio
-                    checked={option.isCorrect}
-                    onChange={() => handleCorrectChange(index)}
-                  />
-                ) : (
-                  <Checkbox
-                    checked={option.isCorrect}
-                    onChange={() => handleCorrectChange(index)}
-                  />
-                )}
+            <div key={index} className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="flex items-center gap-3 group">
+                <div className="shrink-0">
+                  {isSingleSelectType(type) ? (
+                    <Radio
+                      checked={option.isCorrect}
+                      onChange={() => handleCorrectChange(index)}
+                    />
+                  ) : (
+                    <Checkbox
+                      checked={option.isCorrect}
+                      onChange={() => handleCorrectChange(index)}
+                    />
+                  )}
+                </div>
+                <Input
+                  placeholder={`${t("quizBuilder.option")} ${index + 1}`}
+                  value={option.content}
+                  onChange={(e) => handleOptionContentChange(index, e.target.value)}
+                  className={option.isCorrect ? "border-green-500 bg-green-50 dark:bg-green-900/10" : ""}
+                />
+                <MediaAttachButton
+                  compact
+                  resource={option.resource}
+                  allowedTypes={["IMAGE"]}
+                  onChange={(mediaPatch) => handleOptionMediaChange(index, mediaPatch)}
+                />
+                <Button
+                  type="text"
+                  danger
+                  icon={<TrashIcon className="h-4 w-4" />}
+                  onClick={() => handleRemoveOption(index)}
+                  disabled={options.length <= 2 || type === "TRUE_FALSE"}
+                />
               </div>
-              <Input
-                placeholder={`Lựa chọn ${index + 1}`}
-                value={option.content}
-                onChange={(e) => handleOptionContentChange(index, e.target.value)}
-                className={option.isCorrect ? "border-green-500 bg-green-50 dark:bg-green-900/10" : ""}
-              />
-              <Input
-                type="number"
-                min={1}
-                placeholder="Resource ID"
-                value={option.resourceId || ""}
-                onChange={(e) => handleOptionResourceChange(index, e.target.value)}
-                className="w-32"
-              />
-              <Button loading={!!optionUploading[index]}>
-                <label className="cursor-pointer">
-                  File
-                  <input
-                    type="file"
-                    accept="image/*,audio/*,video/*"
-                    className="hidden"
-                    onChange={(event) => handleOptionFileUpload(index, event.target.files?.[0])}
-                  />
-                </label>
-              </Button>
-              <Button
-                type="text"
-                danger
-                icon={<TrashIcon className="h-4 w-4" />}
-                onClick={() => handleRemoveOption(index)}
-                disabled={options.length <= 2 || type === "TRUE_FALSE"}
-              />
+              {option.resource && (
+                <div className="relative mt-3 rounded-lg bg-slate-50 p-2">
+                  <ResourceRenderer resource={option.resource} compact />
+                  <button
+                    type="button"
+                    onClick={() => handleOptionMediaChange(index, { resourceId: null, resource: null })}
+                    className="absolute right-3 top-3 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
+                  >
+                    {t("quizMedia.remove")}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
           <Button

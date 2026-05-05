@@ -72,6 +72,16 @@ export async function getResourceById(resourceId) {
   return response.data;
 }
 
+export async function getResourcePage(params = {}) {
+  const response = await axiosClient.get("resources", { params });
+  return response.data;
+}
+
+export async function createStandaloneResource(resourceData) {
+  const response = await axiosClient.post("resources/standalone", resourceData);
+  return response.data;
+}
+
 /**
  * Cập nhật resource
  * @param {number} resourceId - ID của resource

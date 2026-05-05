@@ -93,10 +93,10 @@ export const getPendingClassSectionEnrollments = async (classSectionId, pageNumb
     return response.data;
 };
 
-export const getAllEnrollments = async (pageNumber = 1, pageSize = 10) => {
-    const response = await axiosClient.get(`enrollments`, {
-        params: { pageNumber, pageSize },
-    });
+export const getAllEnrollments = async (pageNumber = 1, pageSize = 10, approvalStatus = null) => {
+    const params = { pageNumber, pageSize };
+    if (approvalStatus) params.approvalStatus = approvalStatus;
+    const response = await axiosClient.get(`enrollments`, { params });
     return response.data;
 };
 

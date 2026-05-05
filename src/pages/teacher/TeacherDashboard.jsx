@@ -6,35 +6,39 @@ import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import QuickActionCard from "../../components/teacher/dashboard/QuickActionCard";
 import DashboardCourseCard from "../../components/teacher/dashboard/DashboardCourseCard";
 import StatItem from "../../components/teacher/dashboard/StatItem";
-import NotificationItem from "../../components/teacher/dashboard/NotificationItem";
 import { getTeacherCourses } from "../../api/classSection";
 import { getTeachingAssignments } from "../../api/assignment";
+import { getAllTeacherEnrollments } from "../../api/enrollment";
+import { getMyNotificationsPage } from "../../api/notification";
 import { Spin, Alert } from "antd";
 import {
   AcademicCapIcon,
   PlusCircleIcon,
-  DocumentPlusIcon,
+  DocumentTextIcon,
   ClipboardDocumentCheckIcon,
   ArrowRightIcon,
   TrophyIcon,
-  ChatBubbleLeftEllipsisIcon,
+  UserGroupIcon,
+  BookOpenIcon,
+  BellIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [assignmentError, setAssignmentError] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [upcomingAssignments, setUpcomingAssignments] = useState([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
+  const [pendingEnrollments, setPendingEnrollments] = useState(0);
+  const [pendingReviewTotal, setPendingReviewTotal] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
 
   useEffect(() => {
-    const handleResize = () => {
-      setSidebarCollapsed(window.innerWidth < 1024);
-    };
-
+    const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -43,18 +47,18 @@ export default function TeacherDashboard() {
   useEffect(() => {
     fetchTeacherCourses();
     fetchUpcomingAssignments();
+    fetchAllAssignmentsForStats();
+    fetchPendingEnrollments();
+    fetchNotifications();
   }, []);
 
   const fetchTeacherCourses = async () => {
     try {
       setLoading(true);
       const res = await getTeacherCourses();
-      // res is ApiResponse, res.data is the actual list of ClassSections
-      const coursesList = res.data || [];
-      setCourses(coursesList);
+      setCourses(res.data || []);
     } catch (err) {
       setError(err.message || "Lỗi khi tải khóa học");
-      console.error("Error fetching courses:", err);
     } finally {
       setLoading(false);
     }
@@ -63,36 +67,77 @@ export default function TeacherDashboard() {
   const fetchUpcomingAssignments = async () => {
     try {
       setAssignmentsLoading(true);
-      setAssignmentError(null);
       const response = await getTeachingAssignments({ tab: "UPCOMING" });
       const payload = response?.data;
       setUpcomingAssignments(Array.isArray(payload?.pageList) ? payload.pageList.slice(0, 5) : []);
-    } catch (err) {
-      console.error("Error fetching assignments:", err);
-      setAssignmentError(err.message || "Lỗi khi tải assignments");
+    } catch {
+      setUpcomingAssignments([]);
     } finally {
       setAssignmentsLoading(false);
     }
   };
 
-  // Calculate statistics
-  // ClassSectionResponse doesn't have totalEnrollments, so we handle it gracefully
-  const totalStudents = Array.isArray(courses) ? courses.reduce((sum, course) => sum + (course.totalEnrollments || 0), 0) : 0;
+  const fetchAllAssignmentsForStats = async () => {
+    try {
+      const response = await getTeachingAssignments({ tab: "ALL", pageSize: 200 });
+      const list = response?.data?.pageList || [];
+      const total = list.reduce((sum, a) => sum + (a.pendingReviewCount || 0), 0);
+      setPendingReviewTotal(total);
+    } catch {
+      setPendingReviewTotal(0);
+    }
+  };
+
+  const fetchPendingEnrollments = async () => {
+    try {
+      const res = await getAllTeacherEnrollments(1, 1, "PENDING");
+      setPendingEnrollments(res.data?.totalElements || 0);
+    } catch {
+      setPendingEnrollments(0);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      setNotificationsLoading(true);
+      const res = await getMyNotificationsPage(1, 3);
+      setNotifications(res.data?.pageList || []);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const totalStudents = Array.isArray(courses)
+    ? courses.reduce((sum, c) => sum + (c.totalEnrollments || 0), 0)
+    : 0;
   const totalCourses = Array.isArray(courses) ? courses.length : 0;
+
+  const formatNotificationTime = (createdAt) => {
+    if (!createdAt) return "";
+    const date = new Date(createdAt);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Vừa xong";
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} ngày trước`;
+  };
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
-      {/* Teacher Header */}
       <TeacherHeader />
-
       <div className="flex">
-        {/* Sidebar */}
         <TeacherSidebar />
-
-        {/* Main Content */}
-        <main className={`flex-1 bg-slate-50 dark:bg-slate-900 pt-16 transition-all duration-300 ${
-          sidebarCollapsed ? "pl-20" : "pl-64"
-        }`}>
+        <main
+          className={`flex-1 bg-slate-50 dark:bg-slate-900 pt-16 transition-all duration-300 ${
+            sidebarCollapsed ? "pl-20" : "pl-64"
+          }`}
+        >
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
@@ -113,16 +158,26 @@ export default function TeacherDashboard() {
                   <h3 className="text-lg font-bold mb-4 text-[#111418] dark:text-white">
                     Hành động nhanh
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <QuickActionCard
                       icon={<PlusCircleIcon className="h-8 w-8" />}
                       label="Tạo lớp học"
                       to="/teacher/curriculums"
                     />
                     <QuickActionCard
-                      icon={<DocumentPlusIcon className="h-8 w-8" />}
-                      label="Tạo bài giảng"
-                      to="/teacher/curriculums"
+                      icon={<BookOpenIcon className="h-8 w-8" />}
+                      label="Ngân hàng câu hỏi"
+                      to="/teacher/question-banks"
+                    />
+                    <QuickActionCard
+                      icon={<ClipboardDocumentCheckIcon className="h-8 w-8" />}
+                      label="Bài tập & Nộp bài"
+                      to="/teacher/assignments"
+                    />
+                    <QuickActionCard
+                      icon={<DocumentTextIcon className="h-8 w-8" />}
+                      label="Báo cáo"
+                      to="/teacher/report"
                     />
                   </div>
                 </div>
@@ -146,10 +201,10 @@ export default function TeacherDashboard() {
                       <Spin />
                     </div>
                   ) : error ? (
-                    <Alert title="Lỗi" description={error} type="error" showIcon />
+                    <Alert description={error} type="error" showIcon />
                   ) : courses.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {courses.slice(0, 2).map((course) => (
+                      {courses.slice(0, 4).map((course) => (
                         <div
                           key={course.id}
                           onClick={() => navigate(`/teacher/class-sections/${course.id}`)}
@@ -177,9 +232,12 @@ export default function TeacherDashboard() {
                   )}
                 </div>
 
+                {/* Upcoming Assignments */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">Assignments</h3>
+                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">
+                      Bài tập sắp đến hạn
+                    </h3>
                     <button
                       onClick={() => navigate("/teacher/assignments")}
                       className="flex items-center gap-2 text-sm font-bold text-primary hover:underline"
@@ -192,10 +250,10 @@ export default function TeacherDashboard() {
                     <div className="flex justify-center py-6">
                       <Spin />
                     </div>
-                  ) : assignmentError ? (
-                    <Alert title="Lỗi" description={assignmentError} type="error" showIcon />
                   ) : upcomingAssignments.length === 0 ? (
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Không có assignment sắp đến hạn.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 py-2">
+                      Không có bài tập nào sắp đến hạn.
+                    </p>
                   ) : (
                     <div className="space-y-3">
                       {upcomingAssignments.map((assignment) => (
@@ -208,10 +266,26 @@ export default function TeacherDashboard() {
                           }
                           className="w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-3 hover:border-primary/60 transition-colors"
                         >
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                            {assignment.assignmentTitle}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{assignment.classSectionTitle}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                                {assignment.assignmentTitle}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {assignment.classSectionTitle}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {assignment.pendingReviewCount > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
+                                  {assignment.pendingReviewCount} chờ chấm
+                                </span>
+                              )}
+                              <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                                {assignment.turnedInCount}/{assignment.totalStudents} nộp
+                              </span>
+                            </div>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -234,27 +308,74 @@ export default function TeacherDashboard() {
                       value={totalCourses}
                     />
                     <StatItem
-                      icon={<TrophyIcon className="h-6 w-6" />}
+                      icon={<UserGroupIcon className="h-6 w-6" />}
                       colorClass="bg-green-500/10 text-green-500"
                       label="Tổng học viên"
                       value={totalStudents}
                     />
+                    <StatItem
+                      icon={<TrophyIcon className="h-6 w-6" />}
+                      colorClass="bg-amber-500/10 text-amber-500"
+                      label="Yêu cầu tham gia chờ duyệt"
+                      value={pendingEnrollments}
+                    />
+                    <StatItem
+                      icon={<ClockIcon className="h-6 w-6" />}
+                      colorClass="bg-red-500/10 text-red-500"
+                      label="Bài nộp chưa chấm"
+                      value={pendingReviewTotal}
+                    />
                   </div>
                 </div>
 
-                {/* Notifications & Requests */}
+                {/* Real Notifications */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                  <h3 className="text-lg font-bold mb-4 text-[#111418] dark:text-white">
-                    Thông báo gần đây
-                  </h3>
-                  <div className="flex flex-col gap-4">
-                    <NotificationItem
-                      icon={<ChatBubbleLeftEllipsisIcon className="h-5 w-5" />}
-                      colorClass="bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
-                      text={`Bạn đang quản lý ${totalCourses} lớp học với ${totalStudents} học viên.`}
-                      time="Cập nhật vừa xong"
-                    />
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">
+                      Thông báo gần đây
+                    </h3>
+                    <button
+                      onClick={() => navigate("/notifications")}
+                      className="text-xs font-bold text-primary hover:underline"
+                    >
+                      Xem tất cả
+                    </button>
                   </div>
+                  {notificationsLoading ? (
+                    <div className="flex justify-center py-4">
+                      <Spin size="small" />
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="flex flex-col items-center py-4 text-slate-400 dark:text-slate-500 gap-2">
+                      <BellIcon className="h-8 w-8 opacity-40" />
+                      <p className="text-sm">Không có thông báo mới.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                            notif.read
+                              ? "bg-slate-50 dark:bg-slate-800/50"
+                              : "bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20"
+                          }`}
+                        >
+                          <div className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-500/20 shrink-0 mt-0.5">
+                            <BellIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white leading-snug line-clamp-2">
+                              {notif.title || notif.content}
+                            </p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                              {formatNotificationTime(notif.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

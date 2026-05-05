@@ -8,7 +8,10 @@ import {
   ChevronDownIcon,
   PencilSquareIcon,
   AcademicCapIcon,
+  ChatBubbleLeftEllipsisIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
+import LessonComments from "../lesson/LessonComments";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   getClassChapters,
@@ -66,6 +69,10 @@ export default function CourseContent({ enrollmentStatus = null }) {
   const [editItemModal, setEditItemModal] = useState({ visible: false, item: null, chapterId: null });
   const [editItemForm] = Form.useForm();
   const [savingItem, setSavingItem] = useState(false);
+
+  // Comment drawer
+  const [commentDrawer, setCommentDrawer] = useState({ open: false, lessonId: null, title: "" });
+  const closeCommentDrawer = () => setCommentDrawer({ open: false, lessonId: null, title: "" });
 
   useEffect(() => {
     fetchChapters();
@@ -600,6 +607,18 @@ export default function CourseContent({ enrollmentStatus = null }) {
                                   >
                                     <ChevronDownIcon className="h-4 w-4" />
                                   </button>
+                                  {item.itemType === "LESSON" && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCommentDrawer({ open: true, lessonId: item.lessonId || item.id, title: item.title });
+                                      }}
+                                      className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500 transition-colors"
+                                      title="Xem bình luận học sinh"
+                                    >
+                                      <ChatBubbleLeftEllipsisIcon className="h-4 w-4" />
+                                    </button>
+                                  )}
                                   <button
                                     onClick={(e) => handleOpenEditItem(e, chapter.id, item)}
                                     className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-colors"
@@ -815,6 +834,40 @@ export default function CourseContent({ enrollmentStatus = null }) {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* ── Comment Drawer ── */}
+      {commentDrawer.open && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="flex-1 bg-black/30 backdrop-blur-sm"
+            onClick={closeCommentDrawer}
+          />
+          {/* Panel */}
+          <div className="w-full max-w-125 bg-white dark:bg-gray-900 shadow-2xl flex flex-col h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <ChatBubbleLeftEllipsisIcon className="h-5 w-5 text-indigo-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mb-0.5">Bình luận bài học</p>
+                  <h3 className="font-semibold text-sm text-[#111418] dark:text-white truncate">{commentDrawer.title}</h3>
+                </div>
+              </div>
+              <button
+                onClick={closeCommentDrawer}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors shrink-0 ml-3"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <LessonComments lectureId={commentDrawer.lessonId} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
