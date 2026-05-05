@@ -56,7 +56,7 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
         result,
         search: search.trim() || undefined,
       });
-      const payload = response?.data || response;
+      const payload = response?.data;
       setAttempts(payload?.pageList || []);
       setTotal(payload?.totalElements || 0);
     } catch (error) {

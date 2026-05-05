@@ -834,7 +834,7 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
     setLoadingBanks(true);
     getQuestionBanks()
       .then((data) => setBanks(Array.isArray(data) ? data : data?.content || []))
-      .catch(() => {})
+      .catch(() => message.error("Failed to load question banks"))
       .finally(() => setLoadingBanks(false));
   }, [open]);
 
@@ -846,7 +846,7 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
       .then((data) => {
         setBankQuestions(data?.questions || data?.content || []);
       })
-      .catch(() => {})
+      .catch(() => message.error("You don't have member access to this question bank"))
       .finally(() => setLoadingQs(false));
   }, [selectedBankId]);
 
@@ -1029,6 +1029,7 @@ export default function QuizDetail() {
   const isTemplateMode = !!templateId;
   const isEditMode = !!quizId;
   const chapterIdFromState = location.state?.chapterId || chapterId;
+  const initialClassContentItemId = location.state?.classContentItemId || null;
 
   const [title, setTitle] = useState("New Quiz");
   const [questions, setQuestions] = useState([]);
@@ -1049,6 +1050,7 @@ export default function QuizDetail() {
   const [saving, setSaving] = useState(false);
   const [banks, setBanks] = useState([]);
   const [tagsMap, setTagsMap] = useState({});
+  const [classContentItemId, setClassContentItemId] = useState(initialClassContentItemId);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -1058,21 +1060,23 @@ export default function QuizDetail() {
     setLoading(true);
     const loader = isTemplateMode ? () => getQuizTemplateById(quizId) : () => getQuizById(quizId);
     loader()
-      .then((quiz) => {
-        setTitle(quiz.title || "Untitled Quiz");
+      .then((quizResponse) => {
+        const quiz = quizResponse?.data ?? quizResponse;
+        setTitle(quiz?.title || "Untitled Quiz");
+        setClassContentItemId(quiz?.classContentItemId ?? initialClassContentItemId);
         setSettings({
-          description: quiz.description || "",
-          timeLimitMinutes: quiz.timeLimitMinutes || null,
-          displayMode: quiz.displayMode || "PAGINATION",
-          shuffleQuestions: !!quiz.shuffleQuestions,
-          shuffleAnswers: !!quiz.shuffleAnswers,
-          showCorrectAnswer: !!quiz.showCorrectAnswer,
-          maxAttempts: quiz.maxAttempts || 1,
-          minPassScore: quiz.minPassScore || 80,
+          description: quiz?.description || "",
+          timeLimitMinutes: quiz?.timeLimitMinutes || null,
+          displayMode: quiz?.displayMode || "PAGINATION",
+          shuffleQuestions: !!quiz?.shuffleQuestions,
+          shuffleAnswers: !!quiz?.shuffleAnswers,
+          showCorrectAnswer: !!quiz?.showCorrectAnswer,
+          maxAttempts: quiz?.maxAttempts || 1,
+          minPassScore: quiz?.minPassScore || 80,
         });
-        setQuestions((quiz.questions || []).map(transformApiQuestion));
+        setQuestions((quiz?.questions || []).map(transformApiQuestion));
         setBankSources(
-          (quiz.bankSources || []).map((src) => ({
+          (quiz?.bankSources || []).map((src) => ({
             localId: `bs-${uid()}`,
             id: src.id,
             questionBankId: src.questionBankId,
@@ -1086,7 +1090,7 @@ export default function QuizDetail() {
       })
       .catch(() => message.error("Failed to load quiz"))
       .finally(() => setLoading(false));
-  }, [quizId, isEditMode, isTemplateMode]);
+  }, [quizId, isEditMode, isTemplateMode, initialClassContentItemId]);
 
   // load banks list for BankSourceRow
   useEffect(() => {
@@ -1201,6 +1205,10 @@ export default function QuizDetail() {
         minPassScore: settings.minPassScore,
         questions: processedQuestions,
         bankSources: processedBankSources,
+        ...(isTemplateMode ? {} : {
+          classSectionId: classSectionId ? Number(classSectionId) : null,
+          classContentItemId: classContentItemId ? Number(classContentItemId) : null,
+        }),
       };
 
       let savedQuiz;
@@ -1212,29 +1220,37 @@ export default function QuizDetail() {
         }
         message.success("Quiz saved");
       } else {
+        let savedQuizId;
         if (isTemplateMode) {
-          savedQuiz = await createQuizTemplate(templateId, payload);
+          savedQuiz = await createQuizTemplate(payload);
+          savedQuizId = (savedQuiz?.data ?? savedQuiz)?.id;
           if (templateId && chapterIdFromState) {
             await createContentItemTemplate(templateId, chapterIdFromState, {
               title: title.trim(),
-              quizId: savedQuiz.id,
+              itemType: "QUIZ",
+              quizTemplateId: savedQuizId,
             });
           }
         } else {
           savedQuiz = await createQuiz(payload);
+          savedQuizId = (savedQuiz?.data ?? savedQuiz)?.id;
           if (classSectionId && chapterIdFromState) {
-            await createClassContentItem(classSectionId, chapterIdFromState, {
+            const createdContentItem = await createClassContentItem(classSectionId, chapterIdFromState, {
               title: title.trim(),
-              quizId: savedQuiz.id,
+              itemType: "QUIZ",
+              quizId: savedQuizId,
             });
+            setClassContentItemId(createdContentItem?.id ?? null);
           }
         }
         message.success("Quiz created");
         const basePath = isAdmin ? "/admin" : "/teacher";
         navigate(
-          classSectionId
+          isTemplateMode
+            ? `${basePath}/curriculums/${templateId}`
+            : classSectionId
             ? `${basePath}/class-sections/${classSectionId}`
-            : `${basePath}/quizzes/${savedQuiz.id}`
+            : `${basePath}/quizzes/${savedQuizId}`
         );
       }
     } catch (err) {
@@ -1273,7 +1289,7 @@ export default function QuizDetail() {
         <TeacherHeader />
 
         {/* Top bar */}
-        <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-gray-200 shadow-sm shrink-0 mt-16">
+        <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-gray-200 shadow-sm shrink-0 mt-16 ml-64">
           <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1291,18 +1307,14 @@ export default function QuizDetail() {
             className="flex-1 text-base font-semibold border-none shadow-none bg-transparent"
             placeholder="Quiz title..."
           />
-          {isEditMode && quizId && (
-            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded font-mono whitespace-nowrap shrink-0">
-              id = {quizId}
-            </span>
-          )}
+
           <Button type="primary" onClick={handleSave} loading={saving} className="bg-blue-600 hover:bg-blue-700 border-0 px-6 shrink-0">
             Save
           </Button>
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center px-6 bg-white border-b border-gray-200 shrink-0">
+        <div className="flex items-center px-6 bg-white border-b border-gray-200 shrink-0 ml-64">
           {[
             { key: "questions", label: questions.length > 0 ? `Questions (${questions.length})` : "Questions" },
             { key: "settings", label: "Settings" },

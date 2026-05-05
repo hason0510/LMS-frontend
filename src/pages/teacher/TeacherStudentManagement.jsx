@@ -18,10 +18,11 @@ import {
   getAllEnrollments,
   approveEnrollment,
   rejectEnrollment,
-  deleteStudentsFromCourse
+  deleteStudentsFromClassSection
 } from "../../api/enrollment";
 import { getTeacherCourses, getAllCourses } from "../../api/classSection";
 import AddStudentModal from "../../components/teacher/AddStudentModal";
+import StudentDetailModal from "../../components/teacher/StudentDetailModal";
 
 export default function TeacherStudentManagement({ isAdmin = false }) {
   const [selectedRows, setSelectedRows] = useState([]);
@@ -36,6 +37,9 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pageSize = 10;
 
@@ -72,8 +76,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
 
         console.log("Enrollment Data Response:", res);
 
-        // Backend returns PageResponse directly: { currentPage, totalPage, totalElements, pageList }
-        const enrollmentList = (res?.pageList || res?.data?.pageList || []).map((enrollment, index) => ({
+        const enrollmentList = (res?.data?.pageList || []).map((enrollment, index) => ({
           key: enrollment.id || index,
           id: enrollment.id,
           studentId: enrollment.studentId,
@@ -87,6 +90,10 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
           progress: enrollment.progress || 0,
           approvalStatus: enrollment.approvalStatus || "APPROVED",
           enrollmentDate: enrollment.createdAt || enrollment.enrolledAt || new Date().toISOString(),
+          studentNumber: enrollment.studentNumber,
+          phoneNumber: enrollment.phoneNumber,
+          birthday: enrollment.birthday,
+          address: enrollment.address,
         }));
         setEnrollments(enrollmentList);
         setTotalEnrollments(res?.totalElements || res?.data?.totalElements || enrollmentList.length);
@@ -99,7 +106,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
 
           // Backend GET /class-sections returns List, not PageResponse
           // After ApiResponse wrapping: { code, message, data: [...] }
-          const classListRaw = classesRes?.data?.pageList || classesRes?.data || [];
+          const classListRaw = classesRes?.data || [];
           const classList = (Array.isArray(classListRaw) ? classListRaw : []).map(cls => ({
             id: cls.id,
             name: cls.title || cls.classSectionName || cls.name || "N/A"
@@ -117,7 +124,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
     };
 
     fetchData();
-  }, [classFilter, statusFilter, currentPage, isAdmin]);
+  }, [classFilter, statusFilter, currentPage, isAdmin, refreshTrigger]);
 
   const handleApprove = (enrollmentId, studentId, courseId, classSectionId) => {
     Modal.confirm({
@@ -153,6 +160,62 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
             prev.map(item => item.id === enrollmentId ? { ...item, approvalStatus: "REJECTED" } : item)
           );
           message.success("Đã từ chối yêu cầu!");
+        } catch (err) {
+          message.error("Lỗi: " + err.message);
+        }
+      },
+    });
+  };
+
+  const handleViewDetail = (record) => {
+    setSelectedStudent(record);
+    setIsDetailModalVisible(true);
+  };
+
+  const handleDeleteSingle = (record) => {
+    Modal.confirm({
+      title: "Xóa học viên",
+      content: `Bạn có chắc muốn xóa học viên ${record.name} khỏi lớp học này?`,
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okButtonProps: { danger: true },
+      async onOk() {
+        try {
+          await deleteStudentsFromClassSection(record.classSectionId, [record.studentId]);
+          message.success("Đã xóa học viên thành công!");
+          setRefreshTrigger(prev => prev + 1);
+        } catch (err) {
+          message.error("Lỗi: " + err.message);
+        }
+      },
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    Modal.confirm({
+      title: "Xóa học viên đã chọn",
+      content: `Bạn có chắc muốn xóa ${selectedRows.length} học viên khỏi lớp học?`,
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okButtonProps: { danger: true },
+      async onOk() {
+        try {
+          const groupedByClass = {};
+          selectedRows.forEach(row => {
+            if (!groupedByClass[row.classSectionId]) {
+              groupedByClass[row.classSectionId] = [];
+            }
+            groupedByClass[row.classSectionId].push(row.studentId);
+          });
+
+          const promises = Object.entries(groupedByClass).map(([classId, studentIds]) =>
+            deleteStudentsFromClassSection(classId, studentIds)
+          );
+
+          await Promise.all(promises);
+          message.success("Đã xóa học viên thành công!");
+          setSelectedRows([]);
+          setRefreshTrigger(prev => prev + 1);
         } catch (err) {
           message.error("Lỗi: " + err.message);
         }
@@ -225,7 +288,10 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
               </Button>
             </>
           ) : (
-            <Button type="text" icon={<EyeOutlined />} className="dark:text-gray-400" />
+            <>
+              <Button type="text" icon={<EyeOutlined />} className="dark:text-gray-400 hover:text-blue-500" onClick={() => handleViewDetail(record)} />
+              <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDeleteSingle(record)} />
+            </>
           )}
         </Space>
       ),
@@ -244,15 +310,28 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Quản lý Học viên</h1>
                 <p className="text-gray-500 mt-1">Duyệt và xem danh sách học viên trong các lớp học của bạn.</p>
               </div>
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<UserOutlined />}
-                className="h-11 rounded-xl shadow-md px-6 font-bold"
-                onClick={() => setIsAddModalVisible(true)}
-              >
-                Thêm học viên
-              </Button>
+              <Space>
+                {selectedRows.length > 0 && (
+                  <Button 
+                    danger
+                    size="large" 
+                    icon={<DeleteOutlined />}
+                    className="h-11 rounded-xl shadow-sm px-6 font-bold"
+                    onClick={handleDeleteSelected}
+                  >
+                    Xóa {selectedRows.length} học viên
+                  </Button>
+                )}
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  icon={<UserOutlined />}
+                  className="h-11 rounded-xl shadow-md px-6 font-bold"
+                  onClick={() => setIsAddModalVisible(true)}
+                >
+                  Thêm học viên
+                </Button>
+              </Space>
             </div>
 
             <div className="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-8">
@@ -302,6 +381,15 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
             <div className="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
               <Spin spinning={displayLoading}>
                 <Table
+                  rowSelection={{
+                    selectedRowKeys: selectedRows.map(r => r.key),
+                    onChange: (selectedRowKeys, selectedRowsData) => {
+                      setSelectedRows(selectedRowsData);
+                    },
+                    getCheckboxProps: (record) => ({
+                      disabled: record.approvalStatus === 'PENDING' || record.approvalStatus === 'REJECTED',
+                    }),
+                  }}
                   columns={columns}
                   dataSource={enrollments.filter(e => 
                     e.name.toLowerCase().includes(searchText.toLowerCase()) || 
@@ -331,6 +419,12 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
           currentPage === 1 ? message.success("Đã cập nhật danh sách") : setCurrentPage(1);
         }}
         courses={classes} // Still named courses in modal prop but using ClassSections
+      />
+
+      <StudentDetailModal
+        visible={isDetailModalVisible}
+        onClose={() => setIsDetailModalVisible(false)}
+        student={selectedStudent}
       />
     </div>
   );

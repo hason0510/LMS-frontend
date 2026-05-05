@@ -87,11 +87,11 @@ export default function ClassSectionDetailPage() {
   const fetchCourse = async () => {
     try {
       const response = await getClassSectionById(id);
-      setCourse(response?.data || response);
+      setCourse(response?.data);
       if (isStudent) {
         try {
           const progress = await getCurrentUserProgressByClassSection(id);
-          const progressData = progress?.data || progress;
+          const progressData = progress?.data;
           setEnrollmentStatus(progressData?.approvalStatus || progressData?.enrollmentStatus);
         } catch {
           setEnrollmentStatus(null);

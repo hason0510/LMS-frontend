@@ -30,7 +30,7 @@ export default function AnnouncementsTab({ classSectionId: propClassSectionId })
           pageNumber: 1,
           pageSize: 20,
         });
-        const page = res?.data || res;
+        const page = res?.data;
         setAnnouncements(page?.pageList || []);
       } finally {
         setLoading(false);
@@ -44,7 +44,7 @@ export default function AnnouncementsTab({ classSectionId: propClassSectionId })
       if (!announcementIdFromUrl) return;
       try {
         const res = await getAnnouncementById(announcementIdFromUrl);
-        setSelected(res?.data || res);
+        setSelected(res?.data);
         setDetailOpen(true);
       } catch {
         const fallback = announcements.find((item) => String(item.id) === String(announcementIdFromUrl));

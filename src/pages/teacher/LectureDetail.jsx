@@ -349,7 +349,7 @@ export default function LectureDetail({ isAdmin = false }) {
             videoUrl: lessonData.videoUrl,
             notes: lessonData.notes,
           });
-          savedLesson = response.data || response;
+          savedLesson = response.data;
           messageApi.success("Cập nhật bài giảng mẫu thành công");
         } else {
           // ── Template create: create LessonTemplate → link to template chapter ──
@@ -359,7 +359,7 @@ export default function LectureDetail({ isAdmin = false }) {
             videoUrl: lessonData.videoUrl,
             notes: lessonData.notes,
           });
-          savedLesson = response.data || response;
+          savedLesson = response.data;
 
           await createContentItemTemplate(templateIdFromPath, chapterIdFromState, {
             itemType: "LESSON",
@@ -371,7 +371,7 @@ export default function LectureDetail({ isAdmin = false }) {
       } else if (isEditMode) {
         // Update existing lesson in class section
         const response = await updateLesson(lectureId, lessonData);
-        savedLesson = response.data || response;
+        savedLesson = response.data;
         messageApi.success("Cập nhật bài giảng thành công");
       } else {
         // ── Class section flow: create lesson → link to class chapter ──
@@ -381,7 +381,7 @@ export default function LectureDetail({ isAdmin = false }) {
           videoUrl: lessonData.videoUrl,
           notes: lessonData.notes,
         });
-        savedLesson = response.data || response;
+        savedLesson = response.data;
 
         const chapterIdForSection = chapterId || chapterIdFromState;
         if (classSectionId && chapterIdForSection) {

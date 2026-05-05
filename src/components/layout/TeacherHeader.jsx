@@ -138,7 +138,7 @@ export default function TeacherHeader({ toggleSidebar }) {
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4 ml-8">
+        <div className="flex flex-1 items-center justify-end gap-3 sm:gap-6 ml-8">
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
             <button
@@ -221,27 +221,11 @@ export default function TeacherHeader({ toggleSidebar }) {
               <Avatar
                 src={user?.imageUrl}
                 alt={user?.fullName || user?.username}
-              />{/*
-              <div className="hidden sm:flex flex-col text-left justify-center">
-                 Thêm !m-0 để ép trình duyệt xóa sạch lề mặc định
-                <p className="text-sm font-bold leading-none text-[#111418] dark:text-white max-w-[150px] truncate uppercase !m-0">
-                  {user?.fullName || user?.username || "Giáo viên"}
+              />
+              <div className="hidden sm:flex flex-col text-left justify-center gap-0.5">
+                <p className="text-sm font-bold leading-tight text-[#111418] dark:text-white max-w-[150px] truncate !m-0">
+                  {user?.fullName || user?.name || user?.username || user?.userName || "Giáo viên"}
                 </p>
-
-                 Dòng dưới cũng vậy, kết hợp với -mt để kéo sát lên
-                <p className="text-xs leading-none text-slate-500 dark:text-slate-400 !m-0 -mt-1">
-                  {user?.role === "ADMIN" ? "Quản trị viên" : "Giáo viên"}
-                </p>
-              </div>*/}
-              {/* Thêm gap-1 (4px) hoặc gap-2 (8px) tùy độ giãn bạn muốn */}
-              <div className="hidden sm:flex flex-col text-left justify-center gap-1">
-
-                {/* Giữ nguyên !m-0 để sạch sẽ, nhưng bỏ leading-none nếu muốn giãn thêm nữa */}
-                <p className="text-sm font-bold leading-tight text-[#111418] dark:text-white max-w-[150px] truncate uppercase !m-0">
-                  {user?.fullName || user?.username || "Giáo viên"}
-                </p>
-
-                {/* XÓA BỎ -mt-1 ở đây */}
                 <p className="text-xs leading-tight text-slate-500 dark:text-slate-400 !m-0">
                   {user?.role === "ADMIN" ? "Quản trị viên" : "Giáo viên"}
                 </p>

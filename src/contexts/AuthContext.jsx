@@ -94,7 +94,7 @@ export function AuthProvider({ children }) {
       // Fetch full user data including imageUrl
       if (basicUser?.id) {
         const res = await getUserById(loginData.id);
-        const fullUserData = res.data || res;
+        const fullUserData = res.data;
 
         const processedUser = {
           ...fullUserData,

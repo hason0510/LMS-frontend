@@ -28,7 +28,7 @@ export default function QuizDetail() {
       try {
         setLoading(true);
         const response = await getQuizById(id);
-        const data = response?.data || response;
+        const data = response?.data;
         setQuiz(data);
 
         // Fetch attempts history if classContentItemId is available

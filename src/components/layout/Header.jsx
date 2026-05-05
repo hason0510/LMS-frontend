@@ -192,7 +192,7 @@ export default function Header({ menuItems }) {
             </nav>
           </div>
 
-          <div className="flex flex-1 justify-end gap-2 sm:gap-4 items-center">
+          <div className="flex flex-1 justify-end gap-3 sm:gap-6 items-center">
             {isLoggedIn ? (
               <>
                 <div className="relative" ref={notificationRef}>
@@ -267,15 +267,18 @@ export default function Header({ menuItems }) {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex items-center gap-2 focus:outline-none hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1 rounded-lg transition-colors"
+                    className="flex items-center gap-3 focus:outline-none hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1 rounded-lg transition-colors"
                   >
                     <Avatar
                       src={user?.imageUrl}
                       alt={user?.fullName || user?.username}
                     />
-                    <div className="hidden sm:flex flex-col text-left">
-                      <p className="text-sm font-bold text-[#111418] dark:text-white max-w-[150px] truncate">
-                        {user?.fullName || user?.username || "User"}
+                    <div className="hidden sm:flex flex-col text-left justify-center gap-0.5">
+                      <p className="text-sm font-bold text-[#111418] dark:text-white max-w-[150px] truncate !m-0">
+                        {user?.fullName || user?.name || user?.username || user?.userName || "Người dùng"}
+                      </p>
+                      <p className="text-xs leading-tight text-slate-500 dark:text-slate-400 !m-0">
+                        {user?.role === "ADMIN" ? "Quản trị viên" : user?.role === "TEACHER" ? "Giáo viên" : "Học viên"}
                       </p>
                     </div>
                   </button>

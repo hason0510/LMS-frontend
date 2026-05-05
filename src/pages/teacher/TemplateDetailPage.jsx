@@ -114,7 +114,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
     try {
       setLoading(true);
       const res = await getTemplateById(templateId);
-      const data = res.data || res;
+      const data = res.data;
       setTemplate(data);
       // Auto-expand all chapters
       const expanded = {};

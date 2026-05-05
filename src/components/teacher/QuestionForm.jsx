@@ -162,7 +162,7 @@ export default function QuestionForm({
         return;
       }
 
-      const fetchedTags = (response?.data || response || []).map((tag) => tag?.name).filter(Boolean);
+      const fetchedTags = (response?.data || []).map((tag) => tag?.name).filter(Boolean);
       const selectedTags = form.getFieldValue("tagNames") || [];
       setTagOptions(
         buildTagOptions([
@@ -256,7 +256,7 @@ export default function QuestionForm({
     try {
       setOptionUploading((prev) => ({ ...prev, [index]: true }));
       const response = await uploadStandaloneResource(file);
-      const uploaded = response?.data || response;
+      const uploaded = response?.data;
       handleOptionResourceChange(index, uploaded?.resourceId || uploaded?.id);
     } finally {
       setOptionUploading((prev) => ({ ...prev, [index]: false }));

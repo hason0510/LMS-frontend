@@ -43,7 +43,7 @@ export default function StudentAssignmentsPage() {
       try {
         setLoadingClasses(true);
         const response = await getApprovedClassSections();
-        const classes = response?.data || response || [];
+        const classes = response?.data || [];
         setClassOptions(
           classes.map((classSection) => ({
             label: classSection.title,
@@ -68,7 +68,7 @@ export default function StudentAssignmentsPage() {
           keyword: debouncedKeyword || undefined,
           classSectionId: classSectionId || undefined,
         });
-        const payload = response?.data || response;
+        const payload = response?.data;
         setItems(Array.isArray(payload?.pageList) ? payload.pageList : []);
       } catch (error) {
         console.error(error);
@@ -193,4 +193,3 @@ export default function StudentAssignmentsPage() {
     </div>
   );
 }
-

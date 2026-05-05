@@ -65,7 +65,7 @@ export default function TeacherDashboard() {
       setAssignmentsLoading(true);
       setAssignmentError(null);
       const response = await getTeachingAssignments({ tab: "UPCOMING" });
-      const payload = response?.data || response;
+      const payload = response?.data;
       setUpcomingAssignments(Array.isArray(payload?.pageList) ? payload.pageList.slice(0, 5) : []);
     } catch (err) {
       console.error("Error fetching assignments:", err);

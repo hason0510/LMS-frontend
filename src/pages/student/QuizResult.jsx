@@ -18,6 +18,7 @@ const sortByOrder = (items = []) =>
 
 const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
 const itemLabel = (item, fallback) => item?.content || (item?.resource || item?.resourceId ? "Ảnh" : fallback);
+const getBlankLabel = (_, index) => `Blank ${index + 1}`;
 
 const formatInteractiveAnswer = (attemptAnswer) => {
   const question = attemptAnswer.quizQuestion || {};
@@ -46,7 +47,7 @@ const formatInteractiveAnswer = (attemptAnswer) => {
   if (question.type === "CLOZE") {
     const answerByItemId = new Map(answerItems.map((answerItem) => [answerItem.itemId, answerItem.answerText || ""]));
     return sortByOrder(items.filter((item) => item.role === "BLANK"))
-      .map((blank) => `${blank.content || "Blank"}: ${answerByItemId.get(blank.id) || "Không trả lời"}`)
+      .map((blank, index) => `${getBlankLabel(blank, index)}: ${answerByItemId.get(blank.id) || "Không trả lời"}`)
       .join("; ");
   }
 
@@ -75,7 +76,7 @@ export default function QuizResult() {
       try {
         setLoading(true);
         const response = await getAttemptDetail(attemptId);
-        const data = response?.data || response;
+        const data = response?.data;
         
         // Calculate time taken in minutes and seconds
         let timeTaken = 'N/A';

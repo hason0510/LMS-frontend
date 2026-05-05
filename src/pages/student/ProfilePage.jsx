@@ -11,6 +11,7 @@ import NotificationsPage from "../common/NotificationsPage";
 import Avatar from "../../components/common/Avatar";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserById } from "../../api/user";
+import useUserStore from "../../store/useUserStore";
 import {
   UserIcon,
   BookOpenIcon,
@@ -39,8 +40,13 @@ export default function ProfilePage() {
         try {
           setIsLoading(true);
           const res = await getUserById(user.id);
-          setUserData(res.data);
-          setProfileData(res.data);
+          const fullData = res.data;
+          setUserData(fullData);
+          setProfileData(fullData);
+
+          if (fullData) {
+            useUserStore.getState().updateUser(fullData);
+          }
         } catch (err) {
           console.error("Failed to fetch user data:", err);
         } finally {
@@ -74,6 +80,7 @@ export default function ProfilePage() {
   const handleProfileUpdate = (updatedData) => {
     setProfileData(updatedData);
     setUserData(updatedData);
+    useUserStore.getState().updateUser(updatedData);
   };
 
   const handleTabClick = (tabId) => {

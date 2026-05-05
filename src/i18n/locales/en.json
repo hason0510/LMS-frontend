@@ -202,9 +202,14 @@
   },
   "assignments": {
     "studentTitle": "Assignments",
-    "teacherTitle": "Assignments Overview",
+    "teacherTitle": "Assignment",
     "searchPlaceholder": "Search by assignment title",
-    "classFilterPlaceholder": "Filter by class",
+    "classFilterPlaceholder": "Class",
+    "allCourses": "All",
+    "sortBy": "Sort By",
+    "sortDesc": "DESC",
+    "sortAsc": "ASC",
+    "dueDateFilter": "Due Date",
     "loadFailed": "Could not load assignments",
     "empty": "No matching assignments",
     "details": "Details",
@@ -225,9 +230,11 @@
       "pastDue": "Past due"
     },
     "table": {
-      "assignment": "Assignment",
+      "assignment": "Assignment Name",
       "dueAt": "Due At",
       "score": "Max Score",
+      "totalMarks": "Total Marks",
+      "totalSubmit": "Total Submit",
       "submitted": "Submitted",
       "pending": "Pending Review",
       "status": "Status"

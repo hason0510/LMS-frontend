@@ -75,7 +75,7 @@ export default function CourseContent({ enrollmentStatus = null }) {
     try {
       setLoading(true);
       const response = await getClassChapters(classSectionId);
-      const data = response.data || response;
+      const data = response.data;
       const sorted = Array.isArray(data)
         ? [...data].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
         : [];
@@ -91,7 +91,7 @@ export default function CourseContent({ enrollmentStatus = null }) {
     try {
       setLoadingItems((prev) => ({ ...prev, [chapterId]: true }));
       const response = await getClassContentItems(classSectionId, chapterId);
-      const data = response.data || response;
+      const data = response.data;
       const sorted = Array.isArray(data)
         ? [...data].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
         : [];

@@ -91,7 +91,7 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
         try {
           setLoading(true);
           const response = await getTemplateById(id);
-          const data = response.data || response;
+          const data = response.data;
 
           form.setFieldsValue({
             name: data.name,
@@ -135,7 +135,7 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
           subjectId: values.subjectId,
           isDefault: true,
         });
-        const newTemplate = res.data || res;
+        const newTemplate = res.data;
         message.success("Tạo template thành công! Hãy thêm chương học.");
         navigate(`${basePath}/curriculums/${newTemplate.id}`);
       }

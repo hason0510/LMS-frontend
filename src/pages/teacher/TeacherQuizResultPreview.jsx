@@ -20,6 +20,7 @@ const getItemsByRole = (question, role) =>
   sortByOrder((question.items || []).filter((item) => item.role === role));
 
 const itemLabel = (item, fallback) => item?.content || (item?.resource || item?.resourceId ? "Ảnh" : fallback);
+const getBlankLabel = (_, index) => `Blank ${index + 1}`;
 
 const formatUserAnswer = (question, answers) => {
   const answer = answers[question.id];
@@ -61,7 +62,7 @@ const formatUserAnswer = (question, answers) => {
   if (question.type === "CLOZE") {
     const blanks = getItemsByRole(question, "BLANK");
     return blanks
-      .map((blank) => `${blank.content || `Blank ${blank.blankIndex}`}: ${answer.blanks?.[blank.id] || "Không trả lời"}`)
+      .map((blank, index) => `${getBlankLabel(blank, index)}: ${answer.blanks?.[blank.id] || "Không trả lời"}`)
       .join("; ");
   }
 
@@ -103,9 +104,9 @@ const formatCorrectAnswer = (question) => {
   if (question.type === "CLOZE") {
     const blanks = getItemsByRole(question, "BLANK");
     return blanks
-      .map((blank) => {
+      .map((blank, index) => {
         const accepted = blank.acceptedAnswers || blank.acceptedAnswersText || [];
-        return `${blank.content || `Blank ${blank.blankIndex}`}: ${accepted.join(" / ") || "?"}`;
+        return `${getBlankLabel(blank, index)}: ${accepted.join(" / ") || "?"}`;
       })
       .join("; ");
   }

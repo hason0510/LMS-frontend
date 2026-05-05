@@ -30,9 +30,8 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
         searchRequest.fullName = searchText;
       }
       const res = await getStudentsNotInClassSection(selectedCourse, searchRequest, currentPage, pageSize);
-      // Backend returns PageResponse directly: { currentPage, totalPage, totalElements, pageList }
-      const pageList = res?.pageList || res?.data?.pageList || [];
-      const totalElements = res?.totalElements || res?.data?.totalElements || 0;
+      const pageList = res?.data?.pageList || [];
+      const totalElements = res?.data?.totalElements || 0;
       const studentList = pageList.map((student) => ({
         id: student.id,
         key: student.id,

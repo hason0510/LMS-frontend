@@ -22,8 +22,7 @@ export default function MyCourses() {
     try {
       setLoading(true);
       const response = await getApprovedClassSections();
-      // Handle API response structure: data.pageList
-      const courseList = response.data?.pageList || [];
+      const courseList = response.data || [];
       setCourses(courseList);
       setError(null);
     } catch (err) {

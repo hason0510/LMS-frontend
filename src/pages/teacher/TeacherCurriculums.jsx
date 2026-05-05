@@ -65,7 +65,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
       const params = { includeVersions: true };
       if (subjectId) params.subjectId = subjectId;
       const response = await getTemplates(params);
-      setTemplates(response.data?.pageList || response.data || response);
+      setTemplates(response.data?.pageList || []);
     } catch (err) {
       setError(err.message);
     } finally {

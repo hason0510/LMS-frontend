@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { App, Button, Input, InputNumber, Spin, Table, Tag } from "antd";
+import { App, Button, Input, InputNumber, Modal, Spin, Table, Tag } from "antd";
+import parse from "html-react-parser";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
@@ -9,10 +10,17 @@ import { getAttemptDetail, reviewQuizAttempt } from "../../api/quiz";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-");
 
+const stripHtml = (html) => html?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "";
+
 const formatAnswerItems = (answer) => {
   if (answer.textAnswer) return answer.textAnswer;
   if (answer.selectedAnswers?.length) {
     return answer.selectedAnswers.map((item) => item.content).join(", ");
+  }
+  if (answer.quizQuestion?.type === "CLOZE" && answer.answerItems?.length) {
+    return answer.answerItems
+      .map((ai) => `Chỗ trống ${ai.blankIndex}: ${ai.answerText || "Không trả lời"}`)
+      .join("; ");
   }
   if (answer.answerItems?.length) {
     return answer.answerItems
@@ -33,7 +41,11 @@ const formatCorrectAnswer = (answer) => {
   if (question.items?.length) {
     return question.items
       .filter((item) => item.acceptedAnswers?.length || item.correctMatchKey || item.correctOrderIndex)
-      .map((item) => item.acceptedAnswers?.join(", ") || item.correctMatchKey || item.correctOrderIndex)
+      .map((item, index) => {
+        const label = `Chỗ trống ${item.blankIndex || index + 1}`;
+        const correct = item.acceptedAnswers?.join(" / ") || item.correctMatchKey || String(item.correctOrderIndex);
+        return `${label}: ${correct}`;
+      })
       .join("; ");
   }
   return "-";
@@ -61,6 +73,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
   const [attempt, setAttempt] = useState(null);
   const [reviews, setReviews] = useState({});
   const [instructorFeedback, setInstructorFeedback] = useState("");
+  const [previewQuestion, setPreviewQuestion] = useState(null);
 
   const essayAnswers = useMemo(
     () => (attempt?.answers || []).filter((answer) => answer.quizQuestion?.type === "ESSAY"),
@@ -71,7 +84,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
     try {
       setLoading(true);
       const response = await getAttemptDetail(attemptId);
-      const payload = response?.data || response;
+      const payload = response?.data;
       setAttempt(payload);
       setInstructorFeedback(payload?.instructorFeedback || "");
       const nextReviews = {};
@@ -106,7 +119,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
           feedback: reviews[answer.id]?.feedback || "",
         })),
       });
-      const payload = response?.data || response;
+      const payload = response?.data;
       setAttempt(payload);
       message.success(t("quizAttempts.reviewSaved"));
     } catch (error) {
@@ -125,11 +138,24 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
     },
     {
       title: t("quizAttempts.question"),
-      render: (_, answer) => (
-        <div className="space-y-2">
-          <div className="font-medium">{answer.quizQuestion?.content}</div>
-        </div>
-      ),
+      render: (_, answer) => {
+        const content = answer.quizQuestion?.content || "";
+        return (
+          <div className="space-y-1">
+            <div className="line-clamp-2 max-w-xs text-sm font-medium text-slate-700 dark:text-slate-200">
+              {stripHtml(content)}
+            </div>
+            {content && (
+              <button
+                className="text-xs text-primary hover:underline"
+                onClick={() => setPreviewQuestion(answer.quizQuestion)}
+              >
+                Xem chi tiết
+              </button>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: t("quizAttempts.givenAnswer"),
@@ -261,6 +287,18 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
           </div>
         </main>
       </div>
+
+      <Modal
+        open={!!previewQuestion}
+        onCancel={() => setPreviewQuestion(null)}
+        footer={null}
+        title="Nội dung câu hỏi"
+        width={700}
+      >
+        <div className="prose prose-sm max-w-none">
+          {previewQuestion && parse(previewQuestion.content || "")}
+        </div>
+      </Modal>
     </div>
   );
 }

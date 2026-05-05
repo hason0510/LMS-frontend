@@ -19,6 +19,23 @@ const sortByOrder = (items = []) =>
 const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
 const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
 const isTextAnswerQuestion = (type) => ["SHORT_ANSWER", "ESSAY"].includes(type);
+const getBlankLabel = (_, index) => `Blank ${index + 1}`;
+const parseBlankOptions = (blankOptions) => {
+  if (Array.isArray(blankOptions)) {
+    return blankOptions.filter((option) => typeof option === "string" && option.trim());
+  }
+  if (!blankOptions || typeof blankOptions !== "string") {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(blankOptions);
+    return Array.isArray(parsed)
+      ? parsed.filter((option) => typeof option === "string" && option.trim())
+      : [];
+  } catch {
+    return [];
+  }
+};
 
 const getQuestionTypeLabel = (type) => {
   const labels = {
@@ -375,19 +392,33 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
       const current = answers[question.id] || { blanks: {} };
       return (
         <div className="space-y-3">
-          {blanks.map((blank, index) => (
-            <div key={blank.id} className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {blank.content || `Blank ${index + 1}`}
-              </label>
-              <input
-                value={current.blanks?.[blank.id] || ""}
-                onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
-                placeholder="Nhập đáp án"
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-              />
-            </div>
-          ))}
+          {blanks.map((blank, index) => {
+            const options = parseBlankOptions(blank.blankOptions);
+            const isSelectBlank = blank.blankType === "SELECT" && options.length > 0;
+            return (
+              <div key={blank.id} className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {getBlankLabel(blank, index)}
+                </label>
+                {isSelectBlank ? (
+                  <Select
+                    value={current.blanks?.[blank.id]}
+                    onChange={(value) => handleClozeChange(question, blank.id, value)}
+                    options={options.map((option) => ({ value: option, label: option }))}
+                    placeholder="Chọn đáp án"
+                    className="w-full"
+                  />
+                ) : (
+                  <input
+                    value={current.blanks?.[blank.id] || ""}
+                    onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
+                    placeholder="Nhập đáp án"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     }

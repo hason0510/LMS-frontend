@@ -88,7 +88,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const fetchBankTags = async () => {
     try {
       const res = await getTags(id);
-      setBankTags(res?.data || res || []);
+      setBankTags(res?.data || []);
     } catch {
       // non-blocking
     }
@@ -98,8 +98,8 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     try {
       setLoading(true);
       const [bankRes, tagsRes] = await Promise.all([getQuestionBankById(id), getTags(id)]);
-      setBank(bankRes?.data || bankRes);
-      setBankTags(tagsRes?.data || tagsRes || []);
+      setBank(bankRes?.data);
+      setBankTags(tagsRes?.data || []);
       setError(null);
     } catch (err) {
       setError(err?.response?.data?.message || err.message);
@@ -112,7 +112,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     try {
       setMembersLoading(true);
       const res = await getMembers(id);
-      setMembers(res?.data || res || []);
+      setMembers(res?.data || []);
     } catch (err) {
       message.error(err?.response?.data?.message || "Loi khi tai danh sach thanh vien");
     } finally {
@@ -257,7 +257,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     try {
       setImportLoading(true);
       const response = await importGiftQuestions(id, file);
-      const result = response?.data || response;
+      const result = response?.data;
       const imported = result?.importedQuestions ?? 0;
       const skipped = result?.skippedQuestions ?? 0;
 
@@ -343,7 +343,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         userName: query,
         fullName: query,
       });
-      const payload = res?.data || res;
+      const payload = res?.data;
       const users = payload?.pageList || [];
       const existingIds = new Set((members || []).map((m) => m.userId));
       setMemberSearchOptions(

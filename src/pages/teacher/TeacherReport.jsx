@@ -93,8 +93,8 @@ export default function TeacherReport({ isAdmin = false }) {
       
       // approvedRes.data is PageResponse { pageList, ... } or List depending on backend
       // Looking at enrollment/statistics API, it's usually PageResponse for these
-      setApprovedStudents(approvedRes.data?.pageList || approvedRes.data || []);
-      setPendingRequests(pendingRes.data?.pageList || pendingRes.data || []);
+      setApprovedStudents(approvedRes.data?.pageList || []);
+      setPendingRequests(pendingRes.data?.pageList || []);
     } catch (err) {
       setError(err.message || "Lỗi khi tải dữ liệu");
     } finally {

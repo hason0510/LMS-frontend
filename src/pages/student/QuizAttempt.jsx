@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import parse from "html-react-parser";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ClockIcon,
@@ -24,6 +25,23 @@ const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORD
 const isTextAnswerQuestion = (type) => ["SHORT_ANSWER", "ESSAY"].includes(type);
 const sortByOrder = (items = []) =>
   [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
+const getBlankLabel = (_, index) => `Blank ${index + 1}`;
+const parseBlankOptions = (blankOptions) => {
+  if (Array.isArray(blankOptions)) {
+    return blankOptions.filter((option) => typeof option === "string" && option.trim());
+  }
+  if (!blankOptions || typeof blankOptions !== "string") {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(blankOptions);
+    return Array.isArray(parsed)
+      ? parsed.filter((option) => typeof option === "string" && option.trim())
+      : [];
+  } catch {
+    return [];
+  }
+};
 
 function SortableOrderItem({ itemId, content, index }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: itemId });
@@ -102,7 +120,7 @@ export default function QuizAttempt() {
       
       // 1. Get Quiz Info
       const quizRes = await getQuizById(id);
-      const quiz = quizRes.data || quizRes;
+      const quiz = quizRes.data;
       setQuizInfo(quiz);
 
       // 2. Get or Start Attempt
@@ -111,7 +129,7 @@ export default function QuizAttempt() {
           
           try {
              const currentRes = await getCurrentAttempt(classContentItemId);
-             attemptData = currentRes?.data || currentRes;
+             attemptData = currentRes?.data;
           } catch(e) { 
             console.log("No current attempt found, will start new one");
           }
@@ -119,7 +137,7 @@ export default function QuizAttempt() {
           // If no current attempt, start a new one
           if (!attemptData) {
             const startRes = await startQuizAttempt(id, classContentItemId);
-            attemptData = startRes?.data || startRes;
+            attemptData = startRes?.data;
           }
 
           if (attemptData) {
@@ -547,19 +565,33 @@ export default function QuizAttempt() {
       const current = answers[question.id] || { blanks: {} };
       return (
         <div className="space-y-3">
-          {blanks.map((blank, index) => (
-            <div key={blank.id} className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {blank.content || `Blank ${index + 1}`}
-              </label>
-              <input
-                value={current.blanks?.[blank.id] || ""}
-                onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
-                placeholder="Nhập đáp án"
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-              />
-            </div>
-          ))}
+          {blanks.map((blank, index) => {
+            const options = parseBlankOptions(blank.blankOptions);
+            const isSelectBlank = blank.blankType === "SELECT" && options.length > 0;
+            return (
+              <div key={blank.id} className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {getBlankLabel(blank, index)}
+                </label>
+                {isSelectBlank ? (
+                  <Select
+                    value={current.blanks?.[blank.id]}
+                    onChange={(value) => handleClozeChange(question, blank.id, value)}
+                    options={options.map((option) => ({ value: option, label: option }))}
+                    placeholder="Chọn đáp án"
+                    className="w-full"
+                  />
+                ) : (
+                  <input
+                    value={current.blanks?.[blank.id] || ""}
+                    onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
+                    placeholder="Nhập đáp án"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -646,9 +678,9 @@ export default function QuizAttempt() {
                 </div>
 
                 <div className="p-6 md:p-8">
-                  <p className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-4 whitespace-pre-wrap">
-                    {currentQuestion.content}
-                  </p>
+                  <div className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-4">
+                    {parse(currentQuestion.content || "")}
+                  </div>
 
                   <div className="space-y-3">
                     {isInteractionQuestion(currentQuestion.type) ? (
@@ -714,7 +746,7 @@ export default function QuizAttempt() {
                               )}
                               <div className="min-w-0 flex-1">
                                 <span className="block text-slate-700 dark:text-slate-200 font-medium select-none">
-                                  {option.content}
+                                  {parse(option.content || "")}
                                 </span>
                                 <ResourcePreview resource={option.resource} className="mt-2" />
                               </div>

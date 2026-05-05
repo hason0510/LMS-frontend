@@ -40,7 +40,7 @@ export default function TeacherClassSections({ isAdmin = false }) {
       setLoading(true);
       const params = isAdmin ? {} : { teacherId: user?.id || user?.sub };
       const response = await getClassSections(params);
-      setClassSections(response.data || response);
+      setClassSections(response.data);
     } catch (err) {
       setError(err.message);
     } finally {

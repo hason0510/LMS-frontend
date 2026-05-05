@@ -202,9 +202,14 @@
   },
   "assignments": {
     "studentTitle": "Bài tập",
-    "teacherTitle": "Quản lý Assignments",
+    "teacherTitle": "Assignment",
     "searchPlaceholder": "Tìm theo tiêu đề assignment",
-    "classFilterPlaceholder": "Lọc theo lớp học",
+    "classFilterPlaceholder": "Lớp học",
+    "allCourses": "Tất cả",
+    "sortBy": "Sắp xếp",
+    "sortDesc": "Mới nhất",
+    "sortAsc": "Cũ nhất",
+    "dueDateFilter": "Hạn nộp",
     "loadFailed": "Không thể tải dữ liệu assignment",
     "empty": "Không có assignment phù hợp",
     "details": "Chi tiết",
@@ -225,9 +230,11 @@
       "pastDue": "Quá hạn"
     },
     "table": {
-      "assignment": "Assignment",
+      "assignment": "Tên Assignment",
       "dueAt": "Hạn nộp",
       "score": "Điểm tối đa",
+      "totalMarks": "Điểm tối đa",
+      "totalSubmit": "Đã nộp",
       "submitted": "Đã nộp",
       "pending": "Chờ chấm",
       "status": "Trạng thái"

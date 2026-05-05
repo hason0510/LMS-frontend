@@ -28,7 +28,7 @@ export default function TeacherAssignmentPreview() {
       try {
         setLoading(true);
         const res = await getAssignmentById(assignmentId);
-        setAssignment(res?.data || res);
+        setAssignment(res?.data);
       } catch (err) {
         setError(err.message || "Không thể tải thông tin bài tập");
         console.error(err);

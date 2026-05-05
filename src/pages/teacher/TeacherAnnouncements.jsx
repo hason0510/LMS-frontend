@@ -20,7 +20,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 function unwrapList(response) {
-  const data = response?.data || response;
+  const data = response?.data;
   if (Array.isArray(data)) return data;
   return data?.pageList || [];
 }
@@ -77,7 +77,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
   const loadSubjects = async () => {
     try {
       const response = await getAllSubjects();
-      setSubjects(response?.data || response || []);
+      setSubjects(response?.data || []);
     } catch (error) {
       console.error(error);
       message.error("Không thể tải danh sách môn học");
@@ -96,7 +96,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
         pageNumber: 1,
         pageSize: 100,
       });
-      const data = response?.data || response;
+      const data = response?.data;
       setAnnouncements(data?.pageList || []);
     } catch (error) {
       console.error(error);

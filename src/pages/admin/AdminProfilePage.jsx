@@ -5,6 +5,7 @@ import AdminSidebar from "../../components/layout/AdminSidebar";
 import MyInformation from "../../components/student/profile/MyInformation";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserById } from "../../api/user";
+import useUserStore from "../../store/useUserStore";
 
 export default function AdminProfilePage() {
   const { t } = useTranslation();
@@ -29,7 +30,12 @@ export default function AdminProfilePage() {
         try {
           setIsLoading(true);
           const res = await getUserById(user.id);
-          setUserData(res.data);
+          const fullData = res.data;
+          setUserData(fullData);
+
+          if (fullData) {
+            useUserStore.getState().updateUser(fullData);
+          }
         } catch (err) {
           console.error("Failed to fetch user data:", err);
         } finally {
