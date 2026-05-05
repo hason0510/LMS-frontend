@@ -128,7 +128,7 @@ export default function AdminUserModal({
             <div className="relative group">
               <Avatar
                 size={100}
-                src={user?.avatar}
+                src={user?.imageUrl || user?.avatar}
                 className="border-4 border-white dark:border-gray-700 shadow-sm"
                 alt={formData.fullName}
               >

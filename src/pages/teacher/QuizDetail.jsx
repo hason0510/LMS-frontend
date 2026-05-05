@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import {
   Button, Input, Select, Switch, InputNumber, Drawer, Checkbox,
   Spin, Dropdown, Tag, Radio, message,
@@ -1138,7 +1139,7 @@ export default function QuizDetail() {
     setBankSources((prev) => prev.filter((s) => s.localId !== localId));
 
   // save
-  const handleSave = async () => {
+  const handleSave = async (previewAfter = false) => {
     if (!title.trim()) { message.warning("Quiz title is required"); return; }
     setSaving(true);
     try {
@@ -1219,6 +1220,14 @@ export default function QuizDetail() {
           savedQuiz = await updateQuiz(quizId, payload);
         }
         message.success("Quiz saved");
+        if (previewAfter) {
+          const basePath = isAdmin ? "/admin" : "/teacher";
+          const previewUrl = isTemplateMode
+            ? `${basePath}/curriculums/${templateId}/quizzes/${quizId}/preview`
+            : `${basePath}/class-sections/${classSectionId}/quizzes/${quizId}/preview`;
+          navigate(previewUrl);
+          return;
+        }
       } else {
         let savedQuizId;
         if (isTemplateMode) {
@@ -1245,6 +1254,13 @@ export default function QuizDetail() {
         }
         message.success("Quiz created");
         const basePath = isAdmin ? "/admin" : "/teacher";
+        if (previewAfter && savedQuizId) {
+          const previewUrl = isTemplateMode
+            ? `${basePath}/curriculums/${templateId}/quizzes/${savedQuizId}/preview`
+            : `${basePath}/class-sections/${classSectionId}/quizzes/${savedQuizId}/preview`;
+          navigate(previewUrl);
+          return;
+        }
         navigate(
           isTemplateMode
             ? `${basePath}/curriculums/${templateId}`
@@ -1308,6 +1324,14 @@ export default function QuizDetail() {
             placeholder="Quiz title..."
           />
 
+          <Button
+            icon={<EyeIcon className="w-4 h-4" />}
+            onClick={() => handleSave(true)}
+            loading={saving}
+            className="flex items-center gap-1.5 border-amber-400 text-amber-600 hover:bg-amber-50 shrink-0"
+          >
+            Preview
+          </Button>
           <Button type="primary" onClick={handleSave} loading={saving} className="bg-blue-600 hover:bg-blue-700 border-0 px-6 shrink-0">
             Save
           </Button>

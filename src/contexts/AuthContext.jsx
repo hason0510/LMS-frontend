@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import useUserStore from "../store/useUserStore";
 import { getUserById } from "../api/user";
@@ -25,49 +25,20 @@ const normalizeBasicUser = (loginData) => {
 };
 
 export function AuthProvider({ children }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { i18n } = useTranslation();
   const {
     user,
     accessToken,
+    loading: storeLoading,
     setUser,
     setAccessToken,
     clearUser,
-    initializeAuth,
-    setLoading,
   } = useUserStore();
-  const [loading, setAuthLoading] = useState(true);
-
-  // Kiểm tra trạng thái đăng nhập lúc app khởi tạo
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const storedToken = localStorage.getItem("accessToken");
-        const storedUser = localStorage.getItem("user");
-
-        if (storedToken && storedUser) {
-          const userData = JSON.parse(storedUser);
-          setIsLoggedIn(true);
-          initializeAuth(userData, storedToken);
-          setAuthLoading(false);
-        } else {
-          setLoading(false);
-          setAuthLoading(false);
-        }
-      } catch (err) {
-        console.error("Failed to initialize auth:", err);
-        setAuthLoading(false);
-      }
-    };
-
-    initAuth();
-  }, []);
+  const isLoggedIn = Boolean(accessToken && user);
+  const loading = storeLoading;
 
   // Hàm logout
   const logout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
     clearUser();
     // Reset language to Vietnamese
     i18n.changeLanguage('vi');
@@ -78,16 +49,12 @@ export function AuthProvider({ children }) {
 
   // Hàm login - fetch full user data after login
   const loginUser = async (accessToken, loginData) => {
-    setAuthLoading(true);
     try {
-      localStorage.setItem("accessToken", accessToken);
       setAccessToken(accessToken);
-      setIsLoggedIn(true);
 
       // Set basic user immediately so routing/guards don't "flash" another role UI.
       const basicUser = normalizeBasicUser(loginData);
       if (basicUser) {
-        localStorage.setItem("user", JSON.stringify(basicUser));
         setUser(basicUser);
       }
 
@@ -103,13 +70,11 @@ export function AuthProvider({ children }) {
           role: normalizeRole(fullUserData.roleName || fullUserData.role || basicUser.role),
         };
 
-        localStorage.setItem("user", JSON.stringify(processedUser));
         setUser(processedUser);
         return processedUser;
       } else {
         // Fallback if id is not available
         if (!basicUser) {
-          localStorage.setItem("user", JSON.stringify(loginData));
           setUser(loginData);
           return loginData;
         }
@@ -119,17 +84,14 @@ export function AuthProvider({ children }) {
       console.error("Failed to fetch user data after login:", err);
       // Still set the basic user data from login response
       const basicUser = normalizeBasicUser(loginData) || loginData;
-      localStorage.setItem("user", JSON.stringify(basicUser));
       setUser(basicUser);
       return basicUser;
-    } finally {
-      setAuthLoading(false);
     }
   };
 
   return (
     <AuthContext.Provider
-      value={{ isLoggedIn, setIsLoggedIn, user, logout, loginUser, loading }}
+      value={{ isLoggedIn, user, logout, loginUser, loading }}
     >
       {children}
     </AuthContext.Provider>

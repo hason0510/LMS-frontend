@@ -115,11 +115,18 @@ const formatCorrectAnswer = (question) => {
 };
 
 export default function TeacherQuizResultPreview({ isAdmin = false }) {
-  const { classSectionId, quizId } = useParams();
+  const { classSectionId, quizId, templateId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { quizData, answers = {}, scoredQuestions = [], score = 0, isPassed = false, correctCount = 0, incorrectCount = 0, unansweredCount = 0 } = location.state || {};
   const base = isAdmin ? "/admin" : "/teacher";
+  const isTemplate = !!templateId;
+  const previewUrl = isTemplate
+    ? `${base}/curriculums/${templateId}/quizzes/${quizId}/preview`
+    : `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`;
+  const editUrl = isTemplate
+    ? `${base}/curriculums/${templateId}/quizzes/${quizId}`
+    : `${base}/class-sections/${classSectionId}/quizzes/${quizId}`;
 
   if (!quizData) {
     return (
@@ -129,7 +136,7 @@ export default function TeacherQuizResultPreview({ isAdmin = false }) {
             Không có dữ liệu kết quả. Vui lòng thực hiện xem trước lại.
           </p>
           <button
-            onClick={() => navigate(`${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`)}
+            onClick={() => navigate(previewUrl)}
             className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
           >
             Quay lại
@@ -148,7 +155,7 @@ export default function TeacherQuizResultPreview({ isAdmin = false }) {
           Kết quả xem trước — Không được lưu vào hệ thống
         </div>
         <button
-          onClick={() => navigate(`${base}/class-sections/${classSectionId}/quizzes/${quizId}`)}
+          onClick={() => navigate(editUrl)}
           className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
         >
           <ArrowLeftIcon className="h-3.5 w-3.5" />
@@ -202,14 +209,14 @@ export default function TeacherQuizResultPreview({ isAdmin = false }) {
 
               <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
                 <button
-                  onClick={() => navigate(`${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`, { state: { quizData } })}
+                  onClick={() => navigate(previewUrl, { state: { quizData } })}
                   className="flex h-10 min-w-[140px] items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 text-sm font-bold text-white transition"
                 >
                   <ArrowPathIcon className="h-5 w-5" />
                   Xem trước lại
                 </button>
                 <button
-                  onClick={() => navigate(`${base}/class-sections/${classSectionId}/quizzes/${quizId}`)}
+                  onClick={() => navigate(editUrl)}
                   className="flex h-10 min-w-[140px] items-center justify-center gap-2 rounded-lg bg-[#f0f2f4] px-4 text-sm font-bold text-[#111418] transition hover:bg-[#e0e2e4] dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                 >
                   <ArrowLeftIcon className="h-5 w-5" />

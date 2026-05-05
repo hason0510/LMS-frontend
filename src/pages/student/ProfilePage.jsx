@@ -145,7 +145,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3">
                   <div className="relative group">
                     <Avatar
-                      src={userData?.avatar || userData?.profilePicture}
+                      src={userData?.imageUrl || userData?.avatar || userData?.profilePicture}
                       alt={userData?.fullName || userData?.username}
                       className="w-12 h-12"
                     />

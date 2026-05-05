@@ -49,7 +49,6 @@ export function useTokenExpiration() {
         if (!newAccessToken) {
           throw new Error("Missing access token in refresh response");
         }
-        localStorage.setItem("accessToken", newAccessToken);
         useUserStore.getState().setAccessToken(newAccessToken);
       } catch (error) {
         if (cancelled) return;

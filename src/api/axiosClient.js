@@ -1,4 +1,5 @@
 import axios from "axios";
+import useUserStore from "../store/useUserStore";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8081';
 const API_BASE = `${BACKEND_URL}/api/v1/lms`;
@@ -46,7 +47,7 @@ axiosClient.interceptors.request.use(
     if (isAuthHeaderSkipRequest(config?.url)) {
       return config;
     }
-    const token = localStorage.getItem("accessToken");
+    const token = useUserStore.getState().accessToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -94,14 +95,8 @@ axiosClient.interceptors.response.use(
             if (!newAccessToken) {
               throw new Error("Missing access token in refresh response");
             }
-            
-            localStorage.setItem("accessToken", newAccessToken);
-            
-            const userStore = JSON.parse(localStorage.getItem('user-store') || '{}');
-            if (userStore.state) {
-              userStore.state.accessToken = newAccessToken;
-              localStorage.setItem('user-store', JSON.stringify(userStore));
-            }
+
+            useUserStore.getState().setAccessToken(newAccessToken);
 
             axiosClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
             processQueue(null, newAccessToken);
@@ -113,9 +108,7 @@ axiosClient.interceptors.response.use(
             
             // Only redirect if NOT on login page to avoid infinite loop
             if (window.location.pathname !== '/login') {
-              localStorage.removeItem("accessToken");
-              localStorage.removeItem("user");
-              localStorage.removeItem("user-store");
+              useUserStore.getState().clearUser();
               window.location.href = '/login';
             }
             

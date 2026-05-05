@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { CameraIcon, PencilIcon } from "@heroicons/react/24/solid";
-import { Input, InputNumber, Button, Space, DatePicker, message } from "antd";
+import { Input, InputNumber, Button, Space, DatePicker, message, Segmented } from "antd";
 import dayjs from "dayjs";
-import { updateUser, uploadUserAvatar } from "../../../api/user";
-import { useAuth } from "../../../contexts/AuthContext";
+import { getUserById, updateUser, uploadUserAvatar } from "../../../api/user";
 import useUserStore from "../../../store/useUserStore";
 
 export default function MyInformation({
@@ -33,6 +32,8 @@ export default function MyInformation({
   const [success, setSuccess] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarMode, setAvatarMode] = useState("upload");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   // Initialize form data from userData prop
   useEffect(() => {
@@ -52,6 +53,7 @@ export default function MyInformation({
       console.log("User Data in MyInformation:", userData);
       // Map image_uri from backend to avatar for display
       setAvatarPreview(userData.imageUrl);
+      setAvatarUrl(userData.imageUrl || "");
       setLoading(false);
     }
   }, [userData]);
@@ -73,8 +75,29 @@ export default function MyInformation({
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setAvatarMode("upload");
       setAvatarFile(file);
+      setAvatarUrl("");
       setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleAvatarUrlChange = (e) => {
+    const nextValue = e.target.value;
+    setAvatarMode("link");
+    setAvatarUrl(nextValue);
+    setAvatarFile(null);
+    const trimmedValue = nextValue.trim();
+    setAvatarPreview(trimmedValue ? trimmedValue : (initialData?.imageUrl || null));
+  };
+
+  const isValidAvatarUrl = (value) => {
+    if (!value) return false;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
     }
   };
 
@@ -87,34 +110,42 @@ export default function MyInformation({
         throw new Error("User ID not found");
       }
 
-      const updatedUser = await updateUser(user.id, {
+      const nextAvatarUrl = avatarMode === "link" ? avatarUrl.trim() : "";
+      if (avatarMode === "link") {
+        if (!nextAvatarUrl) {
+          throw new Error("Avatar URL is required");
+        }
+        if (!isValidAvatarUrl(nextAvatarUrl)) {
+          throw new Error("Avatar URL không hợp lệ");
+        }
+      }
+
+      await updateUser(user.id, {
         ...formData,
         userName: initialData?.userName, // Keep username as is
+        imageUrl: nextAvatarUrl || undefined,
       });
 
       if (avatarFile) {
         await uploadUserAvatar(user.id, avatarFile);
-        // Update avatar in updatedUser data if needed, or fetch user again
-        // For now, we assume the avatar upload is successful and the preview is correct
       }
 
-      const fullUserData = updatedUser.data || updatedUser;
+      const refreshedUserResponse = await getUserById(user.id);
+      const fullUserData = refreshedUserResponse?.data || refreshedUserResponse;
+
+      if (avatarMode === "link" && nextAvatarUrl && fullUserData?.imageUrl !== nextAvatarUrl) {
+        throw new Error("Backend chua luu duoc link avatar. Hay kiem tra backend da chay code moi va thu lai.");
+      }
+
       setInitialData(fullUserData);
+      setAvatarPreview(fullUserData.imageUrl || null);
+      setAvatarUrl(fullUserData.imageUrl || "");
       if (onUpdate) {
         onUpdate(fullUserData);
       }
 
       // Update Zustand store with new user data
-      updateUserStoreData({
-        fullName: fullUserData.fullName,
-        gmail: fullUserData.gmail,
-        phoneNumber: fullUserData.phoneNumber,
-        birthday: fullUserData.birthday,
-        address: fullUserData.address,
-        imageUrl: fullUserData.imageUrl,
-        userName: fullUserData.userName,
-        roleName: fullUserData.roleName,
-      });
+      updateUserStoreData(fullUserData);
 
       setSuccess("Cập nhật thông tin thành công!");
       setIsEditing(false);
@@ -122,7 +153,7 @@ export default function MyInformation({
       // Auto-hide success message after 3 seconds
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError("Cập nhật thất bại. Vui lòng thử lại.");
+      setError(err?.response?.data?.message || err?.message || "Cập nhật thất bại. Vui lòng thử lại.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -142,8 +173,10 @@ export default function MyInformation({
         fieldOfExpertise: initialData.fieldOfExpertise || "",
         bio: initialData.bio || "",
       });
-      setAvatarPreview(initialData.avatar || initialData.image_url || null);
+      setAvatarPreview(initialData.imageUrl || initialData.avatar || initialData.image_url || null);
+      setAvatarUrl(initialData.imageUrl || initialData.avatar || initialData.image_url || "");
       setAvatarFile(null);
+      setAvatarMode("upload");
     }
     setIsEditing(false);
     setError("");
@@ -238,7 +271,29 @@ export default function MyInformation({
             )}
           </div>
 
-          <div className="flex-grow w-full">
+          <div className="flex-grow w-full space-y-3">
+            {isEditing && (
+              <Segmented
+                value={avatarMode}
+                onChange={setAvatarMode}
+                options={[
+                  { label: "Tải ảnh", value: "upload" },
+                  { label: "Link ảnh", value: "link" },
+                ]}
+                className="w-full sm:w-auto"
+              />
+            )}
+
+            {isEditing && avatarMode === "link" && (
+              <Input
+                value={avatarUrl}
+                onChange={handleAvatarUrlChange}
+                placeholder="Dán link ảnh đại diện"
+                size="large"
+                allowClear
+              />
+            )}
+
             <label className="flex flex-col min-w-40">
               <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
                 {t("profile.hoVaTen")}

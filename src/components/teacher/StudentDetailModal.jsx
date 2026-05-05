@@ -19,8 +19,8 @@ export default function StudentDetailModal({ visible, onClose, student }) {
       <div className="flex flex-col items-center mb-6 mt-4">
         <Avatar
           size={100}
-          src={student.avatar}
-          icon={!student.avatar && <UserOutlined />}
+          src={student.imageUrl || student.avatar}
+          icon={!student.imageUrl && !student.avatar && <UserOutlined />}
           className="shadow-md border-2 border-primary/20 mb-4"
         />
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">

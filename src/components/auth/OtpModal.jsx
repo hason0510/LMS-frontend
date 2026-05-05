@@ -81,16 +81,16 @@ export default function OtpModal({
         message.success('Xác thực OTP thành công!');
         
         // Login user with response data
-        loginUser(response.data.accessToken, response.data.user);
+        const authedUser = await loginUser(response.data.accessToken, response.data.user);
 
         // Delay before redirect to show success message
         setTimeout(() => {
           onClose();
           
           // Redirect based on user role
-          if (response.data.user?.role === 'TEACHER') {
+          if ((authedUser?.role || response.data.user?.role) === 'TEACHER') {
             navigate('/teacher/dashboard');
-          } else if (response.data.user?.role === 'ADMIN') {
+          } else if ((authedUser?.role || response.data.user?.role) === 'ADMIN') {
             navigate('/admin/dashboard');
           } else {
             navigate('/home');

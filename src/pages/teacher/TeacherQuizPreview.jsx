@@ -6,16 +6,24 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { getQuizById } from "../../api/quiz";
+import { getQuizTemplateById } from "../../api/curriculumTemplate";
 
 export default function TeacherQuizPreview({ isAdmin = false }) {
-  const { classSectionId, quizId } = useParams();
+  const { classSectionId, quizId, templateId } = useParams();
   const navigate = useNavigate();
+  const isTemplate = !!templateId;
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const base = isAdmin ? "/admin" : "/teacher";
+  const editUrl = isTemplate
+    ? `${base}/curriculums/${templateId}/quizzes/${quizId}`
+    : `${base}/class-sections/${classSectionId}/quizzes/${quizId}`;
+  const attemptUrl = isTemplate
+    ? `${base}/curriculums/${templateId}/quizzes/${quizId}/preview/attempt`
+    : `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview/attempt`;
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -28,7 +36,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
     const fetchQuiz = async () => {
       try {
         setLoading(true);
-        const res = await getQuizById(quizId);
+        const res = isTemplate ? await getQuizTemplateById(quizId) : await getQuizById(quizId);
         setQuiz(res?.data);
       } catch (err) {
         setError(err.message || "Không thể tải thông tin bài kiểm tra");
@@ -41,10 +49,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
 
   const handleConfirmStart = () => {
     setShowConfirm(false);
-    navigate(
-      `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview/attempt`,
-      { state: { quizData: quiz } }
-    );
+    navigate(attemptUrl, { state: { quizData: quiz } });
   };
 
   if (loading) {

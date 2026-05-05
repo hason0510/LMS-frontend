@@ -148,9 +148,10 @@ const scoreQuestion = (question, answers) => {
 };
 
 export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
-  const { classSectionId, quizId } = useParams();
+  const { classSectionId, quizId, templateId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const isTemplate = !!templateId;
   const quizData = location.state?.quizData;
 
   const questions = quizData?.questions || [];
@@ -179,7 +180,9 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
     return () => clearInterval(timer);
   }, []);
 
-  const previewRoot = `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`;
+  const previewRoot = isTemplate
+    ? `${base}/curriculums/${templateId}/quizzes/${quizId}/preview`
+    : `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`;
 
   if (!quizData) {
     // State lost (e.g. page refresh) — redirect to quiz preview page which fetches fresh data
@@ -288,8 +291,11 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
     const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
     const isPassed = score >= (quizData.minPassScore || 0);
 
+    const resultUrl = isTemplate
+      ? `${base}/curriculums/${templateId}/quizzes/${quizId}/preview/result`
+      : `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview/result`;
     navigate(
-      `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview/result`,
+      resultUrl,
       {
         state: {
           quizData,

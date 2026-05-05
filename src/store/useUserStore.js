@@ -25,19 +25,11 @@ const useUserStore = create(
         set({
           user: null,
           accessToken: null,
+          loading: false,
         }),
 
       // Initialize loading state
       setLoading: (isLoading) => set({ loading: isLoading }),
-
-      // Initialize user and token from localStorage
-      initializeAuth: (userData, token) => {
-        set({
-          user: userData,
-          accessToken: token,
-          loading: false,
-        });
-      },
     }),
     {
       name: "user-store", // localStorage key
@@ -45,6 +37,11 @@ const useUserStore = create(
         user: state.user,
         accessToken: state.accessToken,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setLoading(false);
+        }
+      },
     }
   )
 );
