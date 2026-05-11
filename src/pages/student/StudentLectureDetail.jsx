@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Alert, Spin } from "antd";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
@@ -11,7 +11,10 @@ import { getResourcesByLessonId } from "../../api/resource";
 
 export default function StudentLectureDetail() {
   const { classSectionId, lectureId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const classContentItemId =
+    new URLSearchParams(location.search).get("classContentItemId") || location.state?.classContentItemId || null;
   const [lesson, setLesson] = useState(null);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +25,7 @@ export default function StudentLectureDetail() {
       try {
         setLoading(true);
 
-        const lessonResponse = await getLessonById(lectureId);
+        const lessonResponse = await getLessonById(lectureId, classContentItemId);
         const lessonData = lessonResponse.data || lessonResponse;
         setLesson(lessonData);
 
@@ -45,22 +48,31 @@ export default function StudentLectureDetail() {
     };
 
     init();
-  }, [lectureId]);
+  }, [lectureId, classContentItemId]);
 
   const extractVideoId = (url) => {
     if (!url) return null;
+    const normalizedUrl = url.trim();
+    const lowerUrl = normalizedUrl.toLowerCase();
 
     const youtubeRegex =
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
-    const youtubeMatch = url.match(youtubeRegex);
+    const youtubeMatch = normalizedUrl.match(youtubeRegex);
     if (youtubeMatch) {
       return { platform: "youtube", id: youtubeMatch[1] };
     }
 
     const vimeoRegex = /vimeo\.com\/(\d+)/;
-    const vimeoMatch = url.match(vimeoRegex);
+    const vimeoMatch = normalizedUrl.match(vimeoRegex);
     if (vimeoMatch) {
       return { platform: "vimeo", id: vimeoMatch[1] };
+    }
+
+    if (lowerUrl.includes("onedrive.live.com/embed") || lowerUrl.includes("1drv.ms/v/")) {
+      return { platform: "onedrive", url: normalizedUrl };
+    }
+    if (lowerUrl.includes("1drv.ms") || lowerUrl.includes("onedrive.live.com")) {
+      return { platform: "onedrive-share", url: normalizedUrl };
     }
 
     return null;
@@ -74,6 +86,9 @@ export default function StudentLectureDetail() {
     }
     if (videoInfo.platform === "vimeo") {
       return `https://player.vimeo.com/video/${videoInfo.id}`;
+    }
+    if (videoInfo.platform === "onedrive") {
+      return videoInfo.url;
     }
 
     return null;
@@ -142,10 +157,16 @@ export default function StudentLectureDetail() {
                   src={videoEmbedUrl}
                   title={lesson?.title}
                   frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="absolute top-0 left-0 w-full h-full"
                 />
               </div>
+            </div>
+          ) : videoInfo?.platform === "onedrive-share" ? (
+            <div className="mb-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+              <p className="text-yellow-800 dark:text-yellow-400 text-sm font-medium">Video OneDrive chưa được cấu hình đúng</p>
+              <p className="text-yellow-700 dark:text-yellow-500 text-xs mt-1">Vui lòng liên hệ giảng viên để cập nhật link embed OneDrive.</p>
             </div>
           ) : null}
 

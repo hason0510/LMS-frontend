@@ -13,8 +13,8 @@ export default function TeacherTab({ course }) {
         try {
           setLoading(true);
           setError(null);
-          const response = await getUserById(course.teacherId);
-          setTeacher(response.data);
+          const teacherData = await getUserById(course.teacherId);
+          setTeacher(teacherData);
         } catch (err) {
           console.error("Error fetching teacher data:", err);
           setError("Không thể tải thông tin giáo viên");

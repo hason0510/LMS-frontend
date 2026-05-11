@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { App, Button, Input, InputNumber, Modal, Spin, Table, Tag } from "antd";
-import parse from "html-react-parser";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
@@ -8,6 +7,8 @@ import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { getAttemptDetail, reviewQuizAttempt } from "../../api/quiz";
 import ResourcePreview from "../../components/common/ResourcePreview";
+import QuizRichText from "../../components/common/QuizRichText";
+import { splitClozeContent } from "../../utils/cloze";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-");
 
@@ -19,6 +20,21 @@ const formatAnswerItems = (answer) => {
     return answer.selectedAnswers.map((item) => item.content).join(", ");
   }
   if (answer.quizQuestion?.type === "CLOZE" && answer.answerItems?.length) {
+    const question = answer.quizQuestion || {};
+    const blanks = (question.items || []).filter((item) => item.role === "BLANK");
+    const answerByItemId = new Map((answer.answerItems || []).map((item) => [item.itemId, item.answerText || ""]));
+    const { segments, blankCount } = splitClozeContent(question.content || "");
+    if (blankCount > 0) {
+      return segments
+        .map((segment) => {
+          if (segment.type === "text") return segment.value;
+          const blank = blanks[segment.blankIndex];
+          if (!blank) return "____";
+          const userValue = answerByItemId.get(blank.id);
+          return (userValue || "").trim() || "____";
+        })
+        .join("");
+    }
     return answer.answerItems
       .map((ai) => `Chỗ trống ${ai.blankIndex}: ${ai.answerText || "Không trả lời"}`)
       .join("; ");
@@ -40,6 +56,21 @@ const formatCorrectAnswer = (answer) => {
     return correct.length ? correct.map((item) => item.content).join(", ") : "-";
   }
   if (question.items?.length) {
+    if (question.type === "CLOZE") {
+      const blanks = (question.items || []).filter((item) => item.role === "BLANK");
+      const { segments, blankCount } = splitClozeContent(question.content || "");
+      if (blankCount > 0) {
+        return segments
+          .map((segment) => {
+            if (segment.type === "text") return segment.value;
+            const blank = blanks[segment.blankIndex];
+            if (!blank) return "____";
+            const accepted = blank.acceptedAnswers || [];
+            return accepted[0] || "____";
+          })
+          .join("");
+      }
+    }
     return question.items
       .filter((item) => item.acceptedAnswers?.length || item.correctMatchKey || item.correctOrderIndex)
       .map((item, index) => {
@@ -256,7 +287,9 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
               <div className="mt-5 space-y-3">
                 {essayAnswers.map((answer) => (
                   <div key={answer.id} className="rounded border border-slate-200 p-3">
-                    <div className="mb-2 text-sm font-semibold">{answer.quizQuestion?.content}</div>
+                    <div className="mb-2 text-sm font-semibold">
+                      <QuizRichText html={answer.quizQuestion?.content || ""} className="text-sm font-semibold text-slate-900 dark:text-white" />
+                    </div>
                     <Input.TextArea
                       rows={2}
                       placeholder={t("quizAttempts.answerFeedback")}
@@ -297,7 +330,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
         width={700}
       >
         <div className="prose prose-sm max-w-none">
-          {previewQuestion && parse(previewQuestion.content || "")}
+          {previewQuestion && <QuizRichText html={previewQuestion.content || ""} className="prose prose-sm max-w-none" />}
         </div>
         {previewQuestion && <ResourcePreview resource={previewQuestion.resource} className="mt-4" />}
       </Modal>

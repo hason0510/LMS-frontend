@@ -9,7 +9,9 @@ export default function QuizDetail() {
   const { id, classSectionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const classContentItemId = location.state?.classContentItemId ?? location.state?.chapterItemId;
+  const classContentItemId =
+    new URLSearchParams(location.search).get("classContentItemId")
+    || location.state?.classContentItemId;
 
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState(null);
@@ -27,7 +29,7 @@ export default function QuizDetail() {
 
       try {
         setLoading(true);
-        const response = await getQuizById(id);
+        const response = await getQuizById(id, classContentItemId);
         const data = response?.data;
         setQuiz(data);
 
@@ -84,7 +86,7 @@ export default function QuizDetail() {
 
   const handleConfirmStart = () => {
     setShowConfirmModal(false);
-    navigate(`/class-sections/${classSectionId}/quizzes/${id}/attempt`, { state: { classContentItemId } });
+    navigate(`/class-sections/${classSectionId}/quizzes/${id}/attempt?classContentItemId=${classContentItemId}`, { state: { classContentItemId } });
   };
 
   const handleCancelStart = () => {

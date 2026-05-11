@@ -84,20 +84,31 @@ export default function LectureDetail({ isAdmin = false }) {
 
   const extractVideoId = (url) => {
     if (!url) return null;
+    const normalizedUrl = url.trim();
+    const lowerUrl = normalizedUrl.toLowerCase();
 
     // YouTube URL patterns
     const youtubeRegex =
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
-    const youtubeMatch = url.match(youtubeRegex);
+    const youtubeMatch = normalizedUrl.match(youtubeRegex);
     if (youtubeMatch) {
       return { platform: "youtube", id: youtubeMatch[1] };
     }
 
     // Vimeo URL pattern
     const vimeoRegex = /vimeo\.com\/(\d+)/;
-    const vimeoMatch = url.match(vimeoRegex);
+    const vimeoMatch = normalizedUrl.match(vimeoRegex);
     if (vimeoMatch) {
       return { platform: "vimeo", id: vimeoMatch[1] };
+    }
+
+    // OneDrive embed URL — generated via OneDrive "Embed" feature, works in iframe
+    if (lowerUrl.includes("onedrive.live.com/embed") || lowerUrl.includes("1drv.ms/v/")) {
+      return { platform: "onedrive", url: normalizedUrl };
+    }
+    // OneDrive share/view links — cannot be embedded due to X-Frame-Options
+    if (lowerUrl.includes("1drv.ms") || lowerUrl.includes("onedrive.live.com")) {
+      return { platform: "onedrive-share", url: normalizedUrl };
     }
 
     return null;
@@ -110,6 +121,8 @@ export default function LectureDetail({ isAdmin = false }) {
       return `https://www.youtube.com/embed/${videoInfo.id}?controls=1&modestbranding=1`;
     } else if (videoInfo.platform === "vimeo") {
       return `https://player.vimeo.com/video/${videoInfo.id}`;
+    } else if (videoInfo.platform === "onedrive") {
+      return videoInfo.url;
     }
 
     return null;
@@ -763,7 +776,7 @@ export default function LectureDetail({ isAdmin = false }) {
                               : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                           } ${isViewMode ? "cursor-default" : "cursor-pointer"}`}
                         >
-                          YouTube / Vimeo
+                          YouTube / Vimeo / OneDrive
                         </button>
                         <button
                           type="button"
@@ -788,7 +801,7 @@ export default function LectureDetail({ isAdmin = false }) {
                           >
                             <div className="flex gap-2">
                               <Input
-                                placeholder="Dán link YouTube/Vimeo..."
+                                placeholder="Dán link YouTube, Vimeo, hoặc OneDrive embed..."
                                 size="large"
                                 value={videoUrl}
                                 onChange={(e) => setVideoUrl(e.target.value)}
@@ -817,6 +830,16 @@ export default function LectureDetail({ isAdmin = false }) {
                                 allowFullScreen
                                 className="absolute inset-0"
                               />
+                            </div>
+                          ) : videoInfo?.platform === "onedrive-share" ? (
+                            <div className="relative w-full aspect-video bg-blue-50 dark:bg-blue-900/20 rounded-lg flex flex-col items-center justify-center border border-blue-200 dark:border-blue-700 gap-3 p-6 text-center">
+                              <p className="text-blue-700 dark:text-blue-300 font-semibold text-sm">Link OneDrive không thể nhúng trực tiếp</p>
+                              <p className="text-gray-600 dark:text-gray-400 text-xs max-w-xs">
+                                Cần dùng link embed. Trong OneDrive: chuột phải vào file → <strong>Nhúng</strong> → sao chép URL trong thuộc tính <code>src</code> của thẻ iframe.
+                              </p>
+                              <p className="text-gray-500 dark:text-gray-500 text-xs">
+                                URL đúng có dạng: <code>https://onedrive.live.com/embed?resid=...</code>
+                              </p>
                             </div>
                           ) : (
                             <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-dashed border-gray-300 dark:border-gray-600">

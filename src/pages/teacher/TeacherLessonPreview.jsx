@@ -51,10 +51,19 @@ export default function TeacherLessonPreview() {
 
   const extractVideoId = (url) => {
     if (!url) return null;
-    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    const normalizedUrl = url.trim();
+    const lowerUrl = normalizedUrl.toLowerCase();
+
+    const yt = normalizedUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
     if (yt) return { platform: "youtube", id: yt[1] };
-    const vm = url.match(/vimeo\.com\/(\d+)/);
+    const vm = normalizedUrl.match(/vimeo\.com\/(\d+)/);
     if (vm) return { platform: "vimeo", id: vm[1] };
+    if (lowerUrl.includes("onedrive.live.com/embed") || lowerUrl.includes("1drv.ms/v/")) {
+      return { platform: "onedrive", url: normalizedUrl };
+    }
+    if (lowerUrl.includes("1drv.ms") || lowerUrl.includes("onedrive.live.com")) {
+      return { platform: "onedrive-share", url: normalizedUrl };
+    }
     return null;
   };
 
@@ -62,6 +71,7 @@ export default function TeacherLessonPreview() {
     if (!info) return null;
     if (info.platform === "youtube") return `https://www.youtube.com/embed/${info.id}?controls=1&modestbranding=1`;
     if (info.platform === "vimeo") return `https://player.vimeo.com/video/${info.id}`;
+    if (info.platform === "onedrive") return info.url;
     return null;
   };
 
@@ -133,10 +143,16 @@ export default function TeacherLessonPreview() {
                     src={videoEmbedUrl}
                     title={lesson?.title}
                     frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                     className="absolute top-0 left-0 w-full h-full"
                   />
                 </div>
+              </div>
+            ) : videoInfo?.platform === "onedrive-share" ? (
+              <div className="mb-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+                <p className="text-yellow-800 dark:text-yellow-400 text-sm font-medium">Video OneDrive chưa được cấu hình đúng</p>
+                <p className="text-yellow-700 dark:text-yellow-500 text-xs mt-1">Dùng link embed từ OneDrive thay vì link chia sẻ. URL đúng có dạng: <code>https://onedrive.live.com/embed?resid=...</code></p>
               </div>
             ) : null}
 

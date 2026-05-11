@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import parse from "html-react-parser";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ClockIcon,
@@ -19,29 +18,14 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import ResourcePreview from "../../components/common/ResourcePreview";
+import QuizRichText from "../../components/common/QuizRichText";
+import { parseBlankOptions, parseClozeTokenOptions, splitClozeContent } from "../../utils/cloze";
 
 const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
 const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
 const isTextAnswerQuestion = (type) => ["SHORT_ANSWER", "ESSAY"].includes(type);
 const sortByOrder = (items = []) =>
   [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
-const getBlankLabel = (_, index) => `Blank ${index + 1}`;
-const parseBlankOptions = (blankOptions) => {
-  if (Array.isArray(blankOptions)) {
-    return blankOptions.filter((option) => typeof option === "string" && option.trim());
-  }
-  if (!blankOptions || typeof blankOptions !== "string") {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(blankOptions);
-    return Array.isArray(parsed)
-      ? parsed.filter((option) => typeof option === "string" && option.trim())
-      : [];
-  } catch {
-    return [];
-  }
-};
 
 function SortableOrderItem({ itemId, content, index }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: itemId });
@@ -55,7 +39,9 @@ function SortableOrderItem({ itemId, content, index }) {
       <span className="w-8 h-8 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold shrink-0">
         {index + 1}
       </span>
-      <span className="flex-1 text-slate-700 dark:text-slate-200 font-medium select-none">{content}</span>
+      <div className="flex-1 text-slate-700 dark:text-slate-200 font-medium select-none">
+        <QuizRichText html={content} className="text-sm font-medium text-slate-700 dark:text-slate-200" />
+      </div>
       <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 touch-none">
         <Bars3Icon className="h-5 w-5" />
       </div>
@@ -92,7 +78,9 @@ export default function QuizAttempt() {
   const { id, classSectionId } = useParams(); // quizId
   const navigate = useNavigate();
   const location = useLocation();
-  const classContentItemId = location.state?.classContentItemId ?? location.state?.chapterItemId;
+  const classContentItemId =
+    new URLSearchParams(location.search).get("classContentItemId")
+    || location.state?.classContentItemId;
 
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(null);
@@ -106,6 +94,8 @@ export default function QuizAttempt() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const questionRefs = useRef([]);
+  const isOnePageMode = (quizInfo?.displayMode || "PAGINATION") === "ONE_PAGE";
 
   useEffect(() => {
     if (!classContentItemId) {
@@ -119,7 +109,7 @@ export default function QuizAttempt() {
       setLoading(true);
       
       // 1. Get Quiz Info
-      const quizRes = await getQuizById(id);
+      const quizRes = await getQuizById(id, classContentItemId);
       const quiz = quizRes.data;
       setQuizInfo(quiz);
 
@@ -443,7 +433,7 @@ export default function QuizAttempt() {
           const submitRes = await submitQuiz(attempt.id);
           const result = submitRes?.data || submitRes;
           message.success("Nộp bài thành công!");
-          navigate(`/class-sections/${classSectionId}/quizzes/${id}/result`, { state: { attemptId: result.id || attempt.id, classContentItemId } });
+          navigate(`/class-sections/${classSectionId}/quizzes/${id}/result?classContentItemId=${classContentItemId}`, { state: { attemptId: result.id || attempt.id, classContentItemId } });
       } catch (err) {
           message.error("Lỗi nộp bài: " + err.message);
           setSubmitting(false);
@@ -454,8 +444,16 @@ export default function QuizAttempt() {
     setShowSubmitConfirm(false);
   };
   
-  const toggleFlag = () => {
-    const qId = questions[currentQuestionIndex]?.id;
+  const scrollToQuestion = (index) => {
+    setCurrentQuestionIndex(index);
+    if (isOnePageMode) {
+      questionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const toggleFlag = (questionId = questions[currentQuestionIndex]?.id) => {
+    const qId = questionId;
+    if (!qId) return;
     if (flaggedQuestions.includes(qId)) {
       setFlaggedQuestions(flaggedQuestions.filter((id) => id !== qId));
     } else {
@@ -465,13 +463,13 @@ export default function QuizAttempt() {
 
   const handleNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      scrollToQuestion(currentQuestionIndex + 1);
     }
   };
 
   const handlePrev = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      scrollToQuestion(currentQuestionIndex - 1);
     }
   };
   
@@ -513,7 +511,11 @@ export default function QuizAttempt() {
               alt=""
             />
           )}
-          <span>{item?.content || fallback}</span>
+          {item?.content ? (
+            <QuizRichText html={item.content} className="text-sm font-medium text-slate-700 dark:text-slate-200" />
+          ) : (
+            <span>{fallback}</span>
+          )}
         </div>
       );
       return (
@@ -563,33 +565,93 @@ export default function QuizAttempt() {
     if (question.type === "CLOZE") {
       const blanks = getItemsByRole(question, "BLANK");
       const current = answers[question.id] || { blanks: {} };
+      const { segments, blankCount } = splitClozeContent(question.content || "");
+      const hasInlineSyntax = blankCount > 0;
+      if (!hasInlineSyntax) {
+        return (
+          <div className="space-y-3">
+            {blanks.map((blank, index) => {
+              const options = parseBlankOptions(blank.blankOptions, blank.acceptedAnswers);
+              const isSelectBlank = blank.blankType === "SELECT" && options.length > 0;
+              return (
+                <div key={blank.id} className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Blank {index + 1}
+                  </label>
+                  {isSelectBlank ? (
+                    <Select
+                      value={current.blanks?.[blank.id]}
+                      onChange={(value) => handleClozeChange(question, blank.id, value)}
+                      options={options.map((option) => ({ value: option, label: option }))}
+                      placeholder="Chọn đáp án"
+                      className="w-full"
+                    />
+                  ) : (
+                    <input
+                      value={current.blanks?.[blank.id] || ""}
+                      onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
+                      placeholder="Nhập đáp án"
+                      className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
       return (
-        <div className="space-y-3">
-          {blanks.map((blank, index) => {
-            const options = parseBlankOptions(blank.blankOptions);
-            const isSelectBlank = blank.blankType === "SELECT" && options.length > 0;
+        <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-4 md:p-5 leading-9">
+          {segments.map((segment, segmentIndex) => {
+            if (segment.type === "text") {
+              return (
+                <span
+                  key={`txt-${segmentIndex}`}
+                  className="text-base md:text-lg text-slate-700 dark:text-slate-200"
+                >
+                  {segment.value}
+                </span>
+              );
+            }
+            const blank = blanks[segment.blankIndex];
+            if (!blank) {
+              return (
+                <input
+                  key={`miss-${segmentIndex}`}
+                  disabled
+                  className="inline-block align-baseline mx-1 w-40 max-w-full px-2 py-1 border-0 border-b-2 border-dashed border-slate-400 bg-transparent"
+                />
+              );
+            }
+            const tokenOptions = parseClozeTokenOptions(segment.token);
+            const options = parseBlankOptions(blank.blankOptions, blank.acceptedAnswers);
+            const resolvedOptions = [...new Set([...tokenOptions, ...options])];
+            const isSelectBlank =
+              (blank.blankType === "SELECT" && resolvedOptions.length > 0) || tokenOptions.length > 1;
             return (
-              <div key={blank.id} className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {getBlankLabel(blank, index)}
-                </label>
+              <span key={blank.id} className="inline-flex align-baseline mx-1">
                 {isSelectBlank ? (
-                  <Select
-                    value={current.blanks?.[blank.id]}
-                    onChange={(value) => handleClozeChange(question, blank.id, value)}
-                    options={options.map((option) => ({ value: option, label: option }))}
-                    placeholder="Chọn đáp án"
-                    className="w-full"
-                  />
+                  <select
+                    value={current.blanks?.[blank.id] || ""}
+                    onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
+                    className="min-w-36 max-w-[220px] rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 py-1 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="">Chọn đáp án</option>
+                    {resolvedOptions.map((option) => (
+                      <option key={`${blank.id}-${option}`} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <input
                     value={current.blanks?.[blank.id] || ""}
                     onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
-                    placeholder="Nhập đáp án"
-                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                    placeholder="..."
+                    className="w-40 max-w-[220px] border-0 border-b-2 border-slate-400 dark:border-slate-500 bg-transparent px-2 py-1 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                   />
                 )}
-              </div>
+              </span>
             );
           })}
         </div>
@@ -598,6 +660,125 @@ export default function QuizAttempt() {
 
     return null;
   };
+
+  const renderQuestionBody = (question) => (
+    <div className="space-y-3">
+      {isInteractionQuestion(question.type) ? (
+        renderInteractionAnswer(question)
+      ) : isTextAnswerQuestion(question.type) ? (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            {question.type === "ESSAY" ? "Nhập bài tự luận của bạn:" : "Nhập câu trả lời của bạn:"}
+          </label>
+          <textarea
+            value={answers[question.id]?.[0] || ""}
+            onChange={(e) => {
+              setAnswers({ ...answers, [question.id]: [e.target.value] });
+              if (attempt) {
+                submitAnswer(attempt.id, question.id, {
+                  questionId: question.id,
+                  selectedAnswerIds: [],
+                  textAnswer: e.target.value,
+                }).catch((err) => console.error("Failed to save answer", err));
+              }
+            }}
+            placeholder="Viết câu trả lời của bạn ở đây..."
+            className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
+            rows="6"
+          />
+        </div>
+      ) : (
+        (question.answers || []).map((option) => {
+          const isSelected = answers[question.id]?.includes(option.id);
+          return (
+            <label
+              key={option.id}
+              className="group block cursor-pointer relative"
+            >
+              <input
+                className="peer sr-only"
+                name={`question_${question.id}`}
+                type={question.type === "MULTIPLE_CHOICE" ? "checkbox" : "radio"}
+                value={option.id}
+                checked={!!isSelected}
+                onChange={() => handleAnswerSelect(question.id, option.id)}
+              />
+              <div className="flex items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 peer-checked:border-primary peer-checked:bg-primary/5 group-hover:border-primary/50">
+                {question.type === "MULTIPLE_CHOICE" ? (
+                  <div className={`w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-500 mr-4 flex-shrink-0 relative flex items-center justify-center ${isSelected ? "border-primary bg-primary" : ""}`}>
+                    {isSelected && (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                ) : (
+                  <div className={`w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-500 mr-4 flex-shrink-0 relative flex items-center justify-center ${isSelected ? "border-primary bg-primary" : ""}`}>
+                    {isSelected && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
+                    )}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <QuizRichText html={option.content || ""} className="block text-slate-700 dark:text-slate-200 font-medium select-none" />
+                  <ResourcePreview resource={option.resource} className="mt-2" />
+                </div>
+              </div>
+            </label>
+          );
+        })
+      )}
+    </div>
+  );
+
+  const renderQuestionCard = (question, index) => (
+    <div
+      key={question.id}
+      ref={(element) => {
+        questionRefs.current[index] = element;
+      }}
+      className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden scroll-mt-24"
+    >
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold shadow-sm">
+            {index + 1}
+          </span>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              Câu hỏi {index + 1}
+            </h2>
+            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${getQuestionTypeBgColor(question.type)} w-fit`}>
+              {getQuestionTypeLabel(question.type)}
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={() => toggleFlag(question.id)}
+          className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded transition-colors ${
+            flaggedQuestions.includes(question.id)
+              ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
+              : "text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+          }`}
+        >
+          {flaggedQuestions.includes(question.id) ? (
+            <FlagIconSolid className="h-5 w-5" />
+          ) : (
+            <FlagIcon className="h-5 w-5" />
+          )}
+          <span className="hidden sm:inline">Đánh dấu</span>
+        </button>
+      </div>
+
+      <div className="p-6 md:p-8">
+        {question.type !== "CLOZE" && (
+          <QuizRichText html={question.content || ""} className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-4" />
+        )}
+        <ResourcePreview resource={question.resource} className="mb-5" />
+        {renderQuestionBody(question)}
+      </div>
+    </div>
+  );
   
   if (loading) return <div className="h-screen flex items-center justify-center"><Spin size="large" /></div>;
   if (!classContentItemId) return <div className="p-8">Yêu cầu truy cập từ bài học để ghi nhận kết quả.</div>;
@@ -643,150 +824,38 @@ export default function QuizAttempt() {
         <main className="flex-1 flex flex-col h-full overflow-hidden relative">
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-3xl mx-auto space-y-6">
-              
-              {/* Question Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold shadow-sm">
-                      {currentQuestionIndex + 1}
-                    </span>
-                    <div className="flex flex-col gap-1">
-                      <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                        Câu hỏi {currentQuestionIndex + 1}
-                      </h2>
-                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${getQuestionTypeBgColor(currentQuestion.type)} w-fit`}>
-                        {getQuestionTypeLabel(currentQuestion.type)}
-                      </span>
-                    </div>
-                  </div>
+              {isOnePageMode
+                ? questions.map((question, index) => renderQuestionCard(question, index))
+                : renderQuestionCard(currentQuestion, currentQuestionIndex)}
+
+              {!isOnePageMode && (
+                <div className="flex items-center justify-between pt-4">
                   <button
-                    onClick={toggleFlag}
-                    className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded transition-colors ${
-                      flaggedQuestions.includes(currentQuestion.id)
-                        ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
-                        : "text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    onClick={handlePrev}
+                    disabled={currentQuestionIndex === 0}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold transition-colors ${
+                      currentQuestionIndex === 0
+                        ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    {flaggedQuestions.includes(currentQuestion.id) ? (
-                      <FlagIconSolid className="h-5 w-5" />
-                    ) : (
-                      <FlagIcon className="h-5 w-5" />
-                    )}
-                    <span className="hidden sm:inline">Đánh dấu</span>
+                    <ArrowLeftIcon className="h-5 w-5" />
+                    <span>Câu trước</span>
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    disabled={currentQuestionIndex === questions.length - 1}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold shadow-md transition-all transform active:scale-95 ${
+                      currentQuestionIndex === questions.length - 1
+                        ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none"
+                        : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
+                    }`}
+                  >
+                    <span>Câu tiếp theo</span>
+                    <ArrowRightIcon className="h-5 w-5" />
                   </button>
                 </div>
-
-                <div className="p-6 md:p-8">
-                  <div className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-4">
-                    {parse(currentQuestion.content || "")}
-                  </div>
-                  <ResourcePreview resource={currentQuestion.resource} className="mb-5" />
-
-                  <div className="space-y-3">
-                    {isInteractionQuestion(currentQuestion.type) ? (
-                      renderInteractionAnswer(currentQuestion)
-                    ) : isTextAnswerQuestion(currentQuestion.type) ? (
-                      // Short answer - Text Area
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          {currentQuestion.type === "ESSAY" ? "Nhập bài tự luận của bạn:" : "Nhập câu trả lời của bạn:"}
-                        </label>
-                        <textarea
-                          value={answers[currentQuestion.id]?.[0] || ''}
-                          onChange={(e) => {
-                            setAnswers({ ...answers, [currentQuestion.id]: [e.target.value] });
-                            // Auto-save to server
-                            if (attempt) {
-                              submitAnswer(attempt.id, currentQuestion.id, {
-                                questionId: currentQuestion.id,
-                                selectedAnswerIds: [],
-                                textAnswer: e.target.value
-                              }).catch(err => console.error("Failed to save answer", err));
-                            }
-                          }}
-                          placeholder="Viết câu trả lời của bạn ở đây..."
-                          className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
-                          rows="6"
-                        />
-                      </div>
-                    ) : (
-                      // Multiple/Single Choice - Radio/Checkbox
-                      currentQuestion.answers && currentQuestion.answers.map((option) => {
-                        const isSelected = answers[currentQuestion.id]?.includes(option.id);
-                        return (
-                          <label
-                            key={option.id}
-                            className="group block cursor-pointer relative"
-                          >
-                            <input
-                              className="peer sr-only"
-                              name={`question_${currentQuestion.id}`}
-                              type={currentQuestion.type === "MULTIPLE_CHOICE" ? "checkbox" : "radio"}
-                              value={option.id}
-                              checked={!!isSelected}
-                              onChange={() => handleAnswerSelect(currentQuestion.id, option.id)}
-                            />
-                            <div className="flex items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 peer-checked:border-primary peer-checked:bg-primary/5 group-hover:border-primary/50">
-                              {currentQuestion.type === "MULTIPLE_CHOICE" ? (
-                                // Checkbox for Multiple Choice
-                                <div className={`w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-500 mr-4 flex-shrink-0 relative flex items-center justify-center ${isSelected ? "border-primary bg-primary" : ""}`}>
-                                  {isSelected && (
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  )}
-                                </div>
-                              ) : (
-                                // Radio button for Single Choice
-                                <div className={`w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-500 mr-4 flex-shrink-0 relative flex items-center justify-center ${isSelected ? "border-primary bg-primary" : ""}`}>
-                                  {isSelected && (
-                                    <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
-                                  )}
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <span className="block text-slate-700 dark:text-slate-200 font-medium select-none">
-                                  {parse(option.content || "")}
-                                </span>
-                                <ResourcePreview resource={option.resource} className="mt-2" />
-                              </div>
-                            </div>
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Navigation Bar */}
-              <div className="flex items-center justify-between pt-4">
-                <button
-                  onClick={handlePrev}
-                  disabled={currentQuestionIndex === 0}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold transition-colors ${
-                    currentQuestionIndex === 0
-                      ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                      : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <ArrowLeftIcon className="h-5 w-5" />
-                  <span>Câu trước</span>
-                </button>
-                <button
-                  onClick={handleNext}
-                  disabled={currentQuestionIndex === questions.length - 1}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold shadow-md transition-all transform active:scale-95 ${
-                    currentQuestionIndex === questions.length - 1
-                      ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none"
-                      : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
-                  }`}
-                >
-                  <span>Câu tiếp theo</span>
-                  <ArrowRightIcon className="h-5 w-5" />
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </main>
@@ -798,7 +867,7 @@ export default function QuizAttempt() {
               Danh sách câu hỏi
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Chọn một số để chuyển câu
+              {isOnePageMode ? "Chọn một số để cuộn tới câu" : "Chọn một số để chuyển câu"}
             </p>
           </div>
           <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
@@ -806,7 +875,7 @@ export default function QuizAttempt() {
               {questions.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentQuestionIndex(index)}
+                  onClick={() => scrollToQuestion(index)}
                   className={getQuestionStatusClass(index)}
                 >
                   {index + 1}

@@ -320,6 +320,154 @@
       "HARD": "Hard"
     }
   },
+  "questionBank": {
+    "quayLai": "Back",
+    "nganHangCauHoi": "Question Bank",
+    "chinhSuaThongTin": "Edit Info",
+    "quanLyTag": "Manage Tags",
+    "importGiftAiken": "Import GIFT/AIKEN (.txt)",
+    "exportGift": "Export GIFT (.txt)",
+    "themCauHoi": "Add Question",
+    "xoaBank": "Delete Bank",
+    "noiDungCauHoi": "Question Content",
+    "loai": "Type",
+    "doKho": "Difficulty",
+    "hanhDong": "Actions",
+    "sua": "Edit",
+    "xoa": "Delete",
+    "huy": "Cancel",
+    "them": "Add",
+    "capNhat": "Update",
+    "taoMoi": "Create",
+    "thanhVienNganHang": "Question Bank Members",
+    "timUser": "Search user to add to bank",
+    "ownerHienTai": "Current Owner",
+    "chuyenOwner": "Transfer OWNER",
+    "xacNhanXoaCauHoi": "Are you sure you want to delete this question?",
+    "xacNhanXoaBank": "Confirm delete question bank",
+    "hanhDongKhongHoanTac": "This action cannot be undone.",
+    "xacNhanXoaTag": "Confirm delete tag",
+    "canhBaoDoiTenTag": "Warning: rename tag",
+    "tagDangDuocDung": "Tag \"{{name}}\" is used by {{q}} questions and {{r}} quiz rules. Renaming will affect all records using this tag.",
+    "tagDangDuocDungXoa": "Tag \"{{name}}\" is used by {{q}} questions and {{r}} quiz rules.",
+    "chuaCoTag": "No tags yet.",
+    "cauHoiVaQuizRule": "{{q}} questions, {{r}} quiz rules",
+    "taoTagMoi": "Create new tag",
+    "dangSuaTag": "Editing: \"{{name}}\"",
+    "taoNhieuTag": "Create multiple tags (separate by comma or newline)",
+    "taoHangLoat": "Batch create",
+    "tenNganHang": "Question bank name",
+    "nhapTenNganHang": "Enter question bank name",
+    "moTa": "Description",
+    "nhapMoTa": "Enter description (optional)",
+    "khongCoMoTa": "No description",
+    "tenTag": "Tag name...",
+    "loi": "Error",
+    "xoaCauHoiThanhCong": "Question deleted",
+    "capNhatCauHoiThanhCong": "Question updated successfully",
+    "themCauHoiThanhCong": "Question added successfully",
+    "daXoaTag": "Tag deleted",
+    "daTaoTag": "Tag created",
+    "daCapNhatTag": "Tag updated",
+    "daTaoTagHangLoat": "Created {{count}} tags",
+    "xoaBankThanhCong": "Question bank deleted",
+    "daThemThanhVien": "Member added",
+    "daXoaThanhVien": "Member removed",
+    "daCapNhatRole": "Role updated",
+    "capNhatThongTinThanhCong": "Information updated successfully",
+    "xacNhanChuyenOwner": "Confirm ownership transfer",
+    "xacNhanCapNhatRole": "Confirm role update",
+    "chuyenOwnerChoUser": "You will transfer OWNER to {{name}}.",
+    "capNhatRoleChoUser": "Update {{name}}'s role to {{role}}.",
+    "xoaThanhVienKhoiBank": "Remove {{name}} from question bank?",
+    "xacNhanXoaThanhVien": "Confirm remove member",
+    "vuiLongNhapTen": "Please enter a name",
+    "tenQuaDai": "Name cannot exceed 200 characters"
+  },
+  "quizEditor": {
+    "quizBadge": "Quiz",
+    "bankRuleBadge": "Question bank",
+    "ruleIndex": "Rule {{index}}",
+    "bankRuleHint": "Questions are sampled from the selected bank when this quiz is generated.",
+    "removeRule": "Remove rule",
+    "matchSummary": "Current match",
+    "matchSummaryAll": "{{count}} questions currently satisfy this rule",
+    "matchSummaryRandom": "{{eligible}} eligible, currently drawing {{count}}",
+    "libraryTitle": "Questions library",
+    "libraryQuestionCount": "{{count}} questions",
+    "emptyLibrary": "No questions found",
+    "pickBankToBrowse": "Select a question bank to browse questions",
+    "emptyStateTitle": "No questions yet",
+    "emptyStateDescription": "Add manual questions or connect a question bank rule below.",
+    "qaPlaceholder": "Q&A will show student questions about this quiz.",
+    "fields": {
+      "bank": "Question bank",
+      "tags": "Tags",
+      "tagCondition": "Tag condition",
+      "difficulty": "Difficulty",
+      "mode": "Selection mode",
+      "count": "Question count"
+    },
+    "placeholders": {
+      "selectBank": "Select question bank",
+      "allTags": "All tags",
+      "anyDifficulty": "Any difficulty",
+      "randomCount": "Number of questions",
+      "quizTitle": "Quiz title...",
+      "searchQuestions": "Search questions"
+    },
+    "selectionModes": {
+      "ALL_MATCHED": "All matched",
+      "RANDOM": "Random"
+    },
+    "tagMatchModes": {
+      "ANY": "Has at least one tag",
+      "ALL": "Must include all tags"
+    },
+    "displayModes": {
+      "PAGINATION": "Pagination",
+      "ONE_PAGE": "One page"
+    },
+    "defaults": {
+      "newQuizTitle": "New Quiz",
+      "untitledQuiz": "Untitled Quiz"
+    },
+    "tabs": {
+      "questions": "Questions",
+      "questionsWithCount": "Questions ({{count}})",
+      "settings": "Settings",
+      "qa": "Q&A"
+    },
+    "actions": {
+      "preview": "Preview",
+      "save": "Save",
+      "openLibrary": "Questions library",
+      "addQuestion": "Add question",
+      "addQuestionBank": "Add question bank"
+    },
+    "settings": {
+      "descriptionLabel": "Short description of the quiz",
+      "descriptionPlaceholder": "Quiz description",
+      "durationLabel": "Quiz duration (minutes, 0 = no limit)",
+      "durationPlaceholder": "No limit",
+      "attemptsLabel": "Attempts",
+      "displayModeLabel": "Quiz style",
+      "shuffleQuestions": "Randomize questions",
+      "showCorrectAnswer": "Show correct answer",
+      "passingGradeLabel": "Passing grade (%)"
+    },
+    "messages": {
+      "loadQuizFailed": "Failed to load quiz",
+      "loadBanksFailed": "Failed to load question banks",
+      "loadBankQuestionsFailed": "You do not have member access to this question bank",
+      "titleRequired": "Quiz title is required",
+      "quizSaved": "Quiz saved",
+      "quizCreated": "Quiz created",
+      "saveQuizFailed": "Failed to save quiz",
+      "questionsAdded": "Added {{count}} questions",
+      "questionsAddedAction": "Add {{count}} questions"
+    }
+  },
   "quizAttempts": {
     "title": "Quiz Attempts",
     "subtitle": "Track submissions, provisional scores, and answers that need manual grading.",
@@ -359,5 +507,31 @@
     "loadFailed": "Could not load quiz attempts",
     "answerFeedback": "Feedback for this answer",
     "instructorFeedback": "Instructor overall feedback"
+  },
+  "classContent": {
+    "unknownItem": "Unknown",
+    "badges": {
+      "hidden": "Hidden",
+      "locked": "Locked",
+      "notOpenYet": "Not open yet",
+      "closed": "Closed"
+    },
+    "access": {
+      "waitForApproval": "Please wait for teacher approval before accessing this content.",
+      "unavailable": "This content is not available yet.",
+      "hidden": "This content is currently hidden",
+      "locked": "This content is currently locked",
+      "notOpenYet": "This content is not open yet",
+      "closed": "This content is closed",
+      "noEnrollment": "Your enrollment in this class has not been approved yet",
+      "forbidden": "You do not have permission to access this content",
+      "byStatus": {
+        "HIDDEN": "This content is currently hidden",
+        "LOCKED": "This content is currently locked",
+        "NOT_OPEN_YET": "This content is not open yet",
+        "CLOSED": "This content is closed",
+        "NO_ENROLLMENT": "Your enrollment in this class has not been approved yet"
+      }
+    }
   }
 }

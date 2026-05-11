@@ -39,8 +39,7 @@ export default function ProfilePage() {
       if (user?.id) {
         try {
           setIsLoading(true);
-          const res = await getUserById(user.id);
-          const fullData = res.data;
+          const fullData = await getUserById(user.id);
           setUserData(fullData);
           setProfileData(fullData);
 

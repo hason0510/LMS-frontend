@@ -1,17 +1,27 @@
 import axiosClient from "./axiosClient";
 
+const unwrapPayload = (response) => response?.data?.data ?? response?.data;
+
+const unwrapArrayPayload = (response) => {
+  const payload = unwrapPayload(response);
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(payload?.pageList)) return payload.pageList;
+  return [];
+};
+
 // ==========================================
 // Question Bank Management
 // ==========================================
 
 export const createQuestionBank = async (bankData) => {
   const response = await axiosClient.post('question-banks', bankData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const updateQuestionBank = async (id, bankData) => {
   const response = await axiosClient.put(`question-banks/${id}`, bankData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const deleteQuestionBank = async (id) => {
@@ -21,14 +31,14 @@ export const deleteQuestionBank = async (id) => {
 
 export const getQuestionBankById = async (id) => {
   const response = await axiosClient.get(`question-banks/${id}`);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const getQuestionBanks = async (params) => {
   const response = await axiosClient.get('question-banks', {
     params, // { subjectId, curriculumVersionId, classSectionId, includeQuestions }
   });
-  return response.data;
+  return unwrapArrayPayload(response);
 };
 
 // ==========================================
@@ -37,12 +47,12 @@ export const getQuestionBanks = async (params) => {
 
 export const createQuestion = async (bankId, questionData) => {
   const response = await axiosClient.post(`question-banks/${bankId}/questions`, questionData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const updateQuestion = async (questionId, questionData) => {
   const response = await axiosClient.put(`question-banks/questions/${questionId}`, questionData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const deleteQuestion = async (questionId) => {
@@ -59,7 +69,7 @@ export const importGiftQuestions = async (bankId, file) => {
       "Content-Type": "multipart/form-data",
     },
   });
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const exportGiftQuestions = async (bankId) => {
@@ -74,22 +84,22 @@ export const exportGiftQuestions = async (bankId) => {
 
 export const createTag = async (bankId, tagData) => {
   const response = await axiosClient.post(`question-banks/${bankId}/tags`, tagData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const createTagsBatch = async (bankId, names) => {
   const response = await axiosClient.post(`question-banks/${bankId}/tags/batch`, { names });
-  return response.data;
+  return unwrapArrayPayload(response);
 };
 
 export const getTags = async (bankId, params) => {
   const response = await axiosClient.get(`question-banks/${bankId}/tags`, { params });
-  return response.data;
+  return unwrapArrayPayload(response);
 };
 
 export const updateTag = async (bankId, tagId, tagData) => {
   const response = await axiosClient.put(`question-banks/${bankId}/tags/${tagId}`, tagData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const deleteTag = async (bankId, tagId) => {
@@ -103,12 +113,12 @@ export const deleteTag = async (bankId, tagId) => {
 
 export const addMember = async (bankId, memberData) => {
   const response = await axiosClient.post(`question-banks/${bankId}/members`, memberData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const updateMemberRole = async (bankId, userId, roleData) => {
   const response = await axiosClient.put(`question-banks/${bankId}/members/${userId}`, roleData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const removeMember = async (bankId, userId) => {
@@ -118,5 +128,5 @@ export const removeMember = async (bankId, userId) => {
 
 export const getMembers = async (bankId) => {
   const response = await axiosClient.get(`question-banks/${bankId}/members`);
-  return response.data;
+  return unwrapArrayPayload(response);
 };

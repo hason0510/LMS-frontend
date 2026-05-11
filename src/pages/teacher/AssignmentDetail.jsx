@@ -35,6 +35,7 @@ const quillFormats = [
 
 function mapUploadTypeToResourceType(uploadType) {
   if (uploadType === "video") return "VIDEO";
+  if (uploadType === "audio") return "AUDIO";
   if (uploadType === "image") return "IMAGE";
   return "FILE";
 }

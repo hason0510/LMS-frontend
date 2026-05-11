@@ -12,6 +12,8 @@ import { Spin, message } from "antd";
 import { getAttemptDetail } from "../../api/quiz";
 import Header from "../../components/layout/Header";
 import ResourcePreview from "../../components/common/ResourcePreview";
+import QuizRichText from "../../components/common/QuizRichText";
+import { splitClozeContent } from "../../utils/cloze";
 
 const sortByOrder = (items = []) =>
   [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
@@ -19,6 +21,41 @@ const sortByOrder = (items = []) =>
 const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
 const itemLabel = (item, fallback) => item?.content || (item?.resource || item?.resourceId ? "Ảnh" : fallback);
 const getBlankLabel = (_, index) => `Blank ${index + 1}`;
+
+const HtmlAnswerList = ({ items = [] }) => (
+  <div className="space-y-2">
+    {items.map((item, index) => (
+      <div key={`${index}-${item?.id || "html"}`} className="space-y-2">
+        <QuizRichText
+          html={item?.content || ""}
+          className="font-medium text-[#111418] dark:text-white"
+        />
+        <ResourcePreview resource={item?.resource} />
+      </div>
+    ))}
+  </div>
+);
+
+const renderQuestionStem = (question = {}) => {
+  if (question.type !== "CLOZE") {
+    return <QuizRichText html={question.content || "Cau hoi"} className="text-lg font-medium text-[#111418] dark:text-white" />;
+  }
+  const blanks = sortByOrder((question.items || []).filter((item) => item.role === "BLANK"));
+  const { segments, blankCount } = splitClozeContent(question.content || "");
+  if (blankCount === 0) {
+    return <QuizRichText html={question.content || "Cau hoi"} className="text-lg font-medium text-[#111418] dark:text-white" />;
+  }
+  return (
+    <p className="text-lg font-medium text-[#111418] dark:text-white leading-8">
+      {segments.map((segment, idx) => {
+        if (segment.type === "text") return <span key={`txt-${idx}`}>{segment.value}</span>;
+        const blank = blanks[segment.blankIndex];
+        const blankLength = Math.max(6, (blank?.acceptedAnswers?.[0] || "").length);
+        return <span key={`blank-${idx}`} className="inline-block mx-1 border-b-2 border-slate-400 min-w-14">{Array(blankLength).fill("_").join("")}</span>;
+      })}
+    </p>
+  );
+};
 
 const formatInteractiveAnswer = (attemptAnswer) => {
   const question = attemptAnswer.quizQuestion || {};
@@ -45,8 +82,21 @@ const formatInteractiveAnswer = (attemptAnswer) => {
   }
 
   if (question.type === "CLOZE") {
+    const blanks = sortByOrder(items.filter((item) => item.role === "BLANK"));
     const answerByItemId = new Map(answerItems.map((answerItem) => [answerItem.itemId, answerItem.answerText || ""]));
-    return sortByOrder(items.filter((item) => item.role === "BLANK"))
+    const { segments, blankCount } = splitClozeContent(question.content || "");
+    if (blankCount > 0) {
+      return segments
+        .map((segment) => {
+          if (segment.type === "text") return segment.value;
+          const blank = blanks[segment.blankIndex];
+          if (!blank) return "____";
+          const userAnswer = answerByItemId.get(blank.id);
+          return (userAnswer || "").trim() || "____";
+        })
+        .join("");
+    }
+    return blanks
       .map((blank, index) => `${getBlankLabel(blank, index)}: ${answerByItemId.get(blank.id) || "Không trả lời"}`)
       .join("; ");
   }
@@ -59,7 +109,8 @@ export default function QuizResult() {
   const navigate = useNavigate();
   const location = useLocation();
   const attemptId = location.state?.attemptId || attemptIdParam;
-  const classContentItemId = location.state?.classContentItemId;
+  const classContentItemId =
+    new URLSearchParams(location.search).get("classContentItemId") || location.state?.classContentItemId;
 
   const [loading, setLoading] = useState(true);
   const [resultData, setResultData] = useState(null);
@@ -96,6 +147,7 @@ export default function QuizResult() {
         // Map API response to component state
         const mappedData = {
           id: data.id,
+          quizTitle: data.quizTitle || "Kiem tra",
           score: data.grade || 0,
           totalScore: 100,
           earnedPoints: data.earnedPoints,
@@ -151,13 +203,34 @@ export default function QuizResult() {
   }
 
   const handleRetake = () => {
-    navigate(`/class-sections/${classSectionId}/quizzes/${id}/detail`, {
+    const query = classContentItemId ? `?classContentItemId=${classContentItemId}` : "";
+    navigate(`/class-sections/${classSectionId}/quizzes/${id}/detail${query}`, {
       state: { classContentItemId },
     });
   };
 
   const handleBackToCourse = () => {
     navigate(`/class-sections/${classSectionId}`);
+  };
+
+  const renderAttemptUserAnswer = (attemptAnswer) => {
+    if (attemptAnswer.selectedAnswers?.length) {
+      return <HtmlAnswerList items={attemptAnswer.selectedAnswers} />;
+    }
+
+    if (attemptAnswer.textAnswer) {
+      return (
+        <span className="font-medium text-[#111418] dark:text-white max-w-2xl break-words whitespace-pre-wrap">
+          {attemptAnswer.textAnswer}
+        </span>
+      );
+    }
+
+    return (
+      <span className="font-medium text-[#111418] dark:text-white max-w-2xl break-words">
+        {formatInteractiveAnswer(attemptAnswer) || "Không có câu trả lời"}
+      </span>
+    );
   };
 
   return (
@@ -211,12 +284,12 @@ export default function QuizResult() {
                 </div>
                 {/* Text Info */}
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-2xl font-black leading-tight tracking-[-0.033em] text-[#111418] dark:text-white md:text-3xl">
-                      Kiểm tra giữa kỳ
+                      {resultData.quizTitle}
                     </h1>
                     <span
-                      className={`rounded-full px-3 py-1 text-sm font-bold ${
+                      className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${
                         resultData.gradingStatus === "NEEDS_REVIEW"
                           ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
                           : resultData.isPassed
@@ -241,19 +314,19 @@ export default function QuizResult() {
                 </div>
               </div>
               {/* Actions */}
-              <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
+              <div className="flex shrink-0 flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
                 <button
                   onClick={handleRetake}
-                  className="flex h-10 min-w-[140px] items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white transition hover:bg-blue-600"
+                  className="flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-primary px-5 text-sm font-bold text-white transition hover:bg-blue-600"
                 >
-                  <ArrowPathIcon className="h-5 w-5" />
+                  <ArrowPathIcon className="h-5 w-5 shrink-0" />
                   Làm lại bài
                 </button>
                 <button
                   onClick={handleBackToCourse}
-                  className="flex h-10 min-w-[140px] items-center justify-center gap-2 rounded-lg bg-[#f0f2f4] px-4 text-sm font-bold text-[#111418] transition hover:bg-[#e0e2e4] dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                  className="flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#f0f2f4] px-5 text-sm font-bold text-[#111418] transition hover:bg-[#e0e2e4] dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                 >
-                  <ArrowLeftIcon className="h-5 w-5" />
+                  <ArrowLeftIcon className="h-5 w-5 shrink-0" />
                   Về khóa học
                 </button>
               </div>
@@ -309,16 +382,27 @@ export default function QuizResult() {
                   const question = attemptAnswer.quizQuestion || {};
                   const isCorrect = attemptAnswer.isCorrect;
                   const isPending = attemptAnswer.gradingStatus === "NEEDS_REVIEW";
-                  const isPartial =
+                  const hasGradedScore =
                     !isPending &&
+                    attemptAnswer.earnedPoints != null &&
+                    attemptAnswer.maxPoints != null;
+                  const isPartial =
+                    hasGradedScore &&
                     attemptAnswer.earnedPoints != null &&
                     attemptAnswer.maxPoints != null &&
                     Number(attemptAnswer.earnedPoints) > 0 &&
                     Number(attemptAnswer.earnedPoints) < Number(attemptAnswer.maxPoints);
-                  const userAnswer = formatInteractiveAnswer(attemptAnswer)
-                    || attemptAnswer.selectedAnswers?.map(a => a.content).join(", ")
-                    || attemptAnswer.textAnswer
-                    || "Không có câu trả lời";
+                  const statusLabel = isPending
+                    ? "Chờ chấm"
+                    : isPartial
+                    ? "Một phần"
+                    : isCorrect === true
+                    ? "Đúng"
+                    : isCorrect === false
+                    ? "Sai"
+                    : hasGradedScore
+                    ? "Đã chấm"
+                    : "Chưa chấm";
                   
                   return (
                     <div
@@ -337,14 +421,16 @@ export default function QuizResult() {
                                 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
                                 : isCorrect === false
                                 ? "bg-[#fdecea] text-[#d32f2f] dark:bg-red-900/40 dark:text-red-400"
+                                : hasGradedScore
+                                ? "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
                                 : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                            }`}
-                          >
+                          }`}
+                        >
                             {index + 1}
                           </span>
-                          <h4 className="text-lg font-medium text-[#111418] dark:text-white">
-                            {question.content || "Câu hỏi"}
-                          </h4>
+                          <div className="min-w-0 flex-1">
+                            {renderQuestionStem(question)}
+                          </div>
                         </div>
                         <span
                           className={`self-start rounded-full px-3 py-1 text-xs font-bold ${
@@ -356,10 +442,12 @@ export default function QuizResult() {
                               ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
                               : isCorrect === false
                               ? "bg-[#fdecea] text-[#d32f2f] dark:bg-red-900/40 dark:text-red-400"
+                              : hasGradedScore
+                              ? "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
                               : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                           }`}
                         >
-                          {isPending ? "Chờ chấm" : isPartial ? "Một phần" : isCorrect === true ? "Đúng" : isCorrect === false ? "Sai" : "Chưa chấm"}
+                          {statusLabel}
                         </span>
                       </div>
                       <ResourcePreview resource={question.resource} className="pl-0 sm:pl-11" />
@@ -380,6 +468,8 @@ export default function QuizResult() {
                         >
                           {isCorrect === true ? (
                             <CheckCircleIcon className="h-6 w-6 text-[#1d8f44] dark:text-green-400" />
+                          ) : isPartial ? (
+                            <QuestionMarkCircleIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                           ) : isCorrect === false ? (
                             <XCircleIcon className="h-6 w-6 text-[#d32f2f] dark:text-red-400" />
                           ) : (
@@ -389,16 +479,7 @@ export default function QuizResult() {
                             <span className="text-sm font-medium text-[#617589] dark:text-gray-400">
                               Câu trả lời của bạn
                             </span>
-                            <span className="font-medium text-[#111418] dark:text-white max-w-2xl break-words">
-                              {userAnswer}
-                            </span>
-                            {(attemptAnswer.selectedAnswers || []).map((answer) => (
-                              <ResourcePreview
-                                key={answer.id}
-                                resource={answer.resource}
-                                className="mt-2"
-                              />
-                            ))}
+                            {renderAttemptUserAnswer(attemptAnswer)}
                             {attemptAnswer.earnedPoints != null && attemptAnswer.maxPoints != null && (
                               <span className="mt-1 text-xs font-semibold text-primary">
                                 {Number(attemptAnswer.earnedPoints).toFixed(2)} / {Number(attemptAnswer.maxPoints).toFixed(2)} điểm

@@ -29,8 +29,7 @@ export default function TeacherProfilePage() {
       if (user?.id) {
         try {
           setIsLoading(true);
-          const res = await getUserById(user.id);
-          const fullData = res.data;
+          const fullData = await getUserById(user.id);
           setUserData(fullData);
           
           // Sync with global store to ensure header updates

@@ -10,8 +10,10 @@ export async function updateAssignment(id, payload) {
   return response.data;
 }
 
-export async function getAssignmentById(id) {
-  const response = await axiosClient.get(`assignments/${id}`);
+export async function getAssignmentById(id, classContentItemId = null) {
+  const response = await axiosClient.get(`assignments/${id}`, {
+    params: classContentItemId ? { classContentItemId } : {},
+  });
   return response.data;
 }
 

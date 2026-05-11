@@ -23,6 +23,7 @@ import { getQuestionBankById, getQuestionBanks, getTags } from "../../api/questi
 import { createClassContentItem } from "../../api/classSection";
 import MediaAttachButton from "../../components/media/MediaAttachButton";
 import ResourceRenderer from "../../components/media/ResourceRenderer";
+import { parseClozeToItems } from "../../utils/cloze";
 import {
   createContentItemTemplate,
   getQuizTemplateById,
@@ -33,28 +34,22 @@ import {
 /* ─────────────────────────────────────────────
    Constants
 ───────────────────────────────────────────── */
-const QUESTION_TYPE_OPTIONS = [
-  { value: "SINGLE_CHOICE",   label: "Single choice" },
-  { value: "MULTIPLE_CHOICE", label: "Multiple choice" },
-  { value: "TRUE_FALSE",      label: "True-False" },
-  { value: "MATCHING",        label: "Matching" },
-  { value: "IMAGE_MATCHING",  label: "Image matching" },
-  { value: "SHORT_ANSWER",    label: "Keywords" },
-  { value: "CLOZE",           label: "Fill in the gap" },
-  { value: "DRAG_ORDER",      label: "Ordering" },
-  { value: "ESSAY",           label: "Essay" },
+const QUESTION_TYPE_VALUES = [
+  "SINGLE_CHOICE",
+  "MULTIPLE_CHOICE",
+  "TRUE_FALSE",
+  "MATCHING",
+  "IMAGE_MATCHING",
+  "SHORT_ANSWER",
+  "CLOZE",
+  "DRAG_ORDER",
+  "ESSAY",
 ];
 
-const DIFFICULTY_OPTIONS = [
-  { value: "EASY",   label: "Easy" },
-  { value: "MEDIUM", label: "Medium" },
-  { value: "HARD",   label: "Hard" },
-];
+const DIFFICULTY_VALUES = ["EASY", "MEDIUM", "HARD"];
 
-const SELECTION_MODE_OPTIONS = [
-  { value: "ALL_MATCHED", label: "All matched" },
-  { value: "RANDOM",      label: "Random" },
-];
+const SELECTION_MODE_VALUES = ["ALL_MATCHED", "RANDOM"];
+const TAG_MATCH_MODE_VALUES = ["ANY", "ALL"];
 
 const QUILL_MODULES = {
   toolbar: [
@@ -132,33 +127,91 @@ const makeBankSource = () => ({
   localId: `bs-${uid()}`,
   id: null,
   questionBankId: null,
-  tagId: null,
+  tagIds: [],
+  tagMatchMode: "ANY",
   selectionMode: "ALL_MATCHED",
   questionCount: null,
   difficultyLevel: null,
-  manualQuestionIds: [],
 });
 
-const parseClozeToItems = (syntax) => {
-  const items = [];
-  let blankIndex = 0;
-  const regex = /\[\[([^\]]+)\]\]/g;
-  let m;
-  while ((m = regex.exec(syntax)) !== null) {
-    const parts = m[1].split("|");
-    const correct = parts[0].trim();
-    const isSelect = parts.length > 1;
-    items.push({
-      blankIndex,
-      blankType: isSelect ? "SELECT" : "TEXT_INPUT",
-      acceptedAnswers: [correct],
-      blankOptions: isSelect ? JSON.stringify(parts.map((p) => p.trim())) : null,
-      role: "BLANK",
-      content: correct,
-    });
-    blankIndex++;
-  }
-  return items;
+const getQuestionTypeOptions = (t) =>
+  QUESTION_TYPE_VALUES.map((value) => ({
+    value,
+    label: t(`quizBuilder.types.${value}`),
+  }));
+
+const getDifficultyOptions = (t) =>
+  DIFFICULTY_VALUES.map((value) => ({
+    value,
+    label: t(`quizBuilder.difficulties.${value}`),
+  }));
+
+const getSelectionModeOptions = (t) =>
+  SELECTION_MODE_VALUES.map((value) => ({
+    value,
+    label: t(`quizEditor.selectionModes.${value}`),
+  }));
+
+const getTagMatchModeOptions = (t) =>
+  TAG_MATCH_MODE_VALUES.map((value) => ({
+    value,
+    label: t(`quizEditor.tagMatchModes.${value}`),
+  }));
+
+const normalizeIdList = (ids = []) => [...new Set((ids || []).filter((id) => id != null))];
+
+const groupBankSourcesForEditor = (sources = []) => {
+  return (sources || []).map((source) => {
+    const normalizedTagIds = normalizeIdList(
+      source.tagIds || [],
+    );
+    return {
+      localId: `bs-${uid()}`,
+      id: source.id ?? null,
+      questionBankId: source.questionBankId ?? null,
+      tagIds: normalizedTagIds,
+      tagMatchMode: source.tagMatchMode || "ANY",
+      selectionMode: source.selectionMode === "RANDOM" ? "RANDOM" : "ALL_MATCHED",
+      questionCount: source.questionCount ?? null,
+      difficultyLevel: source.difficultyLevel ?? null,
+    };
+  });
+};
+
+const toBankSourcesPayload = (sources = []) =>
+  (sources || [])
+    .filter((source) => source.questionBankId)
+    .map((source, idx) => ({
+      id: source.id ?? null,
+      questionBankId: source.questionBankId,
+      tagIds: normalizeIdList(source.tagIds),
+      tagMatchMode: source.tagMatchMode || "ANY",
+      selectionMode: source.selectionMode,
+      questionCount: source.selectionMode === "RANDOM" ? (source.questionCount ?? null) : null,
+      difficultyLevel: source.difficultyLevel,
+      orderIndex: idx + 1,
+    }));
+
+const getRuleMatchedQuestions = (source, bankDetailsMap) => {
+  if (!source?.questionBankId) return [];
+
+  const questions = bankDetailsMap[source.questionBankId]?.questions || [];
+  const selectedTagIds = normalizeIdList(source.tagIds);
+  const tagMatchMode = source.tagMatchMode || "ANY";
+
+  return questions.filter((question) => {
+    if (source.difficultyLevel && question.difficultyLevel !== source.difficultyLevel) {
+      return false;
+    }
+    if (!selectedTagIds.length) {
+      return true;
+    }
+
+    const questionTagIds = normalizeIdList((question.tags || []).map((tag) => tag?.id));
+    return tagMatchMode === "ALL"
+      ? selectedTagIds.every((tagId) => questionTagIds.includes(tagId))
+      : selectedTagIds.some((tagId) => questionTagIds.includes(tagId));
+  });
 };
 
 const transformApiQuestion = (q) => {
@@ -359,8 +412,87 @@ function AddAnswerInput({ onAdd }) {
   );
 }
 
+function AnswerGridCard({ answer, isSingle, onToggleCorrect, onChangeContent, onChangeExplanation, onChangeResource, onDelete, showDelete }) {
+  const { t } = useTranslation();
+  const [showExp, setShowExp] = useState(false);
+  const [expVal, setExpVal] = useState(answer.explanation || "");
+  useEffect(() => { setExpVal(answer.explanation || ""); }, [answer.explanation]);
+
+  return (
+    <div className={`rounded-xl border transition-colors flex flex-col overflow-hidden ${answer.isCorrect ? "border-blue-300 bg-blue-50/40" : "border-gray-200 bg-white"}`}>
+      <div className="flex items-center gap-2 px-3 py-2">
+        <span className="cursor-grab text-gray-300 select-none text-sm">⋮⋮</span>
+        <Input
+          className="flex-1 border-none shadow-none bg-transparent text-sm"
+          value={answer.content}
+          onChange={(e) => onChangeContent(e.target.value)}
+          placeholder={t("quizBuilder.answerTextPlaceholder")}
+        />
+        <span className="text-xs text-gray-500 shrink-0">{t("quizBuilder.correct")}</span>
+        {isSingle ? (
+          <Radio checked={answer.isCorrect} onChange={onToggleCorrect} />
+        ) : (
+          <Checkbox checked={answer.isCorrect} onChange={onToggleCorrect} />
+        )}
+      </div>
+      <div className="flex-1 mx-3 mb-2 rounded-lg border border-dashed border-gray-200 overflow-hidden min-h-24 flex items-center justify-center bg-gray-50/60">
+        {answer.resource ? (
+          <div className="relative w-full h-full">
+            <ResourceRenderer resource={answer.resource} compact />
+            <button
+              type="button"
+              onClick={() => onChangeResource({ resourceId: null, resource: null })}
+              className="absolute right-2 top-2 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
+            >
+              {t("quizMedia.remove")}
+            </button>
+          </div>
+        ) : (
+          <MediaAttachButton
+            allowedTypes={["IMAGE"]}
+            resource={null}
+            onChange={onChangeResource}
+            label={t("quizMedia.addMedia")}
+          />
+        )}
+      </div>
+      {showExp && (
+        <div className="px-3 pb-2 border-t border-gray-100">
+          <div className="flex items-start gap-2 mt-2">
+            <Input.TextArea
+              autoSize={{ minRows: 1, maxRows: 3 }}
+              className="text-sm"
+              placeholder={t("quizBuilder.explanationPlaceholder")}
+              value={expVal}
+              onChange={(e) => setExpVal(e.target.value)}
+              onBlur={() => { onChangeExplanation(expVal); if (!expVal) setShowExp(false); }}
+              autoFocus
+            />
+            <button className="text-gray-400 hover:text-gray-600 mt-1 shrink-0" onClick={() => { setShowExp(false); setExpVal(answer.explanation || ""); }}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-100">
+        {!showExp && (
+          <button className="text-xs text-blue-500 hover:text-blue-700" onClick={() => setShowExp(true)}>
+            {answer.explanation ? t("quizBuilder.editExplanation") : t("quizBuilder.addExplanation")}
+          </button>
+        )}
+        {showDelete && (
+          <button onClick={onDelete} className="ml-auto text-red-400 hover:text-red-600 p-1 rounded shrink-0">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ChoiceAnswers({ question, onChange }) {
   const { t } = useTranslation();
+  const [viewMode, setViewMode] = useState("list");
   const isSingle = question.type === "SINGLE_CHOICE" || question.type === "TRUE_FALSE";
   const { answers } = question;
 
@@ -378,22 +510,58 @@ function ChoiceAnswers({ question, onChange }) {
 
   return (
     <div>
-      <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{t("quizBuilder.answers")}</div>
-      <div className="space-y-2">
-        {answers.map((a, idx) => (
-          <AnswerRow
-            key={a.localId}
-            answer={a}
-            isSingle={isSingle}
-            onToggleCorrect={() => setCorrect(idx)}
-            onChangeContent={(v) => update(idx, { content: v })}
-            onChangeExplanation={(v) => update(idx, { explanation: v || null })}
-            onChangeResource={(mediaPatch) => update(idx, mediaPatch)}
-            onDelete={() => remove(idx)}
-            showDelete={question.type !== "TRUE_FALSE"}
-          />
-        ))}
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t("quizBuilder.answers")}</div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`p-1.5 rounded transition-colors ${viewMode === "list" ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
+            title="List view"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+          </button>
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`p-1.5 rounded transition-colors ${viewMode === "grid" ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
+            title="Grid view"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+          </button>
+        </div>
       </div>
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-2 gap-3">
+          {answers.map((a, idx) => (
+            <AnswerGridCard
+              key={a.localId}
+              answer={a}
+              isSingle={isSingle}
+              onToggleCorrect={() => setCorrect(idx)}
+              onChangeContent={(v) => update(idx, { content: v })}
+              onChangeExplanation={(v) => update(idx, { explanation: v || null })}
+              onChangeResource={(mediaPatch) => update(idx, mediaPatch)}
+              onDelete={() => remove(idx)}
+              showDelete={question.type !== "TRUE_FALSE"}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {answers.map((a, idx) => (
+            <AnswerRow
+              key={a.localId}
+              answer={a}
+              isSingle={isSingle}
+              onToggleCorrect={() => setCorrect(idx)}
+              onChangeContent={(v) => update(idx, { content: v })}
+              onChangeExplanation={(v) => update(idx, { explanation: v || null })}
+              onChangeResource={(mediaPatch) => update(idx, mediaPatch)}
+              onDelete={() => remove(idx)}
+              showDelete={question.type !== "TRUE_FALSE"}
+            />
+          ))}
+        </div>
+      )}
       {question.type !== "TRUE_FALSE" && <AddAnswerInput onAdd={addNew} />}
     </div>
   );
@@ -620,7 +788,7 @@ function ClozeSection({ question, onChange }) {
         placeholder="Type text with [[answer]] for text input or [[correct|opt1|opt2]] for dropdown."
       />
       <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
-        <strong>Example:</strong> She was born in [[Paris]] and studied [[science|science|art|history]].
+        <strong>Example:</strong> She was born in [[Paris]] and studied [[science|art|history]].
       </div>
       {question.clozeSyntax && (
         <div className="mt-3">
@@ -658,97 +826,122 @@ function AnswerSection({ question, onChange }) {
 /* ─────────────────────────────────────────────
    QuestionCard
 ───────────────────────────────────────────── */
+function MediaSquare({ resource, onChange }) {
+  const { t } = useTranslation();
+  return (
+    <div className="shrink-0 w-14 h-14 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden hover:border-blue-300 transition-colors relative group">
+      {resource ? (
+        <>
+          <div className="absolute inset-0">
+            <ResourceRenderer resource={resource} compact />
+          </div>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onChange({ resourceId: null, resource: null }); }}
+            className="absolute inset-0 bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10"
+          >
+            {t("quizMedia.remove")}
+          </button>
+        </>
+      ) : (
+        <MediaAttachButton
+          compact
+          resource={resource}
+          allowedTypes={["IMAGE", "VIDEO", "AUDIO"]}
+          onChange={onChange}
+        />
+      )}
+    </div>
+  );
+}
+
 function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
+  const questionTypeOptions = getQuestionTypeOptions(t);
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm mb-3 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-        <span className="cursor-grab text-gray-300 hover:text-gray-500 select-none" {...dragHandleProps}>⋮⋮</span>
-        <span className="text-sm font-semibold text-gray-400 w-6 shrink-0">{index + 1}.</span>
-        <MediaAttachButton
-          compact
-          resource={question.resource}
-          allowedTypes={["IMAGE", "VIDEO", "AUDIO"]}
-          onChange={onChange}
-        />
-        <Select
-          size="small"
-          value={question.type}
-          options={QUESTION_TYPE_OPTIONS}
-          onChange={(v) => {
-            const fresh = makeQuestion(v);
-            onChange({ type: v, answers: fresh.answers, items: fresh.items, clozeSyntax: "" });
-          }}
-          className="w-36"
-          popupMatchSelectWidth={false}
-        />
-        <div className="flex items-center gap-1 ml-auto">
-          <span className="text-xs text-gray-500">{t("quizBuilder.points")}:</span>
-          <InputNumber
-            size="small"
-            min={0}
-            step={0.5}
-            value={question.points}
-            onChange={(v) => onChange({ points: v ?? 1 })}
-            className="w-16"
-          />
+      <div className="flex items-start gap-3 px-3 py-3">
+        {/* Left: media square */}
+        <MediaSquare resource={question.resource} onChange={onChange} />
+
+        {/* Center: content + sub-row */}
+        <div className="flex-1 min-w-0">
+          {!collapsed && (
+            <>
+              {question.type === "CLOZE" && (
+                <div className="text-xs text-gray-500 mb-1">{t("quizBuilder.questionInstruction")}</div>
+              )}
+              <ReactQuill
+                theme="snow"
+                value={question.content}
+                onChange={(v) => onChange({ content: v })}
+                modules={QUILL_MODULES}
+                placeholder={t("quizBuilder.enterQuestion")}
+                className="quiz-quill"
+              />
+            </>
+          )}
+          {collapsed && (
+            <div className="text-sm text-gray-500 italic py-1 truncate">
+              {question.content?.replace(/<[^>]+>/g, "") || t("quizBuilder.enterQuestion")}
+            </div>
+          )}
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <Select
+              size="small"
+              value={question.type}
+              options={questionTypeOptions}
+              onChange={(v) => {
+                const fresh = makeQuestion(v);
+                onChange({ type: v, answers: fresh.answers, items: fresh.items, clozeSyntax: "" });
+              }}
+              className="w-36"
+              popupMatchSelectWidth={false}
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-500">{t("quizBuilder.points")}:</span>
+              <InputNumber
+                size="small"
+                min={0}
+                step={0.5}
+                value={question.points}
+                onChange={(v) => onChange({ points: v ?? 1 })}
+                className="w-16"
+              />
+            </div>
+          </div>
         </div>
-        <button
-          onClick={onDelete}
-          className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
-        >
-          <svg className={`w-4 h-4 transition-transform ${collapsed ? "" : "rotate-180"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          </svg>
-        </button>
+
+        {/* Right: actions */}
+        <div className="flex flex-col items-center gap-1 shrink-0">
+          <button
+            onClick={onDelete}
+            className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+          <span className="cursor-grab text-gray-300 hover:text-gray-500 select-none p-1" {...dragHandleProps}>⋮⋮</span>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
+          >
+            <svg className={`w-4 h-4 transition-transform ${collapsed ? "" : "rotate-180"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
 
+      {/* Answers */}
       {!collapsed && (
-        <>
-          {/* Editor */}
-          <div className="px-4 pt-3">
-            {question.type === "CLOZE" && (
-              <div className="mb-2">
-                <div className="text-xs text-gray-500 mb-1">{t("quizBuilder.questionInstruction")}</div>
-              </div>
-            )}
-            {question.resource && (
-              <div className="relative mb-3 rounded-lg bg-gray-50 p-3">
-                <ResourceRenderer resource={question.resource} />
-                <button
-                  type="button"
-                  onClick={() => onChange({ resourceId: null, resource: null })}
-                  className="absolute right-4 top-4 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
-                >
-                  {t("quizMedia.remove")}
-                </button>
-              </div>
-            )}
-            <ReactQuill
-              theme="snow"
-              value={question.content}
-              onChange={(v) => onChange({ content: v })}
-              modules={QUILL_MODULES}
-              placeholder={t("quizBuilder.enterQuestion")}
-              className="quiz-quill"
-            />
-          </div>
-          {/* Answers */}
-          <div className="px-4 pb-4 pt-3">
-            <AnswerSection question={question} onChange={onChange} />
-          </div>
-        </>
+        <div className="px-3 pb-4 pt-1 border-t border-gray-100">
+          <AnswerSection question={question} onChange={onChange} />
+        </div>
       )}
     </div>
   );
@@ -769,71 +962,188 @@ function SortableQuestionCard({ question, ...props }) {
 /* ─────────────────────────────────────────────
    BankSourceRow
 ───────────────────────────────────────────── */
-function BankSourceRow({ source, banks, tagsMap, onUpdate, onDelete }) {
+function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDelete, index }) {
+  const { t } = useTranslation();
   const tags = tagsMap[source.questionBankId] || [];
+  const difficultyOptions = getDifficultyOptions(t);
+  const selectionModeOptions = getSelectionModeOptions(t);
+  const tagMatchModeOptions = getTagMatchModeOptions(t);
+  const matchingQuestions = getRuleMatchedQuestions(source, bankDetailsMap);
+  const selectedTagIds = normalizeIdList(source.tagIds);
+  const selectedTags = tags.filter((tag) => selectedTagIds.includes(tag.id));
+  const currentQuestionCount = source.selectionMode === "RANDOM"
+    ? Math.min(source.questionCount || 0, matchingQuestions.length)
+    : matchingQuestions.length;
+  const summaryTone = source.selectionMode === "RANDOM" && (source.questionCount || 0) > matchingQuestions.length
+    ? "border-amber-200 bg-amber-50 text-amber-700"
+    : "border-emerald-200 bg-emerald-50 text-emerald-700";
+
   return (
-    <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-3">
-      <div className="flex items-start gap-2 flex-wrap">
-        <span className="text-xs font-semibold text-teal-700 bg-teal-100 px-2 py-1 rounded shrink-0">
-          Questions Bank
-        </span>
-        <Select
-          placeholder="Select bank"
-          value={source.questionBankId}
-          options={banks.map((b) => ({ value: b.id, label: b.name }))}
-          onChange={(v) => onUpdate({ questionBankId: v, tagId: null })}
-          className="w-44"
-          size="small"
-          showSearch
-          filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
-        />
-        <Select
-          placeholder="Tag"
-          value={source.tagId}
-          options={[{ value: null, label: "All tags" }, ...tags.map((t) => ({ value: t.id, label: t.name }))]}
-          onChange={(v) => onUpdate({ tagId: v })}
-          className="w-32"
-          size="small"
-          disabled={!source.questionBankId}
-        />
-        <Select
-          value={source.difficultyLevel}
-          placeholder="Difficulty"
-          options={[{ value: null, label: "Any" }, ...DIFFICULTY_OPTIONS]}
-          onChange={(v) => onUpdate({ difficultyLevel: v })}
-          className="w-28"
-          size="small"
-        />
-        <Select
-          value={source.selectionMode}
-          options={SELECTION_MODE_OPTIONS}
-          onChange={(v) => onUpdate({ selectionMode: v })}
-          className="w-28"
-          size="small"
-        />
-        {source.selectionMode === "RANDOM" && (
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Count:</span>
-            <InputNumber
-              size="small"
-              min={1}
-              value={source.questionCount}
-              onChange={(v) => onUpdate({ questionCount: v })}
-              className="w-16"
-            />
+    <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/50">
+      <div className="flex items-start justify-between gap-4 border-b border-slate-100 bg-slate-50/90 px-5 py-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+              {t("quizEditor.bankRuleBadge")}
+            </span>
+            <span className="text-sm font-semibold text-slate-800">
+              {t("quizEditor.ruleIndex", { index: index + 1 })}
+            </span>
           </div>
-        )}
+          <p className="mt-2 text-sm text-slate-500">
+            {t("quizEditor.bankRuleHint")}
+          </p>
+        </div>
         <button
+          type="button"
           onClick={onDelete}
-          className="ml-auto text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors shrink-0"
+          className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+          title={t("quizEditor.removeRule")}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-      <div className="mt-2 text-xs text-teal-600">
-        The Question Bank is sampled at attempt start. You can delete this rule or create a new one.
+
+      <div className="space-y-5 px-5 py-5">
+        {/* Row 1: Bank & Tags */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.5fr]">
+          <div>
+            <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+              {t("quizEditor.fields.bank")}
+            </div>
+            <Select
+              placeholder={t("quizEditor.placeholders.selectBank")}
+              value={source.questionBankId ?? undefined}
+              options={banks.map((bank) => ({ value: bank.id, label: bank.name }))}
+              onChange={(value) => onUpdate({ questionBankId: value, tagIds: [], tagMatchMode: "ANY" })}
+              className="w-full"
+              size="large"
+              showSearch
+              filterOption={(input, option) => option.label.toLowerCase().includes(input.toLowerCase())}
+            />
+          </div>
+
+          <div>
+            <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+              {t("quizEditor.fields.tags")}
+            </div>
+            <Select
+              mode="multiple"
+              placeholder={t("quizEditor.placeholders.allTags")}
+              value={selectedTagIds}
+              options={tags.map((tag) => ({ value: tag.id, label: tag.name }))}
+              onChange={(value) => {
+                const normalized = normalizeIdList(value);
+                onUpdate({
+                  tagIds: normalized,
+                  tagMatchMode: normalized.length < 2 ? "ANY" : (source.tagMatchMode || "ANY"),
+                });
+              }}
+              className="w-full"
+              size="large"
+              maxTagCount="responsive"
+              disabled={!source.questionBankId}
+              allowClear
+              showSearch
+              filterOption={(input, option) => option.label.toLowerCase().includes(input.toLowerCase())}
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Difficulty, Tag Condition, Selection Mode */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div>
+            <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+              {t("quizEditor.fields.difficulty")}
+            </div>
+            <Select
+              value={source.difficultyLevel ?? undefined}
+              placeholder={t("quizEditor.placeholders.anyDifficulty")}
+              options={difficultyOptions}
+              onChange={(value) => onUpdate({ difficultyLevel: value ?? null })}
+              className="w-full"
+              size="large"
+              allowClear
+            />
+          </div>
+
+          <div>
+            <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+              {t("quizEditor.fields.tagCondition")}
+            </div>
+            <Select
+              value={source.tagMatchMode || "ANY"}
+              options={tagMatchModeOptions}
+              onChange={(value) => onUpdate({ tagMatchMode: value })}
+              className="w-full"
+              size="large"
+              disabled={selectedTagIds.length < 2}
+            />
+          </div>
+
+          <div>
+            <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+              {t("quizEditor.fields.mode")}
+            </div>
+            <Select
+              value={source.selectionMode}
+              options={selectionModeOptions}
+              onChange={(value) => onUpdate({
+                selectionMode: value,
+                questionCount: value === "RANDOM" ? source.questionCount : null,
+              })}
+              className="w-full"
+              size="large"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3">
+          {source.selectionMode === "RANDOM" && (
+            <div className="w-full max-w-[220px]">
+              <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+                {t("quizEditor.fields.count")}
+              </div>
+              <InputNumber
+                min={1}
+                value={source.questionCount}
+                onChange={(value) => onUpdate({ questionCount: value ?? null })}
+                className="w-full"
+                size="large"
+                placeholder={t("quizEditor.placeholders.randomCount")}
+              />
+            </div>
+          )}
+
+          <div className={`min-w-[220px] rounded-xl border px-4 py-3 ${summaryTone}`}>
+            <div className="text-xs font-semibold uppercase tracking-wide">
+              {t("quizEditor.matchSummary")}
+            </div>
+            <div className="mt-1 text-2xl font-semibold leading-none">
+              {currentQuestionCount}
+            </div>
+            <div className="mt-1 text-xs">
+              {source.selectionMode === "RANDOM"
+                ? t("quizEditor.matchSummaryRandom", {
+                    eligible: matchingQuestions.length,
+                    count: source.questionCount || 0,
+                  })
+                : t("quizEditor.matchSummaryAll", { count: matchingQuestions.length })}
+            </div>
+          </div>
+
+          {selectedTags.length > 0 && (
+            <div className="flex flex-1 flex-wrap gap-2">
+              {selectedTags.map((tag) => (
+                <Tag key={tag.id} className="m-0 rounded-full border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                  {tag.name}
+                </Tag>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -843,6 +1153,7 @@ function BankSourceRow({ source, banks, tagsMap, onUpdate, onDelete }) {
    LibraryDrawer
 ───────────────────────────────────────────── */
 function LibraryDrawer({ open, onClose, onAddQuestions }) {
+  const { t } = useTranslation();
   const [banks, setBanks] = useState([]);
   const [selectedBankId, setSelectedBankId] = useState(null);
   const [bankQuestions, setBankQuestions] = useState([]);
@@ -856,9 +1167,9 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
     setLoadingBanks(true);
     getQuestionBanks()
       .then((data) => setBanks(Array.isArray(data) ? data : data?.content || []))
-      .catch(() => message.error("Failed to load question banks"))
+      .catch(() => message.error(t("quizEditor.messages.loadBanksFailed")))
       .finally(() => setLoadingBanks(false));
-  }, [open]);
+  }, [open, t]);
 
   useEffect(() => {
     if (!selectedBankId) { setBankQuestions([]); return; }
@@ -868,9 +1179,9 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
       .then((data) => {
         setBankQuestions(data?.questions || data?.content || []);
       })
-      .catch(() => message.error("You don't have member access to this question bank"))
+      .catch(() => message.error(t("quizEditor.messages.loadBankQuestionsFailed")))
       .finally(() => setLoadingQs(false));
-  }, [selectedBankId]);
+  }, [selectedBankId, t]);
 
   const filtered = bankQuestions.filter((q) =>
     !search.trim() || (q.content || "").replace(/<[^>]*>/g, " ").toLowerCase().includes(search.toLowerCase())
@@ -899,7 +1210,7 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
           <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
-          Questions Library (search)
+          {t("quizEditor.libraryTitle")}
         </span>
       }
       placement="right"
@@ -909,7 +1220,7 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
       footer={
         selected.size > 0 ? (
           <Button type="primary" block size="large" onClick={handleAdd}>
-            Add {selected.size} question{selected.size > 1 ? "s" : ""}
+            {t("quizEditor.messages.questionsAddedAction", { count: selected.size })}
           </Button>
         ) : null
       }
@@ -917,12 +1228,12 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
       <div className="space-y-3">
         <Input
           prefix={<svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>}
-          placeholder="Search questions"
+          placeholder={t("quizEditor.placeholders.searchQuestions")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <Select
-          placeholder="Select a question bank"
+          placeholder={t("quizEditor.placeholders.selectBank")}
           value={selectedBankId}
           onChange={setSelectedBankId}
           className="w-full"
@@ -937,7 +1248,7 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
           <>
             <div className="flex items-center gap-2 border-b pb-2">
               <Checkbox checked={allSelected} indeterminate={someSelected} onChange={(e) => toggleAll(e.target.checked)} />
-              <span className="text-xs text-gray-500">{filtered.length} question{filtered.length !== 1 ? "s" : ""}</span>
+              <span className="text-xs text-gray-500">{t("quizEditor.libraryQuestionCount", { count: filtered.length })}</span>
             </div>
             <div className="space-y-2 overflow-y-auto" style={{ maxHeight: "calc(100vh - 320px)" }}>
               {filtered.map((q) => (
@@ -950,7 +1261,7 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-800 line-clamp-2">{stripHtml(q.content)}</p>
                     <Tag className="mt-1 text-xs" color="blue">
-                      {QUESTION_TYPE_OPTIONS.find((t) => t.value === q.type)?.label || q.type}
+                      {t(`quizBuilder.types.${q.type}`, { defaultValue: q.type })}
                     </Tag>
                   </div>
                 </div>
@@ -958,9 +1269,9 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
             </div>
           </>
         ) : selectedBankId ? (
-          <div className="text-center text-gray-400 py-8 text-sm">No questions found</div>
+          <div className="text-center text-gray-400 py-8 text-sm">{t("quizEditor.emptyLibrary")}</div>
         ) : (
-          <div className="text-center text-gray-400 py-8 text-sm">Select a bank to browse questions</div>
+          <div className="text-center text-gray-400 py-8 text-sm">{t("quizEditor.pickBankToBrowse")}</div>
         )}
       </div>
     </Drawer>
@@ -971,30 +1282,31 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
    SettingsPanel
 ───────────────────────────────────────────── */
 function SettingsPanel({ settings, onChange }) {
+  const { t } = useTranslation();
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/50">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Short description of the quiz</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{t("quizEditor.settings.descriptionLabel")}</label>
         <Input.TextArea
           rows={4}
-          placeholder="Quiz description"
+          placeholder={t("quizEditor.settings.descriptionPlaceholder")}
           value={settings.description}
           onChange={(e) => onChange({ description: e.target.value })}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Quiz duration (minutes, 0 = no limit)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("quizEditor.settings.durationLabel")}</label>
           <InputNumber
             min={0}
-            placeholder="No limit"
+            placeholder={t("quizEditor.settings.durationPlaceholder")}
             value={settings.timeLimitMinutes}
             onChange={(v) => onChange({ timeLimitMinutes: v || null })}
             className="w-full"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Attempts</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("quizEditor.settings.attemptsLabel")}</label>
           <InputNumber
             min={1}
             value={settings.maxAttempts}
@@ -1004,29 +1316,29 @@ function SettingsPanel({ settings, onChange }) {
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Quiz style</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{t("quizEditor.settings.displayModeLabel")}</label>
         <Select
           value={settings.displayMode}
           onChange={(v) => onChange({ displayMode: v })}
           className="w-72"
           options={[
-            { value: "PAGINATION", label: "Pagination" },
-            { value: "ONE_PAGE",   label: "One Page" },
+            { value: "PAGINATION", label: t("quizEditor.displayModes.PAGINATION") },
+            { value: "ONE_PAGE", label: t("quizEditor.displayModes.ONE_PAGE") },
           ]}
         />
       </div>
       <div className="flex flex-wrap gap-8">
         <div className="flex items-center gap-3">
           <Switch checked={settings.shuffleQuestions} onChange={(v) => onChange({ shuffleQuestions: v })} />
-          <span className="text-sm text-gray-700">Randomize questions</span>
+          <span className="text-sm text-gray-700">{t("quizEditor.settings.shuffleQuestions")}</span>
         </div>
         <div className="flex items-center gap-3">
           <Switch checked={settings.showCorrectAnswer} onChange={(v) => onChange({ showCorrectAnswer: v })} />
-          <span className="text-sm text-gray-700">Show correct answer</span>
+          <span className="text-sm text-gray-700">{t("quizEditor.settings.showCorrectAnswer")}</span>
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Passing grade (%)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{t("quizEditor.settings.passingGradeLabel")}</label>
         <InputNumber
           min={0}
           max={100}
@@ -1047,15 +1359,17 @@ export default function QuizDetail() {
   const { classSectionId, quizId, chapterId, templateId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const isAdmin = location.pathname.startsWith("/admin");
   const isTemplateMode = !!templateId;
   const isEditMode = !!quizId;
   const chapterIdFromState = location.state?.chapterId || chapterId;
   const initialClassContentItemId = location.state?.classContentItemId || null;
 
-  const [title, setTitle] = useState("New Quiz");
+  const [title, setTitle] = useState(t("quizEditor.defaults.newQuizTitle"));
   const [questions, setQuestions] = useState([]);
   const [bankSources, setBankSources] = useState([]);
+  const [questionSourceMode, setQuestionSourceMode] = useState("MANUAL");
   const [settings, setSettings] = useState({
     description: "",
     timeLimitMinutes: null,
@@ -1072,7 +1386,9 @@ export default function QuizDetail() {
   const [saving, setSaving] = useState(false);
   const [banks, setBanks] = useState([]);
   const [tagsMap, setTagsMap] = useState({});
+  const [bankDetailsMap, setBankDetailsMap] = useState({});
   const [classContentItemId, setClassContentItemId] = useState(initialClassContentItemId);
+  const questionTypeOptions = getQuestionTypeOptions(t);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -1084,7 +1400,7 @@ export default function QuizDetail() {
     loader()
       .then((quizResponse) => {
         const quiz = quizResponse?.data ?? quizResponse;
-        setTitle(quiz?.title || "Untitled Quiz");
+        setTitle(quiz?.title || t("quizEditor.defaults.untitledQuiz"));
         setClassContentItemId(quiz?.classContentItemId ?? initialClassContentItemId);
         setSettings({
           description: quiz?.description || "",
@@ -1097,22 +1413,13 @@ export default function QuizDetail() {
           minPassScore: quiz?.minPassScore || 80,
         });
         setQuestions((quiz?.questions || []).map(transformApiQuestion));
-        setBankSources(
-          (quiz?.bankSources || []).map((src) => ({
-            localId: `bs-${uid()}`,
-            id: src.id,
-            questionBankId: src.questionBankId,
-            tagId: src.tagId,
-            selectionMode: src.selectionMode || "ALL_MATCHED",
-            questionCount: src.questionCount,
-            difficultyLevel: src.difficultyLevel,
-            manualQuestionIds: src.manualQuestionIds || [],
-          }))
-        );
+        const loadedBankSources = groupBankSourcesForEditor(quiz?.bankSources || []);
+        setBankSources(loadedBankSources);
+        setQuestionSourceMode(loadedBankSources.length > 0 ? "BANK_RULE" : "MANUAL");
       })
-      .catch(() => message.error("Failed to load quiz"))
+      .catch(() => message.error(t("quizEditor.messages.loadQuizFailed")))
       .finally(() => setLoading(false));
-  }, [quizId, isEditMode, isTemplateMode, initialClassContentItemId]);
+  }, [quizId, isEditMode, isTemplateMode, initialClassContentItemId, t]);
 
   // load banks list for BankSourceRow
   useEffect(() => {
@@ -1121,16 +1428,22 @@ export default function QuizDetail() {
       .catch(() => {});
   }, []);
 
-  // load tags when bankSources reference new banks
+  // load tags and full bank questions when bankSources reference new banks
   useEffect(() => {
     const bankIds = [...new Set(bankSources.map((s) => s.questionBankId).filter(Boolean))];
     bankIds.forEach((bankId) => {
-      if (tagsMap[bankId]) return;
-      getTags(bankId)
-        .then((data) => setTagsMap((prev) => ({ ...prev, [bankId]: Array.isArray(data) ? data : data?.content || [] })))
-        .catch(() => {});
+      if (!tagsMap[bankId]) {
+        getTags(bankId)
+          .then((data) => setTagsMap((prev) => ({ ...prev, [bankId]: Array.isArray(data) ? data : data?.content || [] })))
+          .catch(() => {});
+      }
+      if (!bankDetailsMap[bankId]) {
+        getQuestionBankById(bankId)
+          .then((data) => setBankDetailsMap((prev) => ({ ...prev, [bankId]: data })))
+          .catch(() => {});
+      }
     });
-  }, [bankSources]);
+  }, [bankSources, tagsMap, bankDetailsMap]);
 
   // question handlers
   const updateQuestion = useCallback((localId, patch) => {
@@ -1139,7 +1452,13 @@ export default function QuizDetail() {
   const deleteQuestion = useCallback((localId) => {
     setQuestions((prev) => prev.filter((q) => q.localId !== localId));
   }, []);
-  const addQuestion = (type) => setQuestions((prev) => [...prev, makeQuestion(type)]);
+  const addQuestion = (type) => {
+    if (questionSourceMode !== "MANUAL") {
+      message.warning("Vui lòng chuyển về chế độ tạo thủ công để thêm câu hỏi.");
+      return;
+    }
+    setQuestions((prev) => [...prev, makeQuestion(type)]);
+  };
 
   const handleQuestionDragEnd = (event) => {
     const { active, over } = event;
@@ -1153,15 +1472,38 @@ export default function QuizDetail() {
   };
 
   // bank source handlers
-  const addBankSource = () => setBankSources((prev) => [...prev, makeBankSource()]);
+  const addBankSource = () => {
+    if (questionSourceMode !== "BANK_RULE") {
+      message.warning("Vui lòng chuyển sang chế độ Question Bank Rule trước.");
+      return;
+    }
+    setBankSources((prev) => [...prev, makeBankSource()]);
+  };
   const updateBankSource = (localId, patch) =>
     setBankSources((prev) => prev.map((s) => (s.localId === localId ? { ...s, ...patch } : s)));
   const deleteBankSource = (localId) =>
     setBankSources((prev) => prev.filter((s) => s.localId !== localId));
 
+  const handleSourceModeChange = (nextMode) => {
+    if (nextMode === questionSourceMode) return;
+    if (nextMode === "MANUAL") {
+      if (bankSources.length > 0) {
+        setBankSources([]);
+        message.info("Đã xóa các question bank rule để chuyển sang tạo thủ công.");
+      }
+      setQuestionSourceMode("MANUAL");
+      return;
+    }
+    if (questions.length > 0) {
+      setQuestions([]);
+      message.info("Đã xóa danh sách câu hỏi thủ công để chuyển sang question bank rule.");
+    }
+    setQuestionSourceMode("BANK_RULE");
+  };
+
   // save
   const handleSave = async (previewAfter = false) => {
-    if (!title.trim()) { message.warning("Quiz title is required"); return; }
+    if (!title.trim()) { message.warning(t("quizEditor.messages.titleRequired")); return; }
     setSaving(true);
     try {
       const processedQuestions = questions.map((q) => {
@@ -1204,16 +1546,13 @@ export default function QuizDetail() {
         return base;
       });
 
-      const processedBankSources = bankSources.map((src, idx) => ({
-        id: src.id,
-        questionBankId: src.questionBankId,
-        tagId: src.tagId,
-        selectionMode: src.selectionMode,
-        questionCount: src.questionCount,
-        difficultyLevel: src.difficultyLevel,
-        orderIndex: idx,
-        manualQuestionIds: src.manualQuestionIds,
-      }));
+      const isBankRuleMode = questionSourceMode === "BANK_RULE";
+      const processedBankSources = isBankRuleMode ? toBankSourcesPayload(bankSources) : [];
+      if (isBankRuleMode && processedBankSources.length === 0) {
+        message.warning("Vui lòng thêm ít nhất một rule question bank.");
+        setSaving(false);
+        return;
+      }
 
       const payload = {
         title: title.trim(),
@@ -1225,8 +1564,9 @@ export default function QuizDetail() {
         showCorrectAnswer: settings.showCorrectAnswer,
         maxAttempts: settings.maxAttempts,
         minPassScore: settings.minPassScore,
-        questions: processedQuestions,
-        bankSources: processedBankSources,
+        generateQuestionsPerAttempt: isBankRuleMode,
+        questions: isBankRuleMode ? [] : processedQuestions,
+        bankSources: isBankRuleMode ? processedBankSources : [],
         ...(isTemplateMode ? {} : {
           classSectionId: classSectionId ? Number(classSectionId) : null,
           classContentItemId: classContentItemId ? Number(classContentItemId) : null,
@@ -1240,7 +1580,7 @@ export default function QuizDetail() {
         } else {
           savedQuiz = await updateQuiz(quizId, payload);
         }
-        message.success("Quiz saved");
+        message.success(t("quizEditor.messages.quizSaved"));
         if (previewAfter) {
           const basePath = isAdmin ? "/admin" : "/teacher";
           const previewUrl = isTemplateMode
@@ -1273,7 +1613,7 @@ export default function QuizDetail() {
             setClassContentItemId(createdContentItem?.id ?? null);
           }
         }
-        message.success("Quiz created");
+        message.success(t("quizEditor.messages.quizCreated"));
         const basePath = isAdmin ? "/admin" : "/teacher";
         if (previewAfter && savedQuizId) {
           const previewUrl = isTemplateMode
@@ -1291,7 +1631,7 @@ export default function QuizDetail() {
         );
       }
     } catch (err) {
-      message.error("Failed to save quiz");
+      message.error(t("quizEditor.messages.saveQuizFailed"));
       console.error(err);
     } finally {
       setSaving(false);
@@ -1299,14 +1639,18 @@ export default function QuizDetail() {
   };
 
   const handleAddFromLibrary = (newQuestions) => {
+    if (questionSourceMode !== "MANUAL") {
+      message.warning("Chỉ có thể thêm từ Questions Library khi ở chế độ tạo thủ công.");
+      return;
+    }
     setQuestions((prev) => [...prev, ...newQuestions]);
-    message.success(`Added ${newQuestions.length} question${newQuestions.length > 1 ? "s" : ""}`);
+    message.success(t("quizEditor.messages.questionsAdded", { count: newQuestions.length }));
   };
 
-  const addQuestionMenuItems = QUESTION_TYPE_OPTIONS.map((t) => ({
-    key: t.value,
-    label: t.label,
-    onClick: () => addQuestion(t.value),
+  const addQuestionMenuItems = questionTypeOptions.map((option) => ({
+    key: option.value,
+    label: option.label,
+    onClick: () => addQuestion(option.value),
   }));
 
   const Sidebar = isAdmin ? AdminSidebar : TeacherSidebar;
@@ -1336,13 +1680,13 @@ export default function QuizDetail() {
             <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
             </svg>
-            Quiz
+            {t("quizEditor.quizBadge")}
           </div>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="flex-1 text-base font-semibold border-none shadow-none bg-transparent"
-            placeholder="Quiz title..."
+            placeholder={t("quizEditor.placeholders.quizTitle")}
           />
 
           <Button
@@ -1351,19 +1695,24 @@ export default function QuizDetail() {
             loading={saving}
             className="flex items-center gap-1.5 border-amber-400 text-amber-600 hover:bg-amber-50 shrink-0"
           >
-            Preview
+            {t("quizEditor.actions.preview")}
           </Button>
           <Button type="primary" onClick={handleSave} loading={saving} className="bg-blue-600 hover:bg-blue-700 border-0 px-6 shrink-0">
-            Save
+            {t("quizEditor.actions.save")}
           </Button>
         </div>
 
         {/* Tabs */}
         <div className="flex items-center px-6 bg-white border-b border-gray-200 shrink-0 ml-64">
           {[
-            { key: "questions", label: questions.length > 0 ? `Questions (${questions.length})` : "Questions" },
-            { key: "settings", label: "Settings" },
-            { key: "qa", label: "Q&A" },
+            {
+              key: "questions",
+              label: questions.length > 0
+                ? t("quizEditor.tabs.questionsWithCount", { count: questions.length })
+                : t("quizEditor.tabs.questions"),
+            },
+            { key: "settings", label: t("quizEditor.tabs.settings") },
+            { key: "qa", label: t("quizEditor.tabs.qa") },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -1377,12 +1726,13 @@ export default function QuizDetail() {
           ))}
           <button
             onClick={() => setLibraryOpen(true)}
+            disabled={questionSourceMode !== "MANUAL"}
             className="ml-auto flex items-center gap-2 text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 px-4 py-1.5 rounded-lg transition-colors mb-1.5 shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            Questions library
+            {t("quizEditor.actions.openLibrary")}
           </button>
         </div>
 
@@ -1390,7 +1740,21 @@ export default function QuizDetail() {
         <div className="flex-1 overflow-y-auto">
           {activeTab === "questions" && (
             <div className="max-w-4xl mx-auto px-4 py-6">
-              {questions.length > 0 && (
+              <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="text-sm font-semibold text-slate-700 mb-2">Nguồn câu hỏi</div>
+                <Radio.Group
+                  value={questionSourceMode}
+                  onChange={(event) => handleSourceModeChange(event.target.value)}
+                  optionType="button"
+                  buttonStyle="solid"
+                  options={[
+                    { value: "MANUAL", label: "Tạo thủ công" },
+                    { value: "BANK_RULE", label: "Question Bank Rule" },
+                  ]}
+                />
+              </div>
+
+              {questionSourceMode === "MANUAL" && questions.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleQuestionDragEnd}>
                   <SortableContext items={questions.map((q) => q.localId)} strategy={verticalListSortingStrategy}>
                     {questions.map((q, idx) => (
@@ -1406,44 +1770,59 @@ export default function QuizDetail() {
                 </DndContext>
               )}
 
-              {bankSources.map((src) => (
+              {questionSourceMode === "BANK_RULE" && bankSources.map((src) => (
                 <BankSourceRow
                   key={src.localId}
                   source={src}
                   banks={banks}
                   tagsMap={tagsMap}
+                  bankDetailsMap={bankDetailsMap}
                   onUpdate={(patch) => updateBankSource(src.localId, patch)}
                   onDelete={() => deleteBankSource(src.localId)}
+                  index={bankSources.findIndex((item) => item.localId === src.localId)}
                 />
               ))}
 
-              {questions.length === 0 && bankSources.length === 0 && (
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center text-gray-400 mb-4">
+              {questionSourceMode === "MANUAL" && questions.length === 0 && (
+                <div className="border border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 mb-4 bg-white shadow-sm shadow-slate-200/50">
                   <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
-                  <p className="text-sm">No questions yet. Add questions or connect a question bank below.</p>
+                  <p className="text-base font-semibold text-slate-700">{t("quizEditor.emptyStateTitle")}</p>
+                  <p className="mt-2 text-sm text-slate-500">{t("quizEditor.emptyStateDescription")}</p>
+                </div>
+              )}
+
+              {questionSourceMode === "BANK_RULE" && bankSources.length === 0 && (
+                <div className="border border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 mb-4 bg-white shadow-sm shadow-slate-200/50">
+                  <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <p className="text-base font-semibold text-slate-700">Chưa có question bank rule</p>
+                  <p className="mt-2 text-sm text-slate-500">Thêm ít nhất một rule để sinh đề khác nhau cho từng lượt làm.</p>
                 </div>
               )}
 
               <div className="flex items-center justify-center gap-3 mt-4">
-                <Dropdown menu={{ items: addQuestionMenuItems }} trigger={["click"]}>
+                <Dropdown menu={{ items: addQuestionMenuItems }} trigger={["click"]} disabled={questionSourceMode !== "MANUAL"}>
                   <Button type="primary" className="rounded-full px-5 bg-blue-600 hover:bg-blue-700 border-0">
-                    + Question ▾
+                    {t("quizEditor.actions.addQuestion")} ▾
                   </Button>
                 </Dropdown>
                 <Button
                   onClick={addBankSource}
+                  disabled={questionSourceMode !== "BANK_RULE"}
                   className="rounded-full px-5 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
                 >
-                  + Question Bank
+                  {t("quizEditor.actions.addQuestionBank")}
                 </Button>
               </div>
 
-              {(questions.length > 0 || bankSources.length > 0) && (
+              {((questionSourceMode === "MANUAL" && questions.length > 0)
+                || (questionSourceMode === "BANK_RULE" && bankSources.length > 0)) && (
                 <div className="flex justify-end mt-6">
                   <Button type="primary" onClick={handleSave} loading={saving} size="large" className="bg-blue-600 hover:bg-blue-700 border-0 px-8">
-                    Save
+                    {t("quizEditor.actions.save")}
                   </Button>
                 </div>
               )}
@@ -1461,7 +1840,7 @@ export default function QuizDetail() {
               <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <p className="text-sm">Q&A section will show student questions about this quiz.</p>
+              <p className="text-sm">{t("quizEditor.qaPlaceholder")}</p>
             </div>
           )}
         </div>

@@ -12,6 +12,12 @@ import {
 import { FlagIcon as FlagIconSolid } from "@heroicons/react/24/solid";
 import { Modal, Select } from "antd";
 import ResourcePreview from "../../components/common/ResourcePreview";
+import QuizRichText from "../../components/common/QuizRichText";
+import { parseBlankOptions, parseClozeTokenOptions, splitClozeContent } from "../../utils/cloze";
+import { getQuizPreviewSample } from "../../api/quiz";
+import { getQuizTemplatePreviewSample } from "../../api/curriculumTemplate";
+
+const DEFAULT_PREVIEW_SEED = 20260506;
 
 const sortByOrder = (items = []) =>
   [...items].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
@@ -19,23 +25,6 @@ const sortByOrder = (items = []) =>
 const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
 const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
 const isTextAnswerQuestion = (type) => ["SHORT_ANSWER", "ESSAY"].includes(type);
-const getBlankLabel = (_, index) => `Blank ${index + 1}`;
-const parseBlankOptions = (blankOptions) => {
-  if (Array.isArray(blankOptions)) {
-    return blankOptions.filter((option) => typeof option === "string" && option.trim());
-  }
-  if (!blankOptions || typeof blankOptions !== "string") {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(blankOptions);
-    return Array.isArray(parsed)
-      ? parsed.filter((option) => typeof option === "string" && option.trim())
-      : [];
-  } catch {
-    return [];
-  }
-};
 
 const getQuestionTypeLabel = (type) => {
   const labels = {
@@ -134,14 +123,20 @@ const scoreQuestion = (question, answers) => {
     const blanks = getItemsByRole(question, "BLANK");
     const userBlanks = selected?.blanks || {};
     if (blanks.length === 0) return null;
-    return blanks.every((blank) => {
+    const correctCount = blanks.reduce((count, blank) => {
       const text = (userBlanks[blank.id] || "").trim().toLowerCase();
-      if (!text) return false;
+      if (!text) return count;
       const accepted = (blank.acceptedAnswers || blank.acceptedAnswersText || []).map((t) =>
         String(t).trim().toLowerCase()
       );
-      return accepted.some((t) => t === text);
-    });
+      return accepted.some((t) => t === text) ? count + 1 : count;
+    }, 0);
+    return {
+      ratio: blanks.length > 0 ? correctCount / blanks.length : 0,
+      correctCount,
+      totalCount: blanks.length,
+      answered: Object.values(userBlanks).some((v) => String(v || "").trim() !== ""),
+    };
   }
 
   return null;
@@ -153,8 +148,13 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
   const location = useLocation();
   const isTemplate = !!templateId;
   const quizData = location.state?.quizData;
+  const isBankRuleMode = (quizData?.questions || []).length === 0 && (quizData?.bankSources || []).length > 0;
 
-  const questions = quizData?.questions || [];
+  const [previewSeed, setPreviewSeed] = useState(location.state?.previewSeed ?? DEFAULT_PREVIEW_SEED);
+  const [sampleQuestions, setSampleQuestions] = useState([]);
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const [sampleError, setSampleError] = useState("");
+  const questions = isBankRuleMode ? sampleQuestions : (quizData?.questions || []);
   const hasTimeLimit = (quizData?.timeLimitMinutes || 0) > 0;
   const [answers, setAnswers] = useState({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -163,7 +163,9 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const submittedRef = useRef(false);
+  const questionRefs = useRef([]);
   const base = isAdmin ? "/admin" : "/teacher";
+  const isOnePageMode = (quizData?.displayMode || "PAGINATION") === "ONE_PAGE";
 
   useEffect(() => {
     if (!hasTimeLimit) return;
@@ -184,18 +186,77 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
     ? `${base}/curriculums/${templateId}/quizzes/${quizId}/preview`
     : `${base}/class-sections/${classSectionId}/quizzes/${quizId}/preview`;
 
+  useEffect(() => {
+    if (!quizData || !isBankRuleMode) {
+      return;
+    }
+
+    let cancelled = false;
+    const loadSample = async () => {
+      try {
+        setSampleLoading(true);
+        setSampleError("");
+        const response = isTemplate
+          ? await getQuizTemplatePreviewSample(quizId, previewSeed)
+          : await getQuizPreviewSample(quizId, previewSeed);
+        const payload = response?.data ?? response;
+        if (!cancelled) {
+          setSampleQuestions(Array.isArray(payload?.questions) ? payload.questions : []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSampleQuestions([]);
+          setSampleError(error?.response?.data?.message || "Không thể sinh đề mẫu cho preview.");
+        }
+      } finally {
+        if (!cancelled) {
+          setSampleLoading(false);
+        }
+      }
+    };
+
+    loadSample();
+    return () => {
+      cancelled = true;
+    };
+  }, [isBankRuleMode, isTemplate, previewSeed, quizId, quizData]);
+
+  useEffect(() => {
+    setAnswers({});
+    setFlaggedQuestions([]);
+    setCurrentQuestionIndex(0);
+    questionRefs.current = [];
+  }, [previewSeed, isBankRuleMode]);
+
   if (!quizData) {
     // State lost (e.g. page refresh) — redirect to quiz preview page which fetches fresh data
     return <Navigate to={previewRoot} replace />;
   }
 
-  if (questions.length === 0) {
-    // Bank-mode or empty quiz — can't simulate locally
+  if (sampleLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 text-center p-8">
         <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 max-w-md">
-          Bài kiểm tra này tạo câu hỏi ngẫu nhiên từ ngân hàng câu hỏi và không thể mô phỏng ở chế độ xem trước.
+          Đang sinh đề mẫu cho chế độ xem trước...
         </p>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-4 text-center p-8">
+        <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 max-w-md">
+          {sampleError || "Không có câu hỏi phù hợp để sinh đề mẫu ở cấu hình hiện tại."}
+        </p>
+        {isBankRuleMode && (
+          <button
+            onClick={() => setPreviewSeed(Date.now())}
+            className="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
+          >
+            Sinh mẫu khác
+          </button>
+        )}
         <button
           onClick={() => navigate(previewRoot)}
           className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
@@ -276,16 +337,33 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
       const isAnswered = isQuestionAnswered(q);
       if (!isAnswered) {
         unansweredCount++;
-        return { ...q, isCorrect: false, isAnswered: false };
+        return { ...q, isCorrect: false, isAnswered: false, earnedPoints: 0, maxPoints: pts };
       }
       const result = scoreQuestion(q, answers);
+      if (q.type === "CLOZE" && result && typeof result === "object") {
+        const earned = Number((pts * result.ratio).toFixed(2));
+        earnedPoints += earned;
+        if (result.ratio >= 1) {
+          correctCount++;
+        } else if (earned === 0) {
+          incorrectCount++;
+        }
+        return {
+          ...q,
+          isCorrect: result.ratio >= 1,
+          isAnswered: true,
+          earnedPoints: earned,
+          maxPoints: pts,
+          scoreRatio: result.ratio,
+        };
+      }
       if (result === true) {
         correctCount++;
         earnedPoints += pts;
       } else {
         incorrectCount++;
       }
-      return { ...q, isCorrect: result, isAnswered: true };
+      return { ...q, isCorrect: result, isAnswered: true, earnedPoints: result === true ? pts : 0, maxPoints: pts };
     });
 
     const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
@@ -311,8 +389,15 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
     );
   };
 
-  const toggleFlag = () => {
-    const qId = questions[currentQuestionIndex]?.id;
+  const scrollToQuestion = (index) => {
+    setCurrentQuestionIndex(index);
+    if (isOnePageMode) {
+      questionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const toggleFlag = (questionId = questions[currentQuestionIndex]?.id) => {
+    const qId = questionId;
     if (!qId) return;
     setFlaggedQuestions((prev) =>
       prev.includes(qId) ? prev.filter((id) => id !== qId) : [...prev, qId]
@@ -347,7 +432,11 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
               alt=""
             />
           )}
-          <span>{item?.content || fallback}</span>
+          {item?.content ? (
+            <QuizRichText html={item.content} className="text-sm font-medium text-slate-700 dark:text-slate-200" />
+          ) : (
+            <span>{fallback}</span>
+          )}
         </div>
       );
       return (
@@ -384,7 +473,9 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
           {orderedItems.map((item, index) => (
             <div key={item.id} className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50">
               <span className="w-8 h-8 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">{index + 1}</span>
-              <span className="flex-1 text-slate-700 dark:text-slate-200 font-medium">{item.content}</span>
+              <div className="flex-1 text-slate-700 dark:text-slate-200 font-medium">
+                <QuizRichText html={item.content || ""} className="text-sm font-medium text-slate-700 dark:text-slate-200" />
+              </div>
               <button type="button" onClick={() => handleDragMove(question, item.id, -1)} disabled={index === 0} className="px-3 py-2 rounded border border-slate-200 dark:border-slate-700 disabled:opacity-40">↑</button>
               <button type="button" onClick={() => handleDragMove(question, item.id, 1)} disabled={index === orderedItems.length - 1} className="px-3 py-2 rounded border border-slate-200 dark:border-slate-700 disabled:opacity-40">↓</button>
             </div>
@@ -396,33 +487,93 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
     if (question.type === "CLOZE") {
       const blanks = getItemsByRole(question, "BLANK");
       const current = answers[question.id] || { blanks: {} };
+      const { segments, blankCount } = splitClozeContent(question.content || "");
+      const hasInlineSyntax = blankCount > 0;
+      if (!hasInlineSyntax) {
+        return (
+          <div className="space-y-3">
+            {blanks.map((blank, index) => {
+              const options = parseBlankOptions(blank.blankOptions, blank.acceptedAnswers);
+              const isSelectBlank = blank.blankType === "SELECT" && options.length > 0;
+              return (
+                <div key={blank.id} className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Blank {index + 1}
+                  </label>
+                  {isSelectBlank ? (
+                    <Select
+                      value={current.blanks?.[blank.id]}
+                      onChange={(value) => handleClozeChange(question, blank.id, value)}
+                      options={options.map((option) => ({ value: option, label: option }))}
+                      placeholder="Chọn đáp án"
+                      className="w-full"
+                    />
+                  ) : (
+                    <input
+                      value={current.blanks?.[blank.id] || ""}
+                      onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
+                      placeholder="Nhập đáp án"
+                      className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
       return (
-        <div className="space-y-3">
-          {blanks.map((blank, index) => {
-            const options = parseBlankOptions(blank.blankOptions);
-            const isSelectBlank = blank.blankType === "SELECT" && options.length > 0;
+        <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-4 md:p-5 leading-9">
+          {segments.map((segment, segmentIndex) => {
+            if (segment.type === "text") {
+              return (
+                <span
+                  key={`txt-${segmentIndex}`}
+                  className="text-base md:text-lg text-slate-700 dark:text-slate-200"
+                >
+                  {segment.value}
+                </span>
+              );
+            }
+            const blank = blanks[segment.blankIndex];
+            if (!blank) {
+              return (
+                <input
+                  key={`miss-${segmentIndex}`}
+                  disabled
+                  className="inline-block align-baseline mx-1 w-40 max-w-full px-2 py-1 border-0 border-b-2 border-dashed border-slate-400 bg-transparent"
+                />
+              );
+            }
+            const tokenOptions = parseClozeTokenOptions(segment.token);
+            const options = parseBlankOptions(blank.blankOptions, blank.acceptedAnswers);
+            const resolvedOptions = [...new Set([...tokenOptions, ...options])];
+            const isSelectBlank =
+              (blank.blankType === "SELECT" && resolvedOptions.length > 0) || tokenOptions.length > 1;
             return (
-              <div key={blank.id} className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {getBlankLabel(blank, index)}
-                </label>
+              <span key={blank.id} className="inline-flex align-baseline mx-1">
                 {isSelectBlank ? (
-                  <Select
-                    value={current.blanks?.[blank.id]}
-                    onChange={(value) => handleClozeChange(question, blank.id, value)}
-                    options={options.map((option) => ({ value: option, label: option }))}
-                    placeholder="Chọn đáp án"
-                    className="w-full"
-                  />
+                  <select
+                    value={current.blanks?.[blank.id] || ""}
+                    onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
+                    className="min-w-36 max-w-[220px] rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 py-1 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="">Chọn đáp án</option>
+                    {resolvedOptions.map((option) => (
+                      <option key={`${blank.id}-${option}`} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <input
                     value={current.blanks?.[blank.id] || ""}
                     onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
-                    placeholder="Nhập đáp án"
-                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                    placeholder="..."
+                    className="w-40 max-w-[220px] border-0 border-b-2 border-slate-400 dark:border-slate-500 bg-transparent px-2 py-1 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary"
                   />
                 )}
-              </div>
+              </span>
             );
           })}
         </div>
@@ -431,6 +582,109 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
 
     return null;
   };
+
+  const renderQuestionBody = (question) => (
+    <div className="space-y-3">
+      {isInteractionQuestion(question.type) ? (
+        renderInteractionAnswer(question)
+      ) : isTextAnswerQuestion(question.type) ? (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            {question.type === "ESSAY" ? "Nhập bài tự luận của bạn:" : "Nhập câu trả lời của bạn:"}
+          </label>
+          <textarea
+            value={answers[question.id]?.[0] || ""}
+            onChange={(e) =>
+              setAnswers((prev) => ({ ...prev, [question.id]: [e.target.value] }))
+            }
+            placeholder="Viết câu trả lời của bạn ở đây..."
+            className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
+            rows="6"
+          />
+        </div>
+      ) : (
+        (question.answers || []).map((option) => {
+          const isSelected = (answers[question.id] || []).includes(option.id);
+          return (
+            <label key={option.id} className="group block cursor-pointer relative">
+              <input
+                className="peer sr-only"
+                name={`question_${question.id}`}
+                type={question.type === "MULTIPLE_CHOICE" ? "checkbox" : "radio"}
+                value={option.id}
+                checked={!!isSelected}
+                onChange={() => handleAnswerSelect(question.id, option.id)}
+              />
+              <div className="flex items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 peer-checked:border-primary peer-checked:bg-primary/5 group-hover:border-primary/50">
+                {question.type === "MULTIPLE_CHOICE" ? (
+                  <div className={`w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-500 mr-4 flex-shrink-0 relative flex items-center justify-center ${isSelected ? "border-primary bg-primary" : ""}`}>
+                    {isSelected && (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                ) : (
+                  <div className={`w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-500 mr-4 flex-shrink-0 relative flex items-center justify-center ${isSelected ? "border-primary bg-primary" : ""}`}>
+                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <QuizRichText html={option.content || ""} className="block text-slate-700 dark:text-slate-200 font-medium select-none" />
+                  <ResourcePreview resource={option.resource} className="mt-2" />
+                </div>
+              </div>
+            </label>
+          );
+        })
+      )}
+    </div>
+  );
+
+  const renderQuestionCard = (question, index) => (
+    <div
+      key={question.id}
+      ref={(element) => {
+        questionRefs.current[index] = element;
+      }}
+      className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden scroll-mt-24"
+    >
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold shadow-sm">
+            {index + 1}
+          </span>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Câu hỏi {index + 1}</h2>
+            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${getTypeBgColor(question.type)} w-fit`}>
+              {getQuestionTypeLabel(question.type)}
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={() => toggleFlag(question.id)}
+          className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded transition-colors ${
+            flaggedQuestions.includes(question.id)
+              ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
+              : "text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+          }`}
+        >
+          {flaggedQuestions.includes(question.id)
+            ? <FlagIconSolid className="h-5 w-5" />
+            : <FlagIcon className="h-5 w-5" />}
+          <span className="hidden sm:inline">Đánh dấu</span>
+        </button>
+      </div>
+
+      <div className="p-6 md:p-8">
+        {question.type !== "CLOZE" && (
+          <QuizRichText html={question.content || ""} className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-6" />
+        )}
+        <ResourcePreview resource={question.resource} className="mb-5" />
+        {renderQuestionBody(question)}
+      </div>
+    </div>
+  );
 
   const currentQuestion = questions[currentQuestionIndex];
   const answeredCount = questions.filter(isQuestionAnswered).length;
@@ -450,6 +704,14 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            {isBankRuleMode && (
+              <button
+                onClick={() => setPreviewSeed(Date.now())}
+                className="hidden md:inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
+              >
+                Sinh mẫu khác
+              </button>
+            )}
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
               <ClockIcon className="h-5 w-5 text-primary" />
               <span className="font-mono text-lg font-bold text-primary tabular-nums">
@@ -468,125 +730,38 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
         <main className="flex-1 flex flex-col h-full overflow-hidden relative">
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-3xl mx-auto space-y-6">
-              {/* Question Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold shadow-sm">
-                      {currentQuestionIndex + 1}
-                    </span>
-                    <div className="flex flex-col gap-1">
-                      <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Câu hỏi {currentQuestionIndex + 1}</h2>
-                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${getTypeBgColor(currentQuestion.type)} w-fit`}>
-                        {getQuestionTypeLabel(currentQuestion.type)}
-                      </span>
-                    </div>
-                  </div>
+              {isOnePageMode
+                ? questions.map((question, index) => renderQuestionCard(question, index))
+                : renderQuestionCard(currentQuestion, currentQuestionIndex)}
+
+              {!isOnePageMode && (
+                <div className="flex items-center justify-between pt-4">
                   <button
-                    onClick={toggleFlag}
-                    className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded transition-colors ${
-                      flaggedQuestions.includes(currentQuestion.id)
-                        ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
-                        : "text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    onClick={() => scrollToQuestion(Math.max(0, currentQuestionIndex - 1))}
+                    disabled={currentQuestionIndex === 0}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold transition-colors ${
+                      currentQuestionIndex === 0
+                        ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    {flaggedQuestions.includes(currentQuestion.id)
-                      ? <FlagIconSolid className="h-5 w-5" />
-                      : <FlagIcon className="h-5 w-5" />}
-                    <span className="hidden sm:inline">Đánh dấu</span>
+                    <ArrowLeftIcon className="h-5 w-5" />
+                    <span>Câu trước</span>
+                  </button>
+                  <button
+                    onClick={() => scrollToQuestion(Math.min(questions.length - 1, currentQuestionIndex + 1))}
+                    disabled={currentQuestionIndex === questions.length - 1}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold shadow-md transition-all transform active:scale-95 ${
+                      currentQuestionIndex === questions.length - 1
+                        ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none"
+                        : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
+                    }`}
+                  >
+                    <span>Câu tiếp theo</span>
+                    <ArrowRightIcon className="h-5 w-5" />
                   </button>
                 </div>
-
-                <div className="p-6 md:p-8">
-                  <p className="text-base md:text-lg text-slate-700 dark:text-slate-200 font-medium leading-relaxed mb-6 whitespace-pre-wrap">
-                    {currentQuestion.content}
-                  </p>
-                  <ResourcePreview resource={currentQuestion.resource} className="mb-5" />
-                  <div className="space-y-3">
-                    {isInteractionQuestion(currentQuestion.type) ? (
-                      renderInteractionAnswer(currentQuestion)
-                    ) : isTextAnswerQuestion(currentQuestion.type) ? (
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          {currentQuestion.type === "ESSAY" ? "Nhập bài tự luận của bạn:" : "Nhập câu trả lời của bạn:"}
-                        </label>
-                        <textarea
-                          value={answers[currentQuestion.id]?.[0] || ""}
-                          onChange={(e) =>
-                            setAnswers((prev) => ({ ...prev, [currentQuestion.id]: [e.target.value] }))
-                          }
-                          placeholder="Viết câu trả lời của bạn ở đây..."
-                          className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
-                          rows="6"
-                        />
-                      </div>
-                    ) : (
-                      (currentQuestion.answers || []).map((option) => {
-                        const isSelected = (answers[currentQuestion.id] || []).includes(option.id);
-                        return (
-                          <label key={option.id} className="group block cursor-pointer relative">
-                            <input
-                              className="peer sr-only"
-                              name={`question_${currentQuestion.id}`}
-                              type={currentQuestion.type === "MULTIPLE_CHOICE" ? "checkbox" : "radio"}
-                              value={option.id}
-                              checked={!!isSelected}
-                              onChange={() => handleAnswerSelect(currentQuestion.id, option.id)}
-                            />
-                            <div className="flex items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 peer-checked:border-primary peer-checked:bg-primary/5 group-hover:border-primary/50">
-                              {currentQuestion.type === "MULTIPLE_CHOICE" ? (
-                                <div className={`w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-500 mr-4 flex-shrink-0 relative flex items-center justify-center ${isSelected ? "border-primary bg-primary" : ""}`}>
-                                  {isSelected && (
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className={`w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-500 mr-4 flex-shrink-0 relative flex items-center justify-center ${isSelected ? "border-primary bg-primary" : ""}`}>
-                                  {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <span className="block text-slate-700 dark:text-slate-200 font-medium select-none">{option.content}</span>
-                                <ResourcePreview resource={option.resource} className="mt-2" />
-                              </div>
-                            </div>
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between pt-4">
-                <button
-                  onClick={() => setCurrentQuestionIndex((i) => Math.max(0, i - 1))}
-                  disabled={currentQuestionIndex === 0}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold transition-colors ${
-                    currentQuestionIndex === 0
-                      ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                      : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <ArrowLeftIcon className="h-5 w-5" />
-                  <span>Câu trước</span>
-                </button>
-                <button
-                  onClick={() => setCurrentQuestionIndex((i) => Math.min(questions.length - 1, i + 1))}
-                  disabled={currentQuestionIndex === questions.length - 1}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold shadow-md transition-all transform active:scale-95 ${
-                    currentQuestionIndex === questions.length - 1
-                      ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none"
-                      : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
-                  }`}
-                >
-                  <span>Câu tiếp theo</span>
-                  <ArrowRightIcon className="h-5 w-5" />
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </main>
@@ -595,14 +770,14 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
         <aside className="hidden lg:flex flex-col w-[320px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 z-20 shadow-xl shadow-slate-200/50 dark:shadow-none">
           <div className="p-5 border-b border-slate-200 dark:border-slate-800">
             <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-1">Danh sách câu hỏi</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Chọn một số để chuyển câu</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{isOnePageMode ? "Chọn một số để cuộn tới câu" : "Chọn một số để chuyển câu"}</p>
           </div>
           <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
             <div className="grid grid-cols-5 gap-3">
               {questions.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentQuestionIndex(index)}
+                  onClick={() => scrollToQuestion(index)}
                   className={getQuestionStatusClass(index)}
                 >
                   {index + 1}

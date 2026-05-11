@@ -5,8 +5,10 @@ export async function getLessonsByChapterId(chapterId) {
   return response.data;
 }
 
-export async function getLessonById(id) {
-  const response = await axiosClient.get(`lessons/${id}`);
+export async function getLessonById(id, classContentItemId = null) {
+  const response = await axiosClient.get(`lessons/${id}`, {
+    params: classContentItemId ? { classContentItemId } : {},
+  });
   return response.data;
 }
 

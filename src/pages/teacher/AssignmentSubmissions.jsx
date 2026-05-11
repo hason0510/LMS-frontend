@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { App, Button, InputNumber, Modal, Spin, Switch, Table } from "antd";
+import { App, Button, InputNumber, Modal, Spin, Table } from "antd";
 import dayjs from "dayjs";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -39,7 +39,6 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
   const [grading, setGrading] = useState(false);
   const [gradeValue, setGradeValue] = useState(null);
   const [feedback, setFeedback] = useState("");
-  const [returnToStudent, setReturnToStudent] = useState(false);
 
   const refreshData = async () => {
     try {
@@ -69,14 +68,12 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
     setSelectedSubmission(submission);
     setGradeValue(submission.grade ?? null);
     setFeedback(submission.feedback || "");
-    setReturnToStudent(submission.status === "RETURNED");
   };
 
   const closeGradeModal = () => {
     setSelectedSubmission(null);
     setGradeValue(null);
     setFeedback("");
-    setReturnToStudent(false);
   };
 
   const handleGrade = async () => {
@@ -91,7 +88,6 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
       await gradeSubmission(selectedSubmission.id, {
         grade: Number(gradeValue),
         feedback,
-        returnToStudent,
       });
       message.success("Đã chấm bài thành công");
       closeGradeModal();
@@ -266,7 +262,7 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            <div>
               <div>
                 <p className="text-sm font-medium text-slate-700 mb-2">Điểm</p>
                 <InputNumber
@@ -276,10 +272,6 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
                   value={gradeValue}
                   onChange={setGradeValue}
                 />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2">Trả bài sau khi chấm</p>
-                <Switch checked={returnToStudent} onChange={setReturnToStudent} />
               </div>
             </div>
 
@@ -296,7 +288,7 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
 
             <div className="flex justify-end gap-2">
               <Button onClick={handleReturnOnly} loading={grading}>
-                Trả bài (không chấm)
+                Trả bài không chấm
               </Button>
               <Button type="primary" onClick={handleGrade} loading={grading}>
                 Lưu điểm

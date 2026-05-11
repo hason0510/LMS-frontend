@@ -320,6 +320,154 @@
       "HARD": "Khó"
     }
   },
+  "questionBank": {
+    "quayLai": "Quay lại",
+    "nganHangCauHoi": "Ngân hàng câu hỏi",
+    "chinhSuaThongTin": "Chỉnh sửa thông tin",
+    "quanLyTag": "Quản lý tag",
+    "importGiftAiken": "Import GIFT/AIKEN (.txt)",
+    "exportGift": "Export GIFT (.txt)",
+    "themCauHoi": "Thêm câu hỏi",
+    "xoaBank": "Xóa bank",
+    "noiDungCauHoi": "Nội dung câu hỏi",
+    "loai": "Loại",
+    "doKho": "Độ khó",
+    "hanhDong": "Hành động",
+    "sua": "Sửa",
+    "xoa": "Xóa",
+    "huy": "Hủy",
+    "them": "Thêm",
+    "capNhat": "Cập nhật",
+    "taoMoi": "Tạo mới",
+    "thanhVienNganHang": "Thành viên ngân hàng câu hỏi",
+    "timUser": "Tìm user để thêm vào bank",
+    "ownerHienTai": "Owner hiện tại",
+    "chuyenOwner": "Chuyển OWNER",
+    "xacNhanXoaCauHoi": "Bạn có chắc chắn muốn xóa câu hỏi này?",
+    "xacNhanXoaBank": "Xác nhận xóa ngân hàng câu hỏi",
+    "hanhDongKhongHoanTac": "Hành động này không thể hoàn tác.",
+    "xacNhanXoaTag": "Xác nhận xóa tag",
+    "canhBaoDoiTenTag": "Cảnh báo đổi tên tag",
+    "tagDangDuocDung": "Tag \"{{name}}\" đang được dùng bởi {{q}} câu hỏi và {{r}} quiz rule. Đổi tên sẽ ảnh hưởng tất cả bản ghi đang dùng tag này.",
+    "tagDangDuocDungXoa": "Tag \"{{name}}\" đang được dùng bởi {{q}} câu hỏi và {{r}} quiz rule.",
+    "chuaCoTag": "Chưa có tag nào.",
+    "cauHoiVaQuizRule": "{{q}} câu hỏi, {{r}} quiz rule",
+    "taoTagMoi": "Tạo tag mới",
+    "dangSuaTag": "Đang sửa: \"{{name}}\"",
+    "taoNhieuTag": "Tạo nhiều tag (phân cách bằng dấu phẩy hoặc xuống dòng)",
+    "taoHangLoat": "Tạo hàng loạt",
+    "tenNganHang": "Tên ngân hàng câu hỏi",
+    "nhapTenNganHang": "Nhập tên ngân hàng câu hỏi",
+    "moTa": "Mô tả",
+    "nhapMoTa": "Nhập mô tả (tùy chọn)",
+    "khongCoMoTa": "Chưa có mô tả",
+    "tenTag": "Tên tag...",
+    "loi": "Lỗi",
+    "xoaCauHoiThanhCong": "Đã xóa câu hỏi",
+    "capNhatCauHoiThanhCong": "Cập nhật câu hỏi thành công",
+    "themCauHoiThanhCong": "Thêm câu hỏi thành công",
+    "daXoaTag": "Đã xóa tag",
+    "daTaoTag": "Đã tạo tag",
+    "daCapNhatTag": "Đã cập nhật tag",
+    "daTaoTagHangLoat": "Đã tạo {{count}} tag",
+    "xoaBankThanhCong": "Đã xóa ngân hàng câu hỏi",
+    "daThemThanhVien": "Đã thêm thành viên",
+    "daXoaThanhVien": "Đã xóa thành viên",
+    "daCapNhatRole": "Đã cập nhật role",
+    "capNhatThongTinThanhCong": "Cập nhật thông tin thành công",
+    "xacNhanChuyenOwner": "Xác nhận chuyển quyền sở hữu",
+    "xacNhanCapNhatRole": "Xác nhận cập nhật role",
+    "chuyenOwnerChoUser": "Bạn sẽ chuyển OWNER cho {{name}}.",
+    "capNhatRoleChoUser": "Cập nhật role của {{name}} thành {{role}}.",
+    "xoaThanhVienKhoiBank": "Xóa {{name}} khỏi ngân hàng câu hỏi?",
+    "xacNhanXoaThanhVien": "Xác nhận xóa thành viên",
+    "vuiLongNhapTen": "Vui lòng nhập tên",
+    "tenQuaDai": "Tên không được vượt quá 200 ký tự"
+  },
+  "quizEditor": {
+    "quizBadge": "Quiz",
+    "bankRuleBadge": "Ngân hàng câu hỏi",
+    "ruleIndex": "Rule {{index}}",
+    "bankRuleHint": "Câu hỏi sẽ được lấy từ ngân hàng đã chọn khi quiz này được sinh ra.",
+    "removeRule": "Xóa rule",
+    "matchSummary": "Số câu hiện tại",
+    "matchSummaryAll": "{{count}} câu hiện đang thỏa mãn điều kiện này",
+    "matchSummaryRandom": "{{eligible}} câu đủ điều kiện, hiện sẽ rút {{count}}",
+    "libraryTitle": "Thư viện câu hỏi",
+    "libraryQuestionCount": "{{count}} câu hỏi",
+    "emptyLibrary": "Không tìm thấy câu hỏi phù hợp",
+    "pickBankToBrowse": "Chọn ngân hàng câu hỏi để duyệt",
+    "emptyStateTitle": "Chưa có câu hỏi nào",
+    "emptyStateDescription": "Thêm câu hỏi thủ công hoặc gắn rule từ ngân hàng câu hỏi bên dưới.",
+    "qaPlaceholder": "Khu vực Q&A sẽ hiển thị câu hỏi của học viên về quiz này.",
+    "fields": {
+      "bank": "Ngân hàng câu hỏi",
+      "tags": "Tags",
+      "tagCondition": "Điều kiện tags",
+      "difficulty": "Độ khó",
+      "mode": "Cách chọn",
+      "count": "Số câu hỏi"
+    },
+    "placeholders": {
+      "selectBank": "Chọn ngân hàng câu hỏi",
+      "allTags": "Tất cả tags",
+      "anyDifficulty": "Mọi độ khó",
+      "randomCount": "Số câu muốn lấy",
+      "quizTitle": "Tên quiz...",
+      "searchQuestions": "Tìm câu hỏi"
+    },
+    "selectionModes": {
+      "ALL_MATCHED": "Lấy tất cả câu phù hợp",
+      "RANDOM": "Lấy ngẫu nhiên"
+    },
+    "tagMatchModes": {
+      "ANY": "Có ít nhất một tag",
+      "ALL": "Phải có tất cả tags"
+    },
+    "displayModes": {
+      "PAGINATION": "Phân trang",
+      "ONE_PAGE": "Một trang"
+    },
+    "defaults": {
+      "newQuizTitle": "Quiz mới",
+      "untitledQuiz": "Quiz chưa đặt tên"
+    },
+    "tabs": {
+      "questions": "Câu hỏi",
+      "questionsWithCount": "Câu hỏi ({{count}})",
+      "settings": "Cài đặt",
+      "qa": "Q&A"
+    },
+    "actions": {
+      "preview": "Xem trước",
+      "save": "Lưu",
+      "openLibrary": "Thư viện câu hỏi",
+      "addQuestion": "Thêm câu hỏi",
+      "addQuestionBank": "Thêm question bank"
+    },
+    "settings": {
+      "descriptionLabel": "Mô tả ngắn của quiz",
+      "descriptionPlaceholder": "Mô tả quiz",
+      "durationLabel": "Thời lượng quiz (phút, 0 = không giới hạn)",
+      "durationPlaceholder": "Không giới hạn",
+      "attemptsLabel": "Số lần làm",
+      "displayModeLabel": "Kiểu hiển thị quiz",
+      "shuffleQuestions": "Trộn thứ tự câu hỏi",
+      "showCorrectAnswer": "Hiển thị đáp án đúng",
+      "passingGradeLabel": "Điểm đạt (%)"
+    },
+    "messages": {
+      "loadQuizFailed": "Không thể tải quiz",
+      "loadBanksFailed": "Không thể tải danh sách question bank",
+      "loadBankQuestionsFailed": "Bạn không có quyền truy cập question bank này",
+      "titleRequired": "Vui lòng nhập tiêu đề quiz",
+      "quizSaved": "Đã lưu quiz",
+      "quizCreated": "Đã tạo quiz",
+      "saveQuizFailed": "Không thể lưu quiz",
+      "questionsAdded": "Đã thêm {{count}} câu hỏi",
+      "questionsAddedAction": "Thêm {{count}} câu hỏi"
+    }
+  },
   "quizAttempts": {
     "title": "Lượt làm quiz",
     "subtitle": "Theo dõi bài làm, điểm tạm thời và các câu cần chấm tay.",
@@ -359,5 +507,31 @@
     "loadFailed": "Không thể tải dữ liệu quiz attempts",
     "answerFeedback": "Nhận xét cho câu trả lời này",
     "instructorFeedback": "Phản hồi tổng thể của giáo viên"
+  },
+  "classContent": {
+    "unknownItem": "Không xác định",
+    "badges": {
+      "hidden": "Ẩn",
+      "locked": "Khóa",
+      "notOpenYet": "Chưa mở",
+      "closed": "Đã đóng"
+    },
+    "access": {
+      "waitForApproval": "Vui lòng chờ giáo viên duyệt đơn đăng ký để truy cập nội dung.",
+      "unavailable": "Nội dung này hiện chưa thể truy cập.",
+      "hidden": "Nội dung này đang bị ẩn",
+      "locked": "Nội dung này đang bị khóa",
+      "notOpenYet": "Nội dung này chưa đến thời gian mở",
+      "closed": "Nội dung này đã đóng",
+      "noEnrollment": "Bạn chưa được duyệt vào lớp học này",
+      "forbidden": "Bạn không có quyền truy cập nội dung này",
+      "byStatus": {
+        "HIDDEN": "Nội dung này đang bị ẩn",
+        "LOCKED": "Nội dung này đang bị khóa",
+        "NOT_OPEN_YET": "Nội dung này chưa đến thời gian mở",
+        "CLOSED": "Nội dung này đã đóng",
+        "NO_ENROLLMENT": "Bạn chưa được duyệt vào lớp học này"
+      }
+    }
   }
 }

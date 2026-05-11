@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Alert, Button, Input, message, Modal, Select, Spin, Table, Tag } from "antd";
-import { ArrowDownTrayIcon, ArrowLeftIcon, PlusCircleIcon, TagIcon, TrashIcon, UserPlusIcon } from "@heroicons/react/24/outline";
+import { Alert, Button, Dropdown, Form, Input, message, Modal, Select, Spin, Table, Tag } from "antd";
+import { ArrowDownTrayIcon, ArrowLeftIcon, ArrowUpTrayIcon, EllipsisHorizontalIcon, PencilSquareIcon, PlusCircleIcon, TagIcon, TrashIcon, UserPlusIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -22,15 +23,32 @@ import {
   removeMember,
   updateMemberRole,
   updateQuestion,
+  updateQuestionBank,
   updateTag,
 } from "../../api/questionBank";
 import { searchUsers } from "../../api/user";
 import QuestionModal from "../../components/teacher/QuestionModal";
 
+const toArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.content)) return value.content;
+  return [];
+};
+
+const toObject = (value) => {
+  if (value == null || typeof value !== "object") return null;
+  if (value.data && typeof value.data === "object" && !Array.isArray(value.data)) {
+    return value.data;
+  }
+  return value;
+};
+
 export default function QuestionBankDetail({ isAdmin = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const [bank, setBank] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,9 +76,16 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const [batchInput, setBatchInput] = useState("");
   const [tagActionLoading, setTagActionLoading] = useState(false);
 
+  const [editBankModalVisible, setEditBankModalVisible] = useState(false);
+  const [editBankLoading, setEditBankLoading] = useState(false);
+  const [editBankForm] = Form.useForm();
+
   const giftFileInputRef = useRef(null);
 
   const effectiveRole = user?.role === "ADMIN" ? "OWNER" : bank?.myRole;
+  const safeBankTags = useMemo(() => toArray(bankTags), [bankTags]);
+  const safeMembers = useMemo(() => toArray(members), [members]);
+  const safeQuestions = useMemo(() => toArray(bank?.questions), [bank?.questions]);
   const canEditContent = effectiveRole === "OWNER" || effectiveRole === "EDITOR";
   const canManageTags = canEditContent;
   const canManageMembers = effectiveRole === "OWNER";
@@ -88,7 +113,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const fetchBankTags = async () => {
     try {
       const res = await getTags(id);
-      setBankTags(res || []);
+      setBankTags(toArray(res));
     } catch {
       // non-blocking
     }
@@ -98,8 +123,8 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     try {
       setLoading(true);
       const [bankRes, tagsRes] = await Promise.all([getQuestionBankById(id), getTags(id)]);
-      setBank(bankRes);
-      setBankTags(tagsRes || []);
+      setBank(toObject(bankRes));
+      setBankTags(toArray(tagsRes));
       setError(null);
     } catch (err) {
       setError(err?.response?.data?.message || err.message);
@@ -112,9 +137,9 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     try {
       setMembersLoading(true);
       const res = await getMembers(id);
-      setMembers(res || []);
+      setMembers(toArray(res));
     } catch (err) {
-      message.error(err?.response?.data?.message || "Loi khi tai danh sach thanh vien");
+      message.error(err?.response?.data?.message || t("questionBank.loi"));
     } finally {
       setMembersLoading(false);
     }
@@ -122,13 +147,13 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
   const handleDeleteQuestion = async (questionId) => {
     if (!canEditContent) return;
-    if (!window.confirm("Ban co chac chan muon xoa cau hoi nay?")) return;
+    if (!window.confirm(t("questionBank.xacNhanXoaCauHoi"))) return;
     try {
       await deleteQuestion(questionId);
-      message.success("Da xoa cau hoi");
+      message.success(t("questionBank.xoaCauHoiThanhCong"));
       await fetchBank();
     } catch (err) {
-      message.error(err?.response?.data?.message || "Loi khi xoa cau hoi");
+      message.error(err?.response?.data?.message || t("questionBank.loi"));
     }
   };
 
@@ -138,16 +163,16 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       setSaveLoading(true);
       if (editingQuestion) {
         await updateQuestion(editingQuestion.id, values);
-        message.success("Cap nhat cau hoi thanh cong");
+        message.success(t("questionBank.capNhatCauHoiThanhCong"));
       } else {
         await createQuestion(id, values);
-        message.success("Them cau hoi thanh cong");
+        message.success(t("questionBank.themCauHoiThanhCong"));
       }
       setModalVisible(false);
       setEditingQuestion(null);
       await fetchBank();
     } catch (err) {
-      message.error(err?.response?.data?.message || "Loi khi luu cau hoi");
+      message.error(err?.response?.data?.message || t("questionBank.loi"));
     } finally {
       setSaveLoading(false);
     }
@@ -168,10 +193,10 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         setTagActionLoading(true);
         if (editingTag) {
           await updateTag(id, editingTag.id, { name });
-          message.success("Da cap nhat tag");
+          message.success(t("questionBank.daCapNhatTag"));
         } else {
           await createTag(id, { name });
-          message.success("Da tao tag");
+          message.success(t("questionBank.daTaoTag"));
         }
         setTagInput("");
         setEditingTag(null);
@@ -182,7 +207,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
           await fetchBankTags();
         }
       } catch (err) {
-        message.error(err?.response?.data?.message || "Loi khi luu tag");
+        message.error(err?.response?.data?.message || t("questionBank.loi"));
       } finally {
         setTagActionLoading(false);
       }
@@ -190,8 +215,8 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
     if (editingTag && editingTag.totalUsageCount > 0 && editingTag.name !== name) {
       Modal.confirm({
-        title: "Canh bao doi ten tag",
-        content: `Tag "${editingTag.name}" dang duoc dung boi ${editingTag.questionUsageCount || 0} cau hoi va ${editingTag.quizUsageCount || 0} quiz rule. Doi ten se anh huong tat ca ban ghi dang dung tag nay.`,
+        title: t("questionBank.canhBaoDoiTenTag"),
+        content: t("questionBank.tagDangDuocDung", { name: editingTag.name, q: editingTag.questionUsageCount || 0, r: editingTag.quizUsageCount || 0 }),
         onOk: runSave,
       });
       return;
@@ -206,17 +231,17 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     const quizUsageCount = tag?.quizUsageCount || 0;
 
     Modal.confirm({
-      title: "Xac nhan xoa tag",
-      content: `Tag "${tag?.name}" dang duoc dung boi ${questionUsageCount} cau hoi va ${quizUsageCount} quiz rule.`,
+      title: t("questionBank.xacNhanXoaTag"),
+      content: t("questionBank.tagDangDuocDungXoa", { name: tag?.name, q: questionUsageCount, r: quizUsageCount }),
       onOk: async () => {
         try {
           setTagActionLoading(true);
           await deleteTag(id, tag.id);
-          message.success("Da xoa tag");
+          message.success(t("questionBank.daXoaTag"));
           await fetchBank();
           await fetchBankTags();
         } catch (err) {
-          message.error(err?.response?.data?.message || "Khong the xoa tag");
+          message.error(err?.response?.data?.message || t("questionBank.loi"));
         } finally {
           setTagActionLoading(false);
         }
@@ -234,11 +259,11 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     try {
       setTagActionLoading(true);
       await createTagsBatch(id, names);
-      message.success(`Da tao ${names.length} tag`);
+      message.success(t("questionBank.daTaoTagHangLoat", { count: names.length }));
       setBatchInput("");
       await fetchBankTags();
     } catch (err) {
-      message.error(err?.response?.data?.message || "Loi khi tao batch tag");
+      message.error(err?.response?.data?.message || t("questionBank.loi"));
     } finally {
       setTagActionLoading(false);
     }
@@ -257,17 +282,17 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     try {
       setImportLoading(true);
       const response = await importGiftQuestions(id, file);
-      const result = response;
+      const result = toObject(response) || {};
       const imported = result?.importedQuestions ?? 0;
       const skipped = result?.skippedQuestions ?? 0;
 
-      message.success(`Da import ${imported} cau hoi`);
+      message.success(t("questionBank.importThanhCong", `Đã import ${imported} câu hỏi`));
       if (skipped > 0) {
         Modal.warning({
-          title: `Co ${skipped} cau bi bo qua`,
+          title: t("questionBank.coCauHoiBoQua", `Có ${skipped} câu bị bỏ qua`),
           content: (
             <div className="whitespace-pre-wrap max-h-64 overflow-auto text-xs leading-5">
-              {(result?.warnings || []).join("\n") || "Mot so cau hoi khong dung dinh dang GIFT/AIKEN duoc ho tro."}
+              {(result?.warnings || []).join("\n") || t("questionBank.importCanhBao", "Một số câu hỏi không đúng định dạng GIFT/AIKEN được hỗ trợ.")}
             </div>
           ),
           width: 640,
@@ -275,7 +300,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       }
       await fetchBank();
     } catch (err) {
-      message.error(err?.response?.data?.message || "Import GIFT/AIKEN that bai");
+      message.error(err?.response?.data?.message || t("questionBank.importThatBai", "Import GIFT/AIKEN thất bại"));
     } finally {
       setImportLoading(false);
     }
@@ -299,9 +324,9 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       anchor.click();
       document.body.removeChild(anchor);
       URL.revokeObjectURL(downloadUrl);
-      message.success("Da export GIFT");
+      message.success(t("questionBank.exportThanhCong", "Đã export GIFT"));
     } catch (err) {
-      message.error(err?.response?.data?.message || "Export GIFT that bai");
+      message.error(err?.response?.data?.message || t("questionBank.exportThatBai", "Export GIFT thất bại"));
     } finally {
       setExportLoading(false);
     }
@@ -310,22 +335,43 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const handleDeleteBank = () => {
     if (!canDeleteBank) return;
     Modal.confirm({
-      title: "Xac nhan xoa question bank",
-      content: "Hanh dong nay khong the hoan tac.",
+      title: t("questionBank.xacNhanXoaBank"),
+      content: t("questionBank.hanhDongKhongHoanTac"),
       okButtonProps: { danger: true, loading: deleteBankLoading },
       onOk: async () => {
         try {
           setDeleteBankLoading(true);
           await deleteQuestionBank(id);
-          message.success("Da xoa question bank");
+          message.success(t("questionBank.xoaBankThanhCong"));
           navigate(isAdmin ? "/admin/question-banks" : "/teacher/question-banks");
         } catch (err) {
-          message.error(err?.response?.data?.message || "Khong the xoa question bank");
+          message.error(err?.response?.data?.message || t("questionBank.loi"));
         } finally {
           setDeleteBankLoading(false);
         }
       },
     });
+  };
+
+  const handleOpenEditBank = () => {
+    editBankForm.setFieldsValue({ name: bank.name, description: bank.description || "" });
+    setEditBankModalVisible(true);
+  };
+
+  const handleUpdateBank = async () => {
+    try {
+      const values = await editBankForm.validateFields();
+      setEditBankLoading(true);
+      await updateQuestionBank(id, values);
+      message.success(t("questionBank.capNhatThongTinThanhCong"));
+      setEditBankModalVisible(false);
+      await fetchBank();
+    } catch (err) {
+      if (err?.errorFields) return;
+      message.error(err?.response?.data?.message || t("questionBank.loi"));
+    } finally {
+      setEditBankLoading(false);
+    }
   };
 
   const loadMemberSearchOptions = async (keyword) => {
@@ -343,9 +389,13 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         userName: query,
         fullName: query,
       });
-      const payload = res;
-      const users = payload?.pageList || [];
-      const existingIds = new Set((members || []).map((m) => m.userId));
+      const payload = res?.data ?? res;
+      const users = Array.isArray(payload?.pageList)
+        ? payload.pageList
+        : Array.isArray(payload)
+          ? payload
+          : [];
+      const existingIds = new Set(safeMembers.map((m) => m.userId));
       setMemberSearchOptions(
         users
           .filter((item) => item?.id && !existingIds.has(item.id))
@@ -366,12 +416,12 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     try {
       setMemberActionLoading(true);
       await addMember(id, { userId: selectedMemberId, role: selectedMemberRole });
-      message.success("Da them thanh vien");
+      message.success(t("questionBank.daThemThanhVien"));
       setSelectedMemberId(null);
       setMemberSearchOptions([]);
       await Promise.all([fetchMembers(), fetchBank()]);
     } catch (err) {
-      message.error(err?.response?.data?.message || "Loi khi them thanh vien");
+      message.error(err?.response?.data?.message || t("questionBank.loi"));
     } finally {
       setMemberActionLoading(false);
     }
@@ -382,18 +432,18 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
     const isTransferOwner = role === "OWNER";
     Modal.confirm({
-      title: isTransferOwner ? "Xac nhan chuyen quyen so huu" : "Xac nhan cap nhat role",
+      title: isTransferOwner ? t("questionBank.xacNhanChuyenOwner") : t("questionBank.xacNhanCapNhatRole"),
       content: isTransferOwner
-        ? `Ban se chuyen OWNER cho ${member?.fullName || member?.userName}.`
-        : `Cap nhat role cua ${member?.fullName || member?.userName} thanh ${role}.`,
+        ? t("questionBank.chuyenOwnerChoUser", { name: member?.fullName || member?.userName })
+        : t("questionBank.capNhatRoleChoUser", { name: member?.fullName || member?.userName, role }),
       onOk: async () => {
         try {
           setMemberActionLoading(true);
           await updateMemberRole(id, member.userId, { role });
-          message.success("Da cap nhat role");
+          message.success(t("questionBank.daCapNhatRole"));
           await Promise.all([fetchMembers(), fetchBank()]);
         } catch (err) {
-          message.error(err?.response?.data?.message || "Loi khi cap nhat role");
+          message.error(err?.response?.data?.message || t("questionBank.loi"));
         } finally {
           setMemberActionLoading(false);
         }
@@ -404,16 +454,16 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const handleRemoveMember = (member) => {
     if (!canManageMembers) return;
     Modal.confirm({
-      title: "Xac nhan xoa thanh vien",
-      content: `Xoa ${member?.fullName || member?.userName} khoi question bank?`,
+      title: t("questionBank.xacNhanXoaThanhVien"),
+      content: t("questionBank.xoaThanhVienKhoiBank", { name: member?.fullName || member?.userName }),
       onOk: async () => {
         try {
           setMemberActionLoading(true);
           await removeMember(id, member.userId);
-          message.success("Da xoa thanh vien");
+          message.success(t("questionBank.daXoaThanhVien"));
           await Promise.all([fetchMembers(), fetchBank()]);
         } catch (err) {
-          message.error(err?.response?.data?.message || "Loi khi xoa thanh vien");
+          message.error(err?.response?.data?.message || t("questionBank.loi"));
         } finally {
           setMemberActionLoading(false);
         }
@@ -428,19 +478,19 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       key: "id",
     },
     {
-      title: "Noi dung cau hoi",
+      title: t("questionBank.noiDungCauHoi"),
       dataIndex: "content",
       key: "content",
       render: (text) => <div className="line-clamp-2 max-w-md" dangerouslySetInnerHTML={{ __html: text }} />,
     },
     {
-      title: "Loai",
+      title: t("questionBank.loai"),
       dataIndex: "type",
       key: "type",
       render: (type) => <Tag color="blue">{type}</Tag>,
     },
     {
-      title: "Do kho",
+      title: t("questionBank.doKho"),
       dataIndex: "difficultyLevel",
       key: "difficultyLevel",
       render: (diff) => {
@@ -454,8 +504,8 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       key: "tags",
       render: (tags) => (
         <div className="flex flex-wrap gap-1">
-          {(tags || []).map((t) => (
-            <Tag key={t.id} color="geekblue">{t.name}</Tag>
+          {(tags || []).map((tag) => (
+            <Tag key={tag.id} color="geekblue">{tag.name}</Tag>
           ))}
         </div>
       ),
@@ -464,20 +514,51 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
   if (canEditContent) {
     columns.push({
-      title: "Hanh dong",
+      title: t("questionBank.hanhDong"),
       key: "action",
       render: (_, record) => (
         <div className="flex gap-2">
           <Button size="small" onClick={() => handleEditQuestion(record)}>
-            Sua
+            {t("questionBank.sua")}
           </Button>
           <Button size="small" danger onClick={() => handleDeleteQuestion(record.id)}>
-            Xoa
+            {t("questionBank.xoa")}
           </Button>
         </div>
       ),
     });
   }
+
+  const actionMenuItems = [
+    ...(canManageTags ? [{
+      key: 'manage_tags',
+      icon: <TagIcon className="w-4 h-4" />,
+      label: t("questionBank.quanLyTag") || "Quản lý tag",
+      onClick: () => setTagModalVisible(true),
+    }] : []),
+    ...(canEditContent ? [{
+      key: 'import_gift',
+      icon: <ArrowUpTrayIcon className="w-4 h-4" />,
+      label: t("questionBank.importGiftAiken") || "Import GIFT/AIKEN (.txt)",
+      onClick: handlePickGiftFile,
+    },
+    {
+      key: 'export_gift',
+      icon: <ArrowDownTrayIcon className="w-4 h-4" />,
+      label: t("questionBank.exportGift") || "Export GIFT (.txt)",
+      onClick: handleExportGift,
+    }] : []),
+    ...(canDeleteBank ? [
+      { type: 'divider', key: 'divider' },
+      {
+        key: 'delete_bank',
+        danger: true,
+        icon: <TrashIcon className="w-4 h-4" />,
+        label: t("questionBank.xoaBank") || "Xóa bank",
+        onClick: handleDeleteBank,
+      }
+    ] : [])
+  ];
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-[#111418] dark:text-white">
@@ -487,8 +568,8 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         <main className={`flex-1 pt-16 bg-slate-50 dark:bg-slate-900 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           <div className="px-6 py-8 mx-auto max-w-5xl">
             <div className="mb-4">
-              <Button type="link" icon={<ArrowLeftIcon className="w-4 h-4" />} onClick={() => navigate(-1)} className="p-0">
-                Quay lai
+              <Button type="link" icon={<ArrowLeftIcon className="w-4 h-4" />} onClick={() => navigate(-1)} className="p-0 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                {t("questionBank.quayLai") || "Quay lại"}
               </Button>
             </div>
 
@@ -500,18 +581,21 @@ export default function QuestionBankDetail({ isAdmin = false }) {
               <Alert type="error" message="Loi" description={error} />
             ) : bank ? (
               <>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h1 className="text-2xl font-bold">{bank.name}</h1>
-                    <p className="text-gray-500">{bank.description}</p>
-                    <div className="mt-1">
-                      <Tag color={effectiveRole === "OWNER" ? "gold" : effectiveRole === "EDITOR" ? "blue" : "default"}>
-                        {effectiveRole || "VIEWER"}
-                      </Tag>
+                <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
+                  <div className="flex items-start gap-4">
+
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight flex flex-wrap items-center gap-2">
+                        {bank.name}
+                        <Tag className="ml-1 !mr-0 border-0 shadow-sm" color={effectiveRole === "OWNER" ? "gold" : effectiveRole === "EDITOR" ? "blue" : "default"}>
+                          {effectiveRole || "VIEWER"}
+                        </Tag>
+                      </h1>
+                      <p className="text-gray-500 mt-1.5 text-sm">{bank.description || "No description"}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                     <input
                       ref={giftFileInputRef}
                       type="file"
@@ -519,57 +603,42 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                       className="hidden"
                       onChange={handleGiftFileSelected}
                     />
-                    {canManageTags && (
-                      <Button
-                        icon={<TagIcon className="w-4 h-4" />}
-                        className="flex items-center gap-1"
-                        onClick={() => setTagModalVisible(true)}
-                      >
-                        Quan ly tag
-                      </Button>
+                    
+                    {actionMenuItems.length > 0 && (
+                      <Dropdown menu={{ items: actionMenuItems }} trigger={['click']} placement="bottomRight">
+                        <Button className="flex items-center justify-center rounded-full px-2.5 bg-white border-gray-200 hover:bg-gray-50 shadow-sm h-9">
+                           <EllipsisHorizontalIcon className="w-5 h-5 text-gray-600" />
+                        </Button>
+                      </Dropdown>
                     )}
-                    {canEditContent && (
-                      <Button onClick={handlePickGiftFile} loading={importLoading}>
-                        Import GIFT/AIKEN (.txt)
-                      </Button>
-                    )}
-                    {canEditContent && (
-                      <Button icon={<ArrowDownTrayIcon className="w-4 h-4" />} loading={exportLoading} onClick={handleExportGift}>
-                        Export GIFT (.txt)
-                      </Button>
-                    )}
+
                     {canEditContent && (
                       <Button
                         type="primary"
                         icon={<PlusCircleIcon className="w-5 h-5" />}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 border-0 px-5 shadow-sm h-9"
                         onClick={() => {
                           setEditingQuestion(null);
                           setModalVisible(true);
                         }}
                       >
-                        Them cau hoi
-                      </Button>
-                    )}
-                    {canDeleteBank && (
-                      <Button danger icon={<TrashIcon className="w-4 h-4" />} onClick={handleDeleteBank}>
-                        Xoa bank
+                        {t("questionBank.themCauHoi") || "Thêm câu hỏi"}
                       </Button>
                     )}
                   </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                  <Table dataSource={bank.questions || []} columns={columns} rowKey="id" pagination={{ pageSize: 15 }} />
+                  <Table dataSource={safeQuestions} columns={columns} rowKey="id" pagination={{ pageSize: 15 }} />
                 </div>
 
                 {canManageMembers && (
                   <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mt-6">
-                    <h3 className="text-lg font-semibold mb-4">Thanh vien question bank</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-2 mb-4">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">{t("questionBank.thanhVienNganHang")}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3 mb-5">
                       <Select
                         showSearch
-                        placeholder="Tim user de them vao bank"
+                        placeholder={t("questionBank.timUser")}
                         value={selectedMemberId}
                         options={memberSearchOptions}
                         filterOption={false}
@@ -586,19 +655,20 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           { value: "VIEWER", label: "VIEWER" },
                         ]}
                       />
-                      <Button type="primary" icon={<UserPlusIcon className="w-4 h-4" />} loading={memberActionLoading} onClick={handleAddMember}>
-                        Them
+                      <Button type="primary" icon={<UserPlusIcon className="w-4 h-4" />} loading={memberActionLoading} onClick={handleAddMember} className="bg-blue-600 hover:bg-blue-700 h-8">
+                        {t("questionBank.them")}
                       </Button>
                     </div>
 
                     <Table
                       rowKey="id"
                       loading={membersLoading}
-                      dataSource={members || []}
+                      dataSource={safeMembers}
                       pagination={false}
+                      className="border border-gray-100 dark:border-gray-800 rounded-md overflow-hidden"
                       columns={[
                         {
-                          title: "Thanh vien",
+                          title: t("common.thanhVien", "Thành viên"),
                           key: "user",
                           render: (_, record) => (
                             <div>
@@ -611,32 +681,32 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           title: "Role",
                           dataIndex: "role",
                           key: "role",
-                          render: (role) => <Tag color={role === "OWNER" ? "gold" : role === "EDITOR" ? "blue" : "default"}>{role}</Tag>,
+                          render: (role) => <Tag color={role === "OWNER" ? "gold" : role === "EDITOR" ? "blue" : "default"} className="m-0 font-medium">{role}</Tag>,
                         },
                         {
-                          title: "Hanh dong",
+                          title: t("questionBank.hanhDong"),
                           key: "action",
                           render: (_, record) => {
                             if (record.role === "OWNER") {
-                              return <span className="text-xs text-slate-500">Owner hien tai</span>;
+                              return <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">{t("questionBank.ownerHienTai")}</span>;
                             }
                             return (
                               <div className="flex flex-wrap gap-2">
                                 {record.role !== "EDITOR" && (
-                                  <Button size="small" onClick={() => handleSetMemberRole(record, "EDITOR")} loading={memberActionLoading}>
+                                  <Button size="small" onClick={() => handleSetMemberRole(record, "EDITOR")} loading={memberActionLoading} className="text-xs">
                                     Set EDITOR
                                   </Button>
                                 )}
                                 {record.role !== "VIEWER" && (
-                                  <Button size="small" onClick={() => handleSetMemberRole(record, "VIEWER")} loading={memberActionLoading}>
+                                  <Button size="small" onClick={() => handleSetMemberRole(record, "VIEWER")} loading={memberActionLoading} className="text-xs">
                                     Set VIEWER
                                   </Button>
                                 )}
-                                <Button size="small" onClick={() => handleSetMemberRole(record, "OWNER")} loading={memberActionLoading}>
-                                  Chuyen OWNER
+                                <Button size="small" onClick={() => handleSetMemberRole(record, "OWNER")} loading={memberActionLoading} className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50 hover:border-amber-400">
+                                  {t("questionBank.chuyenOwner")}
                                 </Button>
-                                <Button size="small" danger onClick={() => handleRemoveMember(record)} loading={memberActionLoading}>
-                                  Xoa
+                                <Button size="small" danger onClick={() => handleRemoveMember(record)} loading={memberActionLoading} className="text-xs">
+                                  {t("questionBank.xoa")}
                                 </Button>
                               </div>
                             );
@@ -656,12 +726,12 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                   onFinish={handleSaveQuestion}
                   initialValues={editingQuestion}
                   loading={saveLoading}
-                  existingTags={bankTags}
+                  existingTags={safeBankTags}
                   questionBankId={id}
                 />
 
                 <Modal
-                  title="Quan ly tag"
+                  title={<span className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("questionBank.quanLyTag")}</span>}
                   open={tagModalVisible}
                   onCancel={() => {
                     setTagModalVisible(false);
@@ -672,17 +742,21 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                   footer={null}
                   width={560}
                   destroyOnHidden
+                  className="rounded-xl overflow-hidden"
                 >
-                  <div className="mb-4 max-h-56 overflow-y-auto space-y-1">
-                    {bankTags.length === 0 && (
-                      <p className="text-sm text-gray-400">Chua co tag nao.</p>
+                  <div className="mb-5 max-h-64 overflow-y-auto space-y-2 pr-1">
+                    {safeBankTags.length === 0 && (
+                      <div className="text-center py-6 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-gray-200 dark:border-slate-700">
+                        <TagIcon className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t("questionBank.chuaCoTag")}</p>
+                      </div>
                     )}
-                    {bankTags.map((t) => (
-                      <div key={t.id} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded bg-slate-50 dark:bg-slate-800">
-                        <div className="flex items-center gap-2">
-                          <Tag color="geekblue">{t.name}</Tag>
-                          <span className="text-xs text-slate-500">
-                            {t.questionUsageCount || 0} cau hoi, {t.quizUsageCount || 0} quiz rule
+                    {safeBankTags.map((tag) => (
+                      <div key={tag.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                          <Tag color="geekblue" className="m-0 w-fit">{tag.name}</Tag>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {t("questionBank.cauHoiVaQuizRule", { q: tag.questionUsageCount || 0, r: tag.quizUsageCount || 0 })}
                           </span>
                         </div>
                         {canManageTags && (
@@ -690,19 +764,20 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                             <Button
                               size="small"
                               onClick={() => {
-                                setEditingTag(t);
-                                setTagInput(t.name);
+                                setEditingTag(tag);
+                                setTagInput(tag.name);
                               }}
                             >
-                              Sua
+                              {t("questionBank.sua")}
                             </Button>
                             <Button
                               size="small"
                               danger
                               loading={tagActionLoading}
-                              onClick={() => handleDeleteTag(t)}
+                              onClick={() => handleDeleteTag(tag)}
+                              className="text-xs"
                             >
-                              Xoa
+                              {t("questionBank.xoa")}
                             </Button>
                           </div>
                         )}
@@ -711,28 +786,30 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                   </div>
 
                   {canManageTags && (
-                    <div className="border-t pt-4 mb-4">
-                      <p className="text-sm font-medium mb-2">
-                        {editingTag ? `Dang sua: "${editingTag.name}"` : "Tao tag moi"}
+                    <div className="border-t border-gray-100 dark:border-slate-700 pt-5 mb-5">
+                      <p className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                        <PencilSquareIcon className="w-4 h-4 text-blue-500" />
+                        {editingTag ? t("questionBank.dangSuaTag", { name: editingTag.name }) : t("questionBank.taoTagMoi")}
                       </p>
                       <div className="flex gap-2">
                         <Input
                           value={tagInput}
                           onChange={(e) => setTagInput(e.target.value)}
-                          placeholder="Ten tag..."
+                          placeholder={t("questionBank.tenTag")}
                           onPressEnter={handleSaveTag}
-                          className="flex-1"
+                          className="flex-1 rounded-lg"
                         />
                         <Button
                           type="primary"
                           loading={tagActionLoading}
                           onClick={handleSaveTag}
+                          className="rounded-lg bg-blue-600 hover:bg-blue-700"
                         >
-                          {editingTag ? "Cap nhat" : "Tao"}
+                          {editingTag ? t("questionBank.capNhat") : t("questionBank.taoMoi", "Tạo mới")}
                         </Button>
                         {editingTag && (
-                          <Button onClick={() => { setEditingTag(null); setTagInput(""); }}>
-                            Huy
+                          <Button onClick={() => { setEditingTag(null); setTagInput(""); }} className="rounded-lg">
+                            {t("questionBank.huy")}
                           </Button>
                         )}
                       </div>
@@ -740,8 +817,11 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                   )}
 
                   {canManageTags && (
-                    <div className="border-t pt-4">
-                      <p className="text-sm font-medium mb-2">Tao nhieu tag (phan cach bang dau phay hoac xuong dong)</p>
+                    <div className="border-t border-gray-100 dark:border-slate-700 pt-5">
+                      <p className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                         <PlusCircleIcon className="w-4 h-4 text-emerald-500" />
+                         {t("questionBank.taoNhieuTag")}
+                      </p>
                       <Input.TextArea
                         rows={3}
                         value={batchInput}
@@ -749,11 +829,12 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                         placeholder="chuong-1, chuong-2&#10;dinh-ly-pythagore"
                       />
                       <Button
-                        className="mt-2"
+                        className="mt-3 rounded-lg bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-medium"
                         loading={tagActionLoading}
                         onClick={handleBatchCreate}
+                        icon={<PlusCircleIcon className="w-4 h-4" />}
                       >
-                        Tao hang loat
+                        {t("questionBank.taoHangLoat")}
                       </Button>
                     </div>
                   )}

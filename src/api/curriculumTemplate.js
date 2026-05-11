@@ -102,6 +102,13 @@ export const getQuizTemplateById = async (id) => {
   return response.data;
 };
 
+export const getQuizTemplatePreviewSample = async (id, seed) => {
+  const response = await axiosClient.get(`curriculum-templates/quiz-templates/${id}/preview-sample`, {
+    params: seed == null ? {} : { seed },
+  });
+  return response.data;
+};
+
 export const updateQuizTemplate = async (id, data) => {
   const response = await axiosClient.put(`curriculum-templates/quiz-templates/${id}`, data);
   return response.data;

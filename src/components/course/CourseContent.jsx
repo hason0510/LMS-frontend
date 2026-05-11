@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import {
   PlusIcon,
   EllipsisVerticalIcon,
@@ -8,6 +9,7 @@ import {
   ChevronDownIcon,
   PencilSquareIcon,
   AcademicCapIcon,
+  ChatBubbleLeftRightIcon,
   ChatBubbleLeftEllipsisIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -31,6 +33,7 @@ import dayjs from "dayjs";
 const canManageRole = (role) => role === "TEACHER" || role === "ADMIN";
 
 export default function CourseContent({ enrollmentStatus = null }) {
+  const { t } = useTranslation();
   const { message } = App.useApp();
   const { user } = useAuth();
   const { id: classSectionId } = useParams();
@@ -73,6 +76,18 @@ export default function CourseContent({ enrollmentStatus = null }) {
   // Comment drawer
   const [commentDrawer, setCommentDrawer] = useState({ open: false, lessonId: null, title: "" });
   const closeCommentDrawer = () => setCommentDrawer({ open: false, lessonId: null, title: "" });
+
+  const resolveItemAccessMessage = (item) => {
+    if (item?.accessMessageKey) {
+      return t(item.accessMessageKey);
+    }
+    if (item?.availabilityStatus) {
+      return t(`classContent.access.byStatus.${item.availabilityStatus}`, {
+        defaultValue: item.accessMessage || t("classContent.access.unavailable"),
+      });
+    }
+    return item?.accessMessage || t("classContent.access.unavailable");
+  };
 
   useEffect(() => {
     fetchChapters();
@@ -174,16 +189,21 @@ export default function CourseContent({ enrollmentStatus = null }) {
   // ── Item click navigation (FIXED: use lessonId / quizId) ──────────────────
   const handleClickItem = (item) => {
     if (isStudentNotApproved) {
-      message.warning("Vui lòng chờ giáo viên duyệt đơn đăng ký để truy cập nội dung.");
+      message.warning(t("classContent.access.waitForApproval"));
+      return;
+    }
+    if (userRole === "STUDENT" && item.accessible === false) {
+      message.warning(resolveItemAccessMessage(item));
       return;
     }
 
     const role = userRole?.toLowerCase();
+    const classContentQuery = `?classContentItemId=${item.id}`;
 
     if (item.itemType === "LESSON") {
       const lectureId = item.lessonId || item.id;
       if (userRole === "STUDENT") {
-        navigate(`/class-sections/${classSectionId}/lectures/${lectureId}`, {
+        navigate(`/class-sections/${classSectionId}/lectures/${lectureId}${classContentQuery}`, {
           state: { classContentItemId: item.id },
         });
       } else {
@@ -194,7 +214,7 @@ export default function CourseContent({ enrollmentStatus = null }) {
     } else if (item.itemType === "QUIZ") {
       const quizId = item.quizId || item.id;
       if (userRole === "STUDENT") {
-        navigate(`/class-sections/${classSectionId}/quizzes/${quizId}/detail`, {
+        navigate(`/class-sections/${classSectionId}/quizzes/${quizId}/detail${classContentQuery}`, {
           state: { classContentItemId: item.id },
         });
       } else {
@@ -205,7 +225,7 @@ export default function CourseContent({ enrollmentStatus = null }) {
     } else if (item.itemType === "ASSIGNMENT") {
       const currentAssignmentId = item.assignmentId || item.id;
       if (userRole === "STUDENT") {
-        navigate(`/class-sections/${classSectionId}/assignments/${currentAssignmentId}`, {
+        navigate(`/class-sections/${classSectionId}/assignments/${currentAssignmentId}${classContentQuery}`, {
           state: { classContentItemId: item.id },
         });
       } else {
@@ -267,7 +287,6 @@ export default function CourseContent({ enrollmentStatus = null }) {
   const handleOpenEditItem = (e, chapterId, item) => {
     e.stopPropagation();
     editItemForm.setFieldsValue({
-      title: item.title,
       hidden: item.hidden || false,
       locked: item.locked || false,
       availableFrom: item.availableFrom ? dayjs(item.availableFrom) : null,
@@ -280,7 +299,6 @@ export default function CourseContent({ enrollmentStatus = null }) {
     try {
       setSavingItem(true);
       await updateClassContentItem(classSectionId, editItemModal.item.id, {
-        title: values.title,
         hidden: values.hidden,
         locked: values.locked,
         availableFrom: values.availableFrom?.toISOString() || null,
@@ -351,7 +369,7 @@ export default function CourseContent({ enrollmentStatus = null }) {
       },
       {
         key: "add-assignment",
-        label: "ThÃªm bÃ i táº­p",
+        label: "Thêm bài tập",
         onClick: () =>
           navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/assignments/create`),
       },
@@ -542,11 +560,13 @@ export default function CourseContent({ enrollmentStatus = null }) {
                       <div className="space-y-2">
                         {items.map((item, itemIndex) => {
                           const tc = getTypeConfig(item.itemType);
+                          const isStudentBlocked =
+                            isStudentNotApproved || (userRole === "STUDENT" && item.accessible === false);
                           return (
                             <div
                               key={item.id}
                               className={`p-3.5 bg-slate-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 flex items-center gap-3 transition-all ${
-                                isStudentNotApproved
+                                isStudentBlocked
                                   ? "opacity-70 cursor-not-allowed"
                                   : "hover:shadow-sm hover:border-primary/30 cursor-pointer"
                               }`}
@@ -562,18 +582,28 @@ export default function CourseContent({ enrollmentStatus = null }) {
                               {/* Title + badges */}
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm text-[#111418] dark:text-white truncate">
-                                  {item.title || "Không xác định"}
+                                  {item.displayTitle || item.title || t("classContent.unknownItem")}
                                 </p>
                                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                   <span className="text-xs text-gray-500 dark:text-gray-400">{tc.label}</span>
                                   {item.hidden && (
                                     <span className="text-[10px] font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full">
-                                      Ẩn
+                                      {t("classContent.badges.hidden")}
                                     </span>
                                   )}
                                   {item.locked && (
                                     <span className="text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full">
-                                      Khóa
+                                      {t("classContent.badges.locked")}
+                                    </span>
+                                  )}
+                                  {item.availabilityStatus === "NOT_OPEN_YET" && (
+                                    <span className="text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
+                                      {t("classContent.badges.notOpenYet")}
+                                    </span>
+                                  )}
+                                  {item.availabilityStatus === "CLOSED" && (
+                                    <span className="text-[10px] font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded-full">
+                                      {t("classContent.badges.closed")}
                                     </span>
                                   )}
                                 </div>
@@ -585,6 +615,22 @@ export default function CourseContent({ enrollmentStatus = null }) {
                                   className="flex items-center gap-0.5 shrink-0"
                                   onClick={(e) => e.stopPropagation()}
                                 >
+                                  {item.itemType === "LESSON" && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCommentDrawer({
+                                          open: true,
+                                          lessonId: item.lessonId || item.id,
+                                          title: item.displayTitle || item.title,
+                                        });
+                                      }}
+                                      className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500 transition-colors"
+                                      title="Xem bình luận học sinh"
+                                    >
+                                      <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                                    </button>
+                                  )}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -607,18 +653,6 @@ export default function CourseContent({ enrollmentStatus = null }) {
                                   >
                                     <ChevronDownIcon className="h-4 w-4" />
                                   </button>
-                                  {item.itemType === "LESSON" && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCommentDrawer({ open: true, lessonId: item.lessonId || item.id, title: item.title });
-                                      }}
-                                      className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500 transition-colors"
-                                      title="Xem bình luận học sinh"
-                                    >
-                                      <ChatBubbleLeftEllipsisIcon className="h-4 w-4" />
-                                    </button>
-                                  )}
                                   <button
                                     onClick={(e) => handleOpenEditItem(e, chapter.id, item)}
                                     className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-colors"
@@ -632,7 +666,7 @@ export default function CourseContent({ enrollmentStatus = null }) {
                                       Modal.confirm({
                                         title: "Xác nhận xóa nội dung",
                                         icon: <ExclamationCircleOutlined />,
-                                        content: `Xóa "${item.title}"?`,
+                                        content: `Xóa "${item.displayTitle || item.title}"?`,
                                         okText: "Xóa",
                                         cancelText: "Hủy",
                                         okButtonProps: { danger: true },
@@ -801,13 +835,6 @@ export default function CourseContent({ enrollmentStatus = null }) {
         width={480}
       >
         <Form form={editItemForm} layout="vertical" onFinish={handleSaveItem} className="mt-4">
-          <Form.Item
-            label="Tiêu đề"
-            name="title"
-            rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
-          >
-            <Input placeholder="Nhập tiêu đề nội dung..." />
-          </Form.Item>
           <div className="grid grid-cols-2 gap-4">
             <Form.Item label="Ẩn với học sinh" name="hidden" valuePropName="checked">
               <Switch />
@@ -837,34 +864,24 @@ export default function CourseContent({ enrollmentStatus = null }) {
 
       {/* ── Comment Drawer ── */}
       {commentDrawer.open && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop */}
-          <div
-            className="flex-1 bg-black/30 backdrop-blur-sm"
-            onClick={closeCommentDrawer}
-          />
-          {/* Panel */}
-          <div className="w-full max-w-125 bg-white dark:bg-gray-900 shadow-2xl flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <ChatBubbleLeftEllipsisIcon className="h-5 w-5 text-indigo-500 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mb-0.5">Bình luận bài học</p>
-                  <h3 className="font-semibold text-sm text-[#111418] dark:text-white truncate">{commentDrawer.title}</h3>
-                </div>
+        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-125 bg-white dark:bg-gray-900 shadow-2xl flex flex-col border-l border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <ChatBubbleLeftEllipsisIcon className="h-5 w-5 text-indigo-500 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mb-0.5">Bình luận bài học</p>
+                <h3 className="font-semibold text-sm text-[#111418] dark:text-white truncate">{commentDrawer.title}</h3>
               </div>
-              <button
-                onClick={closeCommentDrawer}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors shrink-0 ml-3"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
             </div>
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-              <LessonComments lectureId={commentDrawer.lessonId} />
-            </div>
+            <button
+              onClick={closeCommentDrawer}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors shrink-0 ml-3"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            <LessonComments lectureId={commentDrawer.lessonId} />
           </div>
         </div>
       )}

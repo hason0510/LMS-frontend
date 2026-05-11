@@ -1,11 +1,5 @@
 import axiosClient from "./axiosClient";
 
-const isClassContentItemNotFoundError = (error) => {
-  const status = error?.response?.status;
-  const message = String(error?.response?.data?.message || "").toLowerCase();
-  return status === 404 && message.includes("class content item");
-};
-
 export async function createQuiz(quizData) {
   const response = await axiosClient.post('quizzes', quizData);
   return response.data;
@@ -16,8 +10,17 @@ export async function createQuizInChapter(chapterId, quizData) {
   return response.data;
 }
 
-export async function getQuizById(id) {
-  const response = await axiosClient.get(`quizzes/${id}`);
+export async function getQuizById(id, classContentItemId = null) {
+  const response = await axiosClient.get(`quizzes/${id}`, {
+    params: classContentItemId ? { classContentItemId } : {},
+  });
+  return response.data;
+}
+
+export async function getQuizPreviewSample(id, seed) {
+  const response = await axiosClient.get(`quizzes/${id}/preview-sample`, {
+    params: seed == null ? {} : { seed },
+  });
   return response.data;
 }
 
@@ -32,29 +35,13 @@ export async function deleteQuiz(id) {
 }
 
 export async function startQuizAttempt(quizId, contentItemId) {
-  try {
-    const response = await axiosClient.post(`class-content-items/${contentItemId}/quiz/${quizId}/start`);
-    return response.data;
-  } catch (error) {
-    if (!isClassContentItemNotFoundError(error)) {
-      throw error;
-    }
-    const legacyResponse = await axiosClient.post(`chapterItem/${contentItemId}/quiz/${quizId}/start`);
-    return legacyResponse.data;
-  }
+  const response = await axiosClient.post(`class-content-items/${contentItemId}/quiz/${quizId}/start`);
+  return response.data;
 }
 
 export async function getCurrentAttempt(contentItemId) {
-  try {
-    const response = await axiosClient.get(`class-content-items/${contentItemId}/quiz/current`);
-    return response.data;
-  } catch (error) {
-    if (!isClassContentItemNotFoundError(error)) {
-      throw error;
-    }
-    const legacyResponse = await axiosClient.get(`chapterItem/${contentItemId}/quiz/current`);
-    return legacyResponse.data;
-  }
+  const response = await axiosClient.get(`class-content-items/${contentItemId}/quiz/current`);
+  return response.data;
 }
 
 export async function submitAnswer(attemptId, questionId, answerData) {
@@ -84,14 +71,6 @@ export async function reviewQuizAttempt(attemptId, reviewData) {
 }
 
 export async function getStudentAttemptsHistory(contentItemId) {
-  try {
-    const response = await axiosClient.get(`class-content-items/${contentItemId}/my-attempts`);
-    return response.data;
-  } catch (error) {
-    if (!isClassContentItemNotFoundError(error)) {
-      throw error;
-    }
-    const legacyResponse = await axiosClient.get(`chapterItem/${contentItemId}/my-attempts`);
-    return legacyResponse.data;
-  }
+  const response = await axiosClient.get(`class-content-items/${contentItemId}/my-attempts`);
+  return response.data;
 }

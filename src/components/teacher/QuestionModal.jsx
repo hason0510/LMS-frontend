@@ -18,6 +18,7 @@ export default function QuestionModal({
       onCancel={onCancel}
       footer={null}
       width={800}
+      forceRender
       destroyOnHidden
     >
       <QuestionForm

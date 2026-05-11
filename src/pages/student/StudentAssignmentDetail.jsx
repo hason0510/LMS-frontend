@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { App, Button, Spin, Tag } from "antd";
 import dayjs from "dayjs";
 import ReactQuill from "react-quill";
@@ -23,14 +23,18 @@ const quillFormats = ["header", "bold", "italic", "underline", "list", "bullet",
 
 function mapUploadTypeToResourceType(uploadType) {
   if (uploadType === "video") return "VIDEO";
+  if (uploadType === "audio") return "AUDIO";
   if (uploadType === "image") return "IMAGE";
   return "FILE";
 }
 
 export default function StudentAssignmentDetail() {
   const { classSectionId, assignmentId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const classContentItemId =
+    new URLSearchParams(location.search).get("classContentItemId") || location.state?.classContentItemId || null;
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +50,7 @@ export default function StudentAssignmentDetail() {
     try {
       setLoading(true);
       const [assignmentResponse, submissionResponse] = await Promise.all([
-        getAssignmentById(assignmentId),
+        getAssignmentById(assignmentId, classContentItemId),
         getMySubmission(assignmentId, classSectionId),
       ]);
 
@@ -79,7 +83,7 @@ export default function StudentAssignmentDetail() {
 
   useEffect(() => {
     refreshData();
-  }, [assignmentId, classSectionId]);
+  }, [assignmentId, classSectionId, classContentItemId]);
 
   const handleUploadFiles = async (event) => {
     const files = Array.from(event.target.files || []);

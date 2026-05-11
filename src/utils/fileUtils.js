@@ -21,6 +21,19 @@ export function getResourceTypeFromFile(file) {
     return "VIDEO";
   }
 
+  // Audio types
+  if (
+    mimeType.startsWith("audio/") ||
+    fileName.endsWith(".mp3") ||
+    fileName.endsWith(".wav") ||
+    fileName.endsWith(".m4a") ||
+    fileName.endsWith(".aac") ||
+    fileName.endsWith(".ogg") ||
+    fileName.endsWith(".flac")
+  ) {
+    return "AUDIO";
+  }
+
   // PDF
   if (
     mimeType === "application/pdf" ||

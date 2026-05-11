@@ -31,17 +31,14 @@ export async function getCourseGradeBook(courseId = null, classSectionId = null)
 }
 
 /**
- * Get quiz attempts for a specific chapter item or class content item
+ * Get quiz attempts for a specific class content item
  */
-export async function getQuizAttempts(chapterItemId = null, classContentItemId = null, pageNumber = 1, pageSize = 10) {
-    let url;
-    if (classContentItemId) {
-        url = `class-content-items/${classContentItemId}/attempts`;
-    } else {
-        url = `chapterItem/${chapterItemId}/attempts`;
+export async function getQuizAttempts(classContentItemId, pageNumber = 1, pageSize = 10) {
+    if (!classContentItemId) {
+        throw new Error("classContentItemId is required");
     }
 
-    const response = await axiosClient.get(url, {
+    const response = await axiosClient.get(`class-content-items/${classContentItemId}/attempts`, {
         params: { pageNumber, pageSize }
     });
     return response.data;
