@@ -31,6 +31,10 @@ import LectureDetail from "./pages/teacher/LectureDetail";
 import AssignmentDetail from "./pages/teacher/AssignmentDetail";
 import AssignmentSubmissions from "./pages/teacher/AssignmentSubmissions";
 import TeacherAssignmentsPage from "./pages/teacher/TeacherAssignmentsPage";
+import TeachingDashboard from "./pages/teaching/TeachingDashboard";
+import TeachingClasses from "./pages/teaching/TeachingClasses";
+import TeachingClassDetail from "./pages/teaching/TeachingClassDetail";
+import TeachingQuizContentAttempts from "./pages/teaching/TeachingQuizContentAttempts";
 import TeacherLessonPreview from "./pages/teacher/TeacherLessonPreview";
 import TeacherQuizPreview from "./pages/teacher/TeacherQuizPreview";
 import TeacherQuizAttemptPreview from "./pages/teacher/TeacherQuizAttemptPreview";
@@ -191,6 +195,52 @@ function AppContent() {
       <Route
         path="/class-sections/:id"
         element={<ProtectedRoute element={<ClassDetailPage />} allowedRoles={["STUDENT", "TEACHER", "ADMIN"]} />}
+      />
+
+      {/* Teaching workspace for teacher/TA memberships */}
+      <Route
+        path="/teaching"
+        element={<ProtectedRoute element={<TeachingDashboard />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/classes"
+        element={<ProtectedRoute element={<TeachingClasses />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:id"
+        element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:id/content"
+        element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:id/people"
+        element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:id/review"
+        element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:id/announcements"
+        element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:id/progress"
+        element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/quiz-attempts/:attemptId"
+        element={<ProtectedRoute element={<TeacherQuizAttemptReview teachingMode={true} />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:classSectionId/quizzes/:quizId/attempts"
+        element={<ProtectedRoute element={<TeachingQuizContentAttempts />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:classSectionId/assignments/:assignmentId/submissions"
+        element={<ProtectedRoute element={<AssignmentSubmissions teachingMode={true} />} allowedRoles={["STUDENT"]} />}
       />
 
       {/* Teacher Routes */}

@@ -1,9 +1,10 @@
 import React from "react";
 import { Modal } from "antd";
+import { useTranslation } from "react-i18next";
 import QuestionForm from "./QuestionForm";
 
 export default function QuestionModal({
-  visible,
+  open,
   onCancel,
   onFinish,
   initialValues,
@@ -11,10 +12,12 @@ export default function QuestionModal({
   existingTags = [],
   questionBankId,
 }) {
+  const { t } = useTranslation();
+
   return (
     <Modal
-      title={initialValues?.id ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}
-      open={visible}
+      title={initialValues?.id ? t("questionBank.suaCauHoi") : t("questionBank.themCauHoiMoi")}
+      open={open}
       onCancel={onCancel}
       footer={null}
       width={800}

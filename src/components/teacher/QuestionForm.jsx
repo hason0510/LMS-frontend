@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Form, Input, Select, Button, Checkbox, Radio, Spin } from "antd";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
@@ -78,8 +78,6 @@ const isInteractionType = (questionType) =>
 const isSingleSelectType = (questionType) =>
   ["SINGLE_CHOICE", "TRUE_FALSE", "IMAGE_ANSWERING"].includes(questionType);
 
-const DIFFICULTY_ALIAS_HINT = "easy, de, dễ, medium, trung bình, hard, kho, khó";
-
 const normalizeTagName = (value = "") => value.trim().toLowerCase();
 
 const mergeTagNames = (...lists) => {
@@ -143,7 +141,7 @@ function OptionRow({ option, index, type, onChangeContent, onChangeResource, onT
         >
           <TrashIcon className="h-4 w-4" />
         </button>
-        <span className="text-xs text-gray-500 shrink-0">Đúng</span>
+        <span className="text-xs text-gray-500 shrink-0">{t("quizBuilder.correct")}</span>
         {isSingle ? (
           <Radio checked={option.isCorrect} onChange={() => onToggleCorrect(index)} />
         ) : (
@@ -272,16 +270,15 @@ export default function QuestionForm({
   }, [initialValues, form]);
 
   useEffect(() => {
-    setTagOptions((prev) =>
-      buildTagOptions([
-        ...prev.map((option) => option.value),
-        ...(existingTags || []).map((tag) => tag.name),
-        ...((initialValues?.tags || []).map((tag) => tag.name)),
-      ])
-    );
-  }, [existingTags, initialValues]);
+    const selectedTagNames = form.getFieldValue("tagNames") || [];
+    setTagOptions(buildTagOptions([
+      ...selectedTagNames,
+      ...(existingTags || []).map((tag) => tag.name),
+      ...((initialValues?.tags || []).map((tag) => tag.name)),
+    ]));
+  }, [existingTags, initialValues?.tags, form]);
 
-  const loadTagOptions = async (searchValue = "") => {
+  const loadTagOptions = useCallback(async (searchValue = "") => {
     if (!questionBankId) return;
     const requestId = ++tagSearchRequestIdRef.current;
     setTagSearchLoading(true);
@@ -303,7 +300,13 @@ export default function QuestionForm({
     } finally {
       if (requestId === tagSearchRequestIdRef.current) setTagSearchLoading(false);
     }
-  };
+  }, [existingTags, form, questionBankId]);
+
+  useEffect(() => {
+    if (questionBankId) {
+      loadTagOptions("");
+    }
+  }, [questionBankId, loadTagOptions]);
 
   const commitPendingTagSearch = () => {
     const pendingTag = normalizeTagName(tagSearchValue);
@@ -428,21 +431,21 @@ export default function QuestionForm({
 
   const validateInteractionItems = () => {
     if (type === "MATCHING") {
-      if (matchingPairs.length === 0 || matchingPairs.some((pair) => !pair.prompt.trim() || !pair.match.trim())) {
-        alert("Vui lòng nhập đầy đủ các cặp ghép");
+    if (matchingPairs.length === 0 || matchingPairs.some((pair) => !pair.prompt.trim() || !pair.match.trim())) {
+        alert(t("questionBank.vuiLongNhapDayDuCapGhep"));
         return false;
       }
     }
     if (type === "DRAG_ORDER") {
       if (dragItems.length < 2 || dragItems.some((item) => !item.content.trim())) {
-        alert("Vui lòng nhập ít nhất 2 mục sắp xếp");
+        alert(t("questionBank.vuiLongNhapItNhatHaiMucSapXep"));
         return false;
       }
     }
     if (type === "CLOZE") {
       const items = parseClozeToItems(clozeContent);
       if (items.length === 0) {
-        alert("Vui lòng thêm ít nhất một chỗ trống với cú pháp [[đáp án]] trong nội dung câu hỏi");
+        alert(t("questionBank.vuiLongThemItNhatMotChoTrong"));
         return false;
       }
     }
@@ -486,10 +489,10 @@ export default function QuestionForm({
     }
 
     if (type !== "SHORT_ANSWER" && !options.some((opt) => opt.isCorrect)) {
-      return alert("Vui lòng chọn ít nhất một đáp án đúng");
+      return alert(t("questionBank.vuiLongChonItNhatMotDapAnDung"));
     }
     if (options.some((opt) => !opt.content.trim())) {
-      return alert("Vui lòng nhập nội dung cho tất cả các đáp án");
+      return alert(t("questionBank.vuiLongNhapNoiDungTatCaDapAn"));
     }
 
     onFinish({
@@ -512,17 +515,17 @@ export default function QuestionForm({
       {matchingPairs.map((pair, index) => (
         <div key={pair.id} className="grid grid-cols-2 gap-3">
           <div className="border border-dashed border-gray-300 rounded-lg p-3">
-            <div className="text-xs text-gray-400 mb-1">Vế trái {index + 1}</div>
+          <div className="text-xs text-gray-400 mb-1">{t("questionBank.veTrai", { index: index + 1 })}</div>
             <Input
-              placeholder={`Vế trái ${index + 1}`}
+              placeholder={t("questionBank.veTrai", { index: index + 1 })}
               value={pair.prompt}
               onChange={(e) => updateMatchingPair(pair.id, { prompt: e.target.value })}
             />
           </div>
           <div className="border border-dashed border-gray-300 rounded-lg p-3 relative">
-            <div className="text-xs text-gray-400 mb-1">Vế phải {index + 1}</div>
+            <div className="text-xs text-gray-400 mb-1">{t("questionBank.vePhai", { index: index + 1 })}</div>
             <Input
-              placeholder={`Vế phải ${index + 1}`}
+              placeholder={t("questionBank.vePhai", { index: index + 1 })}
               value={pair.match}
               onChange={(e) => updateMatchingPair(pair.id, { match: e.target.value })}
             />
@@ -545,7 +548,7 @@ export default function QuestionForm({
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
-        Thêm cặp ghép
+        {t("questionBank.themCapGhep")}
       </button>
     </div>
   );
@@ -574,7 +577,7 @@ export default function QuestionForm({
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
-        Thêm mục
+        {t("questionBank.themMuc")}
       </button>
     </DndContext>
   );
@@ -586,18 +589,18 @@ export default function QuestionForm({
         className="font-mono text-sm"
         value={clozeContent}
         onChange={(e) => setClozeContent(e.target.value)}
-        placeholder="Nhập văn bản với [[đáp án]] hoặc [[đúng|lựa chọn 1|lựa chọn 2]]..."
+        placeholder={t("questionBank.clozePlaceholder")}
       />
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p className="text-sm font-semibold text-blue-700 mb-1">Cú pháp CLOZE:</p>
+        <p className="text-sm font-semibold text-blue-700 mb-1">{t("questionBank.clozeSyntax")}</p>
         <ul className="text-sm text-blue-600 space-y-1 list-disc list-inside">
-          <li><code className="bg-blue-100 px-1 rounded">{"[[đáp án]]"}</code> — chỗ trống nhập tay</li>
-          <li><code className="bg-blue-100 px-1 rounded">{"[[đúng|lựa chọn 1|lựa chọn 2]]"}</code> — chỗ trống chọn từ danh sách</li>
+          <li><code className="bg-blue-100 px-1 rounded">{"[[đáp án]]"}</code> {t("questionBank.clozeManualBlank")}</li>
+          <li><code className="bg-blue-100 px-1 rounded">{"[[đúng|lựa chọn 1|lựa chọn 2]]"}</code> {t("questionBank.clozeSelectBlank")}</li>
         </ul>
       </div>
       {clozeContent && (
         <div>
-          <div className="text-xs text-gray-500 mb-1">Xem trước:</div>
+          <div className="text-xs text-gray-500 mb-1">{t("questionBank.xemTruoc")}</div>
           <div
             className="p-3 bg-gray-50 rounded-lg text-sm leading-loose border border-gray-100"
             dangerouslySetInnerHTML={{ __html: buildClozePreview(clozeContent) }}
@@ -701,11 +704,11 @@ export default function QuestionForm({
       {type === "SHORT_ANSWER" ? (
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
           <p className="text-sm text-blue-600 mb-2">
-            Câu trả lời được chấm tự động theo đáp án đúng (không phân biệt hoa/thường).
+            {t("questionBank.shortAnswerAutoGradeHint")}
           </p>
           <TextArea
             rows={3}
-            placeholder="Nhập đáp án đúng..."
+            placeholder={t("questionBank.nhapDapAnDung")}
             value={options[0]?.content}
             onChange={(e) => {
               const next = [...options];
@@ -718,7 +721,7 @@ export default function QuestionForm({
       ) : type === "ESSAY" ? (
         <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
           <p className="text-sm text-amber-700">
-            Câu tự luận sẽ được lưu để giáo viên chấm tay sau khi học viên nộp bài.
+            {t("questionBank.essayHint")}
           </p>
         </div>
       ) : type === "MATCHING" ? (
@@ -744,7 +747,7 @@ export default function QuestionForm({
             <div className="flex items-center gap-2 mt-2 border border-dashed border-gray-300 rounded-lg px-3 py-2">
               <Input
                 className="flex-1 border-none shadow-none bg-transparent text-sm"
-                placeholder="Thêm lựa chọn mới..."
+                placeholder={t("questionBank.themLuaChonMoi")}
                 value={newOptionText}
                 onChange={(e) => setNewOptionText(e.target.value)}
                 onPressEnter={commitNewOption}
@@ -754,7 +757,7 @@ export default function QuestionForm({
                 onClick={commitNewOption}
                 className="text-blue-500 hover:text-blue-700 font-semibold text-sm shrink-0"
               >
-                Thêm
+                {t("questionBank.them")}
               </button>
             </div>
           )}
@@ -762,15 +765,15 @@ export default function QuestionForm({
       )}
 
       {/* Explanation */}
-      <Form.Item label="Giải thích đáp án (tùy chọn)" name="explanation" className="mt-6">
-        <TextArea rows={2} placeholder="Giải thích tại sao đáp án này đúng..." />
+      <Form.Item label={t("questionBank.giaiThichDapAn")} name="explanation" className="mt-6">
+        <TextArea rows={2} placeholder={t("questionBank.giaiThichDapAnPlaceholder")} />
       </Form.Item>
 
       {/* Tags */}
-      <Form.Item label="Tag nội dung (tùy chọn)" name="tagNames" className="mt-2">
+      <Form.Item label={t("questionBank.tagNoiDung")} name="tagNames" className="mt-2">
         <Select
           mode="tags"
-          placeholder="Nhập hoặc chọn tag..."
+          placeholder={t("questionBank.nhapHoacChonTag")}
           options={selectTagOptions}
           tokenSeparators={[","]}
           allowClear
@@ -786,14 +789,14 @@ export default function QuestionForm({
           notFoundContent={tagSearchLoading ? <Spin size="small" /> : null}
         />
         <p className="text-xs text-amber-600 mt-1">
-          Alias độ khó (<span className="font-mono">{DIFFICULTY_ALIAS_HINT}</span>) sẽ tự map vào Độ khó, không lưu thành tag.
+          {t("questionBank.difficultyAliasHint", { alias: "easy, de, dễ, medium, trung bình, hard, kho, khó" })}
         </p>
       </Form.Item>
 
       <div className="flex justify-end gap-2 mt-8">
-        <Button onClick={() => form.resetFields()}>Làm mới</Button>
+        <Button onClick={() => form.resetFields()}>{t("questionBank.lamMoi")}</Button>
         <Button type="primary" htmlType="submit" loading={loading} className="px-8">
-          {initialValues?.id ? "Cập nhật" : "Lưu câu hỏi"}
+          {initialValues?.id ? t("questionBank.capNhat") : t("questionBank.luuCauHoi")}
         </Button>
       </div>
     </Form>

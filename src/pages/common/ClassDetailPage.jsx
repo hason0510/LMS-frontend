@@ -6,6 +6,7 @@ import AdminSidebar from "../../components/layout/AdminSidebar";
 import CourseTabs from "../../components/course/CourseTabs";
 import CourseContent from "../../components/course/CourseContent";
 import TeacherTab from "../../components/course/TeacherTab";
+import ClassStaffModal from "../../components/teaching/ClassStaffModal";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import AnnouncementsTab from "../../components/course/AnnouncementsTab";
 import { useAuth } from "../../contexts/AuthContext";
@@ -71,6 +72,7 @@ export default function ClassSectionDetailPage() {
   const [enrollmentStatus, setEnrollmentStatus] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
 
   // Edit modal
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -87,7 +89,12 @@ export default function ClassSectionDetailPage() {
   const fetchCourse = async () => {
     try {
       const response = await getClassSectionById(id);
-      setCourse(response?.data);
+      const classData = response?.data;
+      if (isStudent && classData?.myWorkspaceType === "TEACHING") {
+        navigate(`/teaching/class-sections/${id}`, { replace: true });
+        return;
+      }
+      setCourse(classData);
       if (isStudent) {
         try {
           const progress = await getCurrentUserProgressByClassSection(id);
@@ -236,6 +243,7 @@ export default function ClassSectionDetailPage() {
   const displayTitle = course.title || course.classCode || "Lớp học chưa có tên";
   const isPublic = course.status === "PUBLIC";
   const isArchived = course.status === "ARCHIVED";
+  const canManageStaff = (course?.myCapabilities || []).includes("MANAGE_STAFF");
 
   // ── Shared sub-components ────────────────────────────────────────────────
   const StatusBadge = () => {
@@ -339,10 +347,10 @@ export default function ClassSectionDetailPage() {
       {
         label: "Thông tin",
         content: (
-          <div className="space-y-6">
-            {/* Description */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Mô tả lớp học</h4>
+            <div className="space-y-6">
+              {/* Description */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Mô tả lớp học</h4>
               {course.description ? (
                 <>
                   <p
@@ -392,9 +400,49 @@ export default function ClassSectionDetailPage() {
                   <UserGroupIcon className="w-4 h-4 shrink-0 text-gray-400" />
                   <span>Học viên: <span className="font-medium text-gray-800 dark:text-white">{course.totalEnrollments ?? 0}</span></span>
                 </li>
-              </ul>
+                </ul>
+              </div>
+              {/* Teaching staff */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Nhân sự giảng dạy</h4>
+                  <button
+                    onClick={() => setStaffModalOpen(true)}
+                    disabled={!canManageStaff}
+                    className="px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 rounded-lg hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Quản lý trợ giảng
+                  </button>
+                </div>
+                {course.teachingMembers?.length ? (
+                  <div className="space-y-2">
+                    {course.teachingMembers.map((member) => (
+                      <div
+                        key={`${member.userId}-${member.role}`}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 dark:bg-gray-700/40 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="m-0 text-sm font-semibold text-gray-800 dark:text-white truncate">
+                            {member.fullName || member.username}
+                          </p>
+                          <p className="m-0 text-xs text-gray-500 dark:text-gray-400 truncate">@{member.username}</p>
+                        </div>
+                        <Tag color={member.role === "TEACHER" ? "blue" : "green"}>
+                          {member.role === "TEACHER" ? "Giáo viên chính" : "Trợ giảng"}
+                        </Tag>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">Chưa có trợ giảng trong lớp này.</p>
+                )}
+                {!canManageStaff && (
+                  <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                    Bạn không có quyền thay đổi nhân sự giảng dạy của lớp này.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
         ),
       },
     ];
@@ -470,6 +518,14 @@ export default function ClassSectionDetailPage() {
                     >
                       <PencilSquareIcon className="w-4 h-4" />
                       Chỉnh sửa
+                    </button>
+                    <button
+                      onClick={() => setStaffModalOpen(true)}
+                      disabled={!canManageStaff}
+                      className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <UserGroupIcon className="w-4 h-4" />
+                      Trợ giảng
                     </button>
 
                     {/* PRIVATE → publish */}
@@ -610,6 +666,13 @@ export default function ClassSectionDetailPage() {
             </Form.Item>
           </Form>
         </Modal>
+        <ClassStaffModal
+          open={staffModalOpen}
+          classSectionId={Number(id)}
+          canManageStaff={canManageStaff}
+          onClose={() => setStaffModalOpen(false)}
+          onChanged={fetchCourse}
+        />
       </div>
     );
   }

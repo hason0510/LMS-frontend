@@ -14,13 +14,21 @@
     "banCoChacChanMuonDangXuat": "Are you sure you want to logout from the system?",
     "huyboDangXuat": "Logout",
     "huyBo": "Cancel",
-    "dangXuLy": "Processing..."
+    "dangXuLy": "Processing...",
+    "thanhVien": "Member"
   },
   "header": {
     "khóaHọc": "Courses",
+    "classes": "Classes",
+    "teachingWorkspace": "Teaching Workspace",
     "gioiThieu": "Introduction",
     "trangCaNhan": "Profile",
-    "timKiem": "Search..."
+    "timKiem": "Search...",
+    "roles": {
+      "admin": "Administrator",
+      "teacher": "Teacher",
+      "student": "Student"
+    }
   },
   "settings": {
     "caiDatHeThong": "System Settings",
@@ -325,9 +333,18 @@
     "nganHangCauHoi": "Question Bank",
     "chinhSuaThongTin": "Edit Info",
     "quanLyTag": "Manage Tags",
+    "tags": "Tags",
+    "role": "Role",
+    "datRoleEditor": "Set EDITOR",
+    "datRoleViewer": "Set VIEWER",
+    "danhSachCauHoi": "Question list",
+    "locTheoTag": "Filter by multiple tags",
+    "timTag": "Search tag by name",
     "importGiftAiken": "Import GIFT/AIKEN (.txt)",
     "exportGift": "Export GIFT (.txt)",
     "themCauHoi": "Add Question",
+    "themCauHoiMoi": "Add new question",
+    "suaCauHoi": "Edit question",
     "xoaBank": "Delete Bank",
     "noiDungCauHoi": "Question Content",
     "loai": "Type",
@@ -339,6 +356,8 @@
     "them": "Add",
     "capNhat": "Update",
     "taoMoi": "Create",
+    "lamMoi": "Reset",
+    "luuCauHoi": "Save question",
     "thanhVienNganHang": "Question Bank Members",
     "timUser": "Search user to add to bank",
     "ownerHienTai": "Current Owner",
@@ -352,6 +371,8 @@
     "tagDangDuocDungXoa": "Tag \"{{name}}\" is used by {{q}} questions and {{r}} quiz rules.",
     "chuaCoTag": "No tags yet.",
     "cauHoiVaQuizRule": "{{q}} questions, {{r}} quiz rules",
+    "cauHoiKhopTag": "{{count}} questions match {{selected}} selected tags",
+    "cauHoiTrongBank": "{{count}} questions in bank",
     "taoTagMoi": "Create new tag",
     "dangSuaTag": "Editing: \"{{name}}\"",
     "taoNhieuTag": "Create multiple tags (separate by comma or newline)",
@@ -362,6 +383,29 @@
     "nhapMoTa": "Enter description (optional)",
     "khongCoMoTa": "No description",
     "tenTag": "Tag name...",
+    "tagNoiDung": "Content tags (optional)",
+    "nhapHoacChonTag": "Enter or select tag...",
+    "giaiThichDapAn": "Answer explanation (optional)",
+    "giaiThichDapAnPlaceholder": "Explain why this answer is correct...",
+    "difficultyAliasHint": "Difficulty aliases ({alias}) are mapped to Difficulty and not saved as tags.",
+    "shortAnswerAutoGradeHint": "Short answers are graded automatically against the correct answer (case-insensitive).",
+    "nhapDapAnDung": "Enter correct answer...",
+    "essayHint": "Essay questions are saved for manual grading after submission.",
+    "themLuaChonMoi": "Add new option...",
+    "veTrai": "Left side {{index}}",
+    "vePhai": "Right side {{index}}",
+    "themCapGhep": "Add matching pair",
+    "themMuc": "Add item",
+    "clozePlaceholder": "Enter text with [[answer]] or [[correct|option 1|option 2]]...",
+    "clozeSyntax": "CLOZE syntax:",
+    "clozeManualBlank": "- manual blank",
+    "clozeSelectBlank": "- selectable blank",
+    "xemTruoc": "Preview:",
+    "vuiLongNhapDayDuCapGhep": "Please enter all matching pairs",
+    "vuiLongNhapItNhatHaiMucSapXep": "Please enter at least 2 ordering items",
+    "vuiLongThemItNhatMotChoTrong": "Please add at least one blank using [[answer]] syntax in the question content",
+    "vuiLongChonItNhatMotDapAnDung": "Please select at least one correct answer",
+    "vuiLongNhapNoiDungTatCaDapAn": "Please enter content for all answers",
     "loi": "Error",
     "xoaCauHoiThanhCong": "Question deleted",
     "capNhatCauHoiThanhCong": "Question updated successfully",
@@ -507,6 +551,231 @@
     "loadFailed": "Could not load quiz attempts",
     "answerFeedback": "Feedback for this answer",
     "instructorFeedback": "Instructor overall feedback"
+  },
+  "teaching": {
+    "common": {
+      "noDeadline": "No deadline"
+    },
+    "nav": {
+      "overview": "Overview",
+      "classes": "Supported Classes",
+      "classesShort": "Classes",
+      "people": "People"
+    },
+    "layout": {
+      "title": "Teaching Workspace",
+      "learningWorkspace": "Learning",
+      "teachingWorkspace": "Teaching Workspace",
+      "backToLearning": "Back to learning workspace",
+      "defaultUser": "User",
+      "focusTitle": "Today's Focus",
+      "focusDescription": "Grade submissions, monitor student progress, and handle day-to-day class operations."
+    },
+    "status": {
+      "public": "Public",
+      "private": "Private",
+      "archived": "Archived"
+    },
+    "roles": {
+      "primaryTeacher": "Lead Teacher",
+      "teachingAssistant": "Teaching Assistant"
+    },
+    "dashboard": {
+      "title": "Teaching Operations Dashboard",
+      "subtitle": "Focus on high-priority tasks first: pending submissions, quizzes awaiting review, and students at risk of falling behind.",
+      "myClasses": "Supported Classes",
+      "reviewQueue": "Review Queue",
+      "openByClass": "Open by class",
+      "noReviewItems": "There are no items requiring review right now.",
+      "pendingCount": "{{count}} pending",
+      "essayReview": "Essay review",
+      "empty": "You are not assigned to any teaching role yet.",
+      "errors": {
+        "loadWorkspace": "Unable to load teaching workspace",
+        "loadData": "Unable to load data"
+      },
+      "stats": {
+        "pendingSubmissions": "Pending Submissions",
+        "pendingQuizReviews": "Pending Quiz Reviews",
+        "atRiskStudents": "At-Risk Students",
+        "totalClasses": "Supported Classes"
+      }
+    },
+    "classes": {
+      "title": "Supported Classes",
+      "searchPlaceholder": "Search by class name, class code, or subject...",
+      "students": "Students",
+      "staff": "Teaching Staff",
+      "openWorkspace": "Open class workspace",
+      "noSubject": "No subject assigned",
+      "empty": "No matching classes found.",
+      "errors": {
+        "loadClasses": "Unable to load classes",
+        "loadData": "Unable to load data"
+      }
+    },
+    "classDetail": {
+      "backToClasses": "Back to class list",
+      "manageStaff": "Manage teaching staff",
+      "noPrimaryTeacher": "No lead teacher assigned",
+      "noClassData": "No class data available.",
+      "quickStart": "Quick Actions",
+      "tabs": {
+        "overview": "Overview",
+        "content": "Content",
+        "people": "People",
+        "review": "Review",
+        "announcements": "Announcements",
+        "progress": "Progress"
+      },
+      "stats": {
+        "students": "Students",
+        "pendingSubmissions": "Pending Submissions",
+        "pendingQuizReviews": "Pending Quiz Reviews",
+        "atRiskStudents": "Needs Attention"
+      },
+      "progress": {
+        "atRisk": "Students Needing Attention",
+        "upcoming": "Upcoming Deadlines",
+        "pendingReviews": "Pending Reviews"
+      },
+      "errors": {
+        "loadClass": "Unable to load class"
+      }
+    },
+    "people": {
+      "title": "Class Roster",
+      "subtitle": "Track student status, missing submissions, and who needs intervention.",
+      "studentProfile": "Student profile",
+      "selfNotice": "This is your own student profile. Review actions on your own submissions are blocked.",
+      "noStudentCode": "No student code",
+      "empty": "No matching students found.",
+      "filters": {
+        "all": "All",
+        "approved": "Approved",
+        "pending": "Pending",
+        "rejected": "Rejected"
+      },
+      "columns": {
+        "student": "Student",
+        "status": "Status",
+        "progress": "Progress",
+        "missingAssignments": "Missing",
+        "pendingReviews": "Pending Reviews",
+        "latestScore": "Latest Score"
+      }
+    },
+    "enrollmentStatus": {
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected"
+    },
+    "review": {
+      "title": "Review Queue",
+      "subtitle": "Assignment and essay quiz attempts waiting for action.",
+      "empty": "No items are waiting for review.",
+      "filters": {
+        "all": "All",
+        "assignment": "Assignments",
+        "quiz": "Quizzes"
+      },
+      "types": {
+        "assignment": "Assignment",
+        "quiz": "Quiz"
+      },
+      "columns": {
+        "task": "Task",
+        "type": "Type",
+        "submittedAt": "Submitted At",
+        "dueAt": "Due At",
+        "flags": "Flags"
+      },
+      "flags": {
+        "late": "Late",
+        "selfOwned": "Your own submission"
+      },
+      "actions": {
+        "review": "Open",
+        "grade": "Grade",
+        "return": "Return",
+        "saveScore": "Save Score"
+      },
+      "drawer": {
+        "title": "Grade Assignment",
+        "student": "Student",
+        "submittedAt": "Submitted at",
+        "score": "Score",
+        "feedback": "Feedback",
+        "feedbackPlaceholder": "Provide concise, actionable feedback with clear strengths and improvement points.",
+        "selfNotice": "You cannot grade your own submission."
+      },
+      "errors": {
+        "inputGrade": "Please enter a score before saving.",
+        "inputFeedback": "Please provide feedback before returning.",
+        "gradeFailed": "Unable to save grade.",
+        "returnFailed": "Unable to return submission."
+      },
+      "messages": {
+        "graded": "Grade saved successfully.",
+        "returned": "Submission has been returned to the student."
+      }
+    },
+    "staff": {
+      "title": "Teaching Staff",
+      "roleRuleTitle": "Role rule in class",
+      "roleRuleDescription": "A user can be a student in Class A and a TA in Class B. Within one class, each user can hold only one participation role.",
+      "readOnlyTitle": "Read-only access",
+      "readOnlyDescription": "You do not have permission to manage teaching staff in this class.",
+      "searchPlaceholder": "Search for a user to add to teaching staff...",
+      "permissionsTitle": "TA Permissions - {{name}}",
+      "permissionsDescription": "These permissions decide which support workspace tabs the TA can see and which class operations they can perform.",
+      "fixedTeacherPermissions": "Fixed by teacher role",
+      "actions": {
+        "add": "Add",
+        "remove": "Remove",
+        "manage": "Manage",
+        "permissions": "Permissions",
+        "savePermissions": "Save Permissions"
+      },
+      "columns": {
+        "member": "Member",
+        "role": "Role",
+        "status": "Status",
+        "permissions": "Access"
+      },
+      "permissions": {
+        "VIEW_CLASS": "View support class",
+        "VIEW_PEOPLE": "View students",
+        "VIEW_PROGRESS": "View student progress",
+        "GRADE_ASSIGNMENTS": "View and grade assignments",
+        "REVIEW_QUIZZES": "View and review quizzes",
+        "POST_ANNOUNCEMENTS": "Post announcements",
+        "REPLY_COMMENTS": "Reply to comments"
+      },
+      "permissionShort": {
+        "VIEW_CLASS": "Class",
+        "VIEW_PEOPLE": "People",
+        "VIEW_PROGRESS": "Progress",
+        "GRADE_ASSIGNMENTS": "Assignments",
+        "REVIEW_QUIZZES": "Quizzes",
+        "POST_ANNOUNCEMENTS": "Posts",
+        "REPLY_COMMENTS": "Comments"
+      },
+      "errors": {
+        "loadFailed": "Unable to load teaching staff.",
+        "selectUser": "Please select a user before adding.",
+        "addFailed": "Unable to add staff member.",
+        "updateRoleFailed": "Unable to update member role.",
+        "updatePermissionsFailed": "Unable to update TA permissions.",
+        "removeFailed": "Unable to remove member."
+      },
+      "messages": {
+        "added": "Staff member added successfully.",
+        "roleUpdated": "Member role updated successfully.",
+        "permissionsUpdated": "TA permissions updated successfully.",
+        "removed": "Member removed successfully."
+      }
+    }
   },
   "classContent": {
     "unknownItem": "Unknown",

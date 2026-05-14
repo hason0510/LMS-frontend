@@ -9,6 +9,7 @@ import { getTemplates, deleteTemplate } from "../../api/curriculumTemplate";
 import { createClassSectionFromTemplateId } from "../../api/classSection";
 import { getAllCategories } from "../../api/category";
 import { getSubjectsByCategory } from "../../api/subject";
+import { getAllUsers } from "../../api/user";
 import { Spin, Alert, Card, Tag, Select, Modal, Form, Input, DatePicker, message, Tooltip, Popconfirm } from "antd";
 import { UserPlusIcon, ChevronRightIcon, ArrowPathIcon, TrashIcon, ClipboardDocumentIcon } from "@heroicons/react/24/outline";
 
@@ -32,6 +33,8 @@ export default function TeacherCurriculums({ isAdmin = false }) {
   const [instantiateForm] = Form.useForm();
   const [instantiateLoading, setInstantiateLoading] = useState(false);
   const [generatedCode, setGeneratedCode] = useState(null);
+  const [teacherOptions, setTeacherOptions] = useState([]);
+  const [teacherLoading, setTeacherLoading] = useState(false);
 
   const generateRandomCode = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -62,10 +65,10 @@ export default function TeacherCurriculums({ isAdmin = false }) {
   const fetchTemplates = async (subjectId = null) => {
     try {
       setLoading(true);
-      const params = { includeVersions: true };
+      const params = { includeChapters: true };
       if (subjectId) params.subjectId = subjectId;
-      const response = await getTemplates(params);
-      setTemplates(response.data?.pageList || []);
+      const templatesList = await getTemplates(params);
+      setTemplates(templatesList);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -103,8 +106,36 @@ export default function TeacherCurriculums({ isAdmin = false }) {
     instantiateForm.setFieldsValue({
       title: `${template.name} - Lớp mới`,
       description: template.description || "",
+      teacherId: undefined,
     });
     setInstantiateModalVisible(true);
+    if (isAdmin) {
+      loadTeacherOptions();
+    }
+  };
+
+  const loadTeacherOptions = async () => {
+    try {
+      setTeacherLoading(true);
+      const response = await getAllUsers(0, 500);
+      const users = response?.data?.pageList || [];
+      const teachers = users.filter((item) => {
+        const role = item?.roleName || item?.role?.roleName || item?.role;
+        return role === "TEACHER";
+      });
+      setTeacherOptions(
+        teachers.map((item) => ({
+          value: item.id,
+          label: `${item.fullName || item.userName || item.username || "Teacher"}${item.gmail ? ` - ${item.gmail}` : ""}`,
+        }))
+      );
+    } catch (err) {
+      console.error(err);
+      message.error("Không thể tải danh sách giáo viên");
+      setTeacherOptions([]);
+    } finally {
+      setTeacherLoading(false);
+    }
   };
 
   const onInstantiateFinish = async (values) => {
@@ -116,7 +147,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         classCode: generatedCode || undefined,
         startDate: values.dates?.[0]?.format("YYYY-MM-DD"),
         endDate: values.dates?.[1]?.format("YYYY-MM-DD"),
-        teacherId: user?.id || user?.sub,
+        teacherId: isAdmin ? values.teacherId : (user?.id || user?.sub),
       });
       message.success("Tạo lớp học thành công!");
       setInstantiateModalVisible(false);
@@ -310,6 +341,24 @@ export default function TeacherCurriculums({ isAdmin = false }) {
           onFinish={onInstantiateFinish}
           className="mt-4"
         >
+          {isAdmin && (
+            <Form.Item
+              label="Giáo viên chính"
+              name="teacherId"
+              rules={[{ required: true, message: "Vui lòng chọn giáo viên chính" }]}
+            >
+              <Select
+                showSearch
+                placeholder="Chọn giáo viên đứng lớp"
+                loading={teacherLoading}
+                options={teacherOptions}
+                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  String(option?.label || "").toLowerCase().includes(input.toLowerCase())
+                }
+              />
+            </Form.Item>
+          )}
           <Form.Item
             label="Tên lớp học"
             name="title"

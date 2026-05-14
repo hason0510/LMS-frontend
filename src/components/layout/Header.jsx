@@ -18,6 +18,7 @@ import {
   countUnreadNotifications,
   markNotificationAsRead,
 } from "../../api/notification";
+import { getTeachingContext } from "../../api/teaching";
 
 import useNotificationStore from "../../store/useNotificationStore";
 
@@ -58,11 +59,34 @@ export default function Header({ menuItems }) {
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [isNotificationDetailOpen, setIsNotificationDetailOpen] = useState(false);
+  const [hasTeachingWorkspace, setHasTeachingWorkspace] = useState(false);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
 
+  useEffect(() => {
+    const loadTeachingContext = async () => {
+      if (!isLoggedIn || user?.role !== "STUDENT") {
+        setHasTeachingWorkspace(false);
+        return;
+      }
+
+      try {
+        const response = await getTeachingContext();
+        const context = response?.data || response || {};
+        setHasTeachingWorkspace(Boolean(context.hasTeachingWorkspace || context.teachingClassCount > 0));
+      } catch {
+        setHasTeachingWorkspace(false);
+      }
+    };
+
+    loadTeachingContext();
+  }, [isLoggedIn, user?.role]);
+
   const defaultMenuItems = [
-    { label: "Lớp học", path: "/classes", icon: BookOpenIcon },
+    { label: t("header.classes"), path: "/classes", icon: BookOpenIcon },
+    ...(isLoggedIn && hasTeachingWorkspace
+      ? [{ label: t("header.teachingWorkspace"), path: "/teaching", icon: ClipboardDocumentListIcon }]
+      : []),
     ...(user?.role === "STUDENT"
       ? [{ label: t("assignments.studentTitle"), path: "/student/assignments", icon: ClipboardDocumentListIcon }]
       : []),
@@ -278,7 +302,11 @@ export default function Header({ menuItems }) {
                         {user?.fullName || user?.name || user?.username || user?.userName || "Người dùng"}
                       </p>
                       <p className="text-xs leading-tight text-slate-500 dark:text-slate-400 !m-0">
-                        {user?.role === "ADMIN" ? "Quản trị viên" : user?.role === "TEACHER" ? "Giáo viên" : "Học viên"}
+                        {user?.role === "ADMIN"
+                          ? t("header.roles.admin")
+                          : user?.role === "TEACHER"
+                            ? t("header.roles.teacher")
+                            : t("header.roles.student")}
                       </p>
                     </div>
                   </button>

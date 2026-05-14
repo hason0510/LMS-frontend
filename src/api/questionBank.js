@@ -29,8 +29,8 @@ export const deleteQuestionBank = async (id) => {
   return response.data;
 };
 
-export const getQuestionBankById = async (id) => {
-  const response = await axiosClient.get(`question-banks/${id}`);
+export const getQuestionBankById = async (id, params = {}) => {
+  const response = await axiosClient.get(`question-banks/${id}`, { params });
   return unwrapPayload(response);
 };
 

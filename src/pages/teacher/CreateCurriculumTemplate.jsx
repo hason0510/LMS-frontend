@@ -90,8 +90,7 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
       const fetchTemplate = async () => {
         try {
           setLoading(true);
-          const response = await getTemplateById(id);
-          const data = response.data;
+          const data = await getTemplateById(id);
 
           form.setFieldsValue({
             name: data.name,
@@ -129,13 +128,12 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
         message.success("Cập nhật template thành công");
         navigate(`${basePath}/curriculums/${id}`);
       } else {
-        const res = await createTemplate({
+        const newTemplate = await createTemplate({
           name: values.name,
           description: values.description,
           subjectId: values.subjectId,
           isDefault: true,
         });
-        const newTemplate = res.data;
         message.success("Tạo template thành công! Hãy thêm chương học.");
         navigate(`${basePath}/curriculums/${newTemplate.id}`);
       }

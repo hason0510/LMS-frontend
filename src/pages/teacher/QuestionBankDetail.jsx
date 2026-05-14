@@ -62,6 +62,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const [deleteBankLoading, setDeleteBankLoading] = useState(false);
 
   const [bankTags, setBankTags] = useState([]);
+  const [tagModalTags, setTagModalTags] = useState([]);
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [memberActionLoading, setMemberActionLoading] = useState(false);
@@ -74,7 +75,10 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const [editingTag, setEditingTag] = useState(null);
   const [tagInput, setTagInput] = useState("");
   const [batchInput, setBatchInput] = useState("");
+  const [tagSearchValue, setTagSearchValue] = useState("");
+  const [questionTagFilterIds, setQuestionTagFilterIds] = useState([]);
   const [tagActionLoading, setTagActionLoading] = useState(false);
+  const [tagSearchLoading, setTagSearchLoading] = useState(false);
 
   const [editBankModalVisible, setEditBankModalVisible] = useState(false);
   const [editBankLoading, setEditBankLoading] = useState(false);
@@ -84,6 +88,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
   const effectiveRole = user?.role === "ADMIN" ? "OWNER" : bank?.myRole;
   const safeBankTags = useMemo(() => toArray(bankTags), [bankTags]);
+  const safeTagModalTags = useMemo(() => toArray(tagModalTags), [tagModalTags]);
   const safeMembers = useMemo(() => toArray(members), [members]);
   const safeQuestions = useMemo(() => toArray(bank?.questions), [bank?.questions]);
   const canEditContent = effectiveRole === "OWNER" || effectiveRole === "EDITOR";
@@ -103,6 +108,13 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   }, [id]);
 
   useEffect(() => {
+    if (tagModalVisible) {
+      loadTagModalTags("");
+      setTagSearchValue("");
+    }
+  }, [tagModalVisible, id]);
+
+  useEffect(() => {
     if (canManageMembers) {
       fetchMembers();
     } else {
@@ -119,10 +131,24 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     }
   };
 
-  const fetchBank = async () => {
+  const loadTagModalTags = async (search = "") => {
+    try {
+      setTagSearchLoading(true);
+      const res = await getTags(id, search ? { search } : {});
+      setTagModalTags(toArray(res));
+    } catch {
+      setTagModalTags([]);
+    } finally {
+      setTagSearchLoading(false);
+    }
+  };
+
+  const fetchBank = async (tagIds = questionTagFilterIds) => {
     try {
       setLoading(true);
-      const [bankRes, tagsRes] = await Promise.all([getQuestionBankById(id), getTags(id)]);
+      const selectedTagIds = Array.isArray(tagIds) ? tagIds.filter(Boolean) : [];
+      const params = selectedTagIds.length ? { tagIds: selectedTagIds.join(",") } : {};
+      const [bankRes, tagsRes] = await Promise.all([getQuestionBankById(id, params), getTags(id)]);
       setBank(toObject(bankRes));
       setBankTags(toArray(tagsRes));
       setError(null);
@@ -200,9 +226,9 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         }
         setTagInput("");
         setEditingTag(null);
+        await loadTagModalTags(tagSearchValue);
         if (editingTag) {
           await fetchBank();
-          await fetchBankTags();
         } else {
           await fetchBankTags();
         }
@@ -236,10 +262,15 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       onOk: async () => {
         try {
           setTagActionLoading(true);
+          const nextFilterIds = questionTagFilterIds.filter((selectedTagId) => selectedTagId !== tag.id);
+          if (nextFilterIds.length !== questionTagFilterIds.length) {
+            setQuestionTagFilterIds(nextFilterIds);
+          }
           await deleteTag(id, tag.id);
           message.success(t("questionBank.daXoaTag"));
-          await fetchBank();
+          await fetchBank(nextFilterIds);
           await fetchBankTags();
+          await loadTagModalTags(tagSearchValue);
         } catch (err) {
           message.error(err?.response?.data?.message || t("questionBank.loi"));
         } finally {
@@ -247,6 +278,19 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         }
       },
     });
+  };
+
+  const handleOpenTagModal = async () => {
+    setEditingTag(null);
+    setTagInput("");
+    setBatchInput("");
+    setTagModalVisible(true);
+  };
+
+  const handleQuestionTagFilterChange = async (value) => {
+    const nextTagIds = Array.isArray(value) ? value : [];
+    setQuestionTagFilterIds(nextTagIds);
+    await fetchBank(nextTagIds);
   };
 
   const handleBatchCreate = async () => {
@@ -499,7 +543,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       },
     },
     {
-      title: "Tags",
+      title: t("questionBank.tags"),
       dataIndex: "tags",
       key: "tags",
       render: (tags) => (
@@ -534,7 +578,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       key: 'manage_tags',
       icon: <TagIcon className="w-4 h-4" />,
       label: t("questionBank.quanLyTag") || "Quản lý tag",
-      onClick: () => setTagModalVisible(true),
+      onClick: handleOpenTagModal,
     }] : []),
     ...(canEditContent ? [{
       key: 'import_gift',
@@ -578,7 +622,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                 <Spin size="large" />
               </div>
             ) : error ? (
-              <Alert type="error" message="Loi" description={error} />
+              <Alert type="error" message={t("questionBank.loi")} description={error} />
             ) : bank ? (
               <>
                 <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
@@ -591,7 +635,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           {effectiveRole || "VIEWER"}
                         </Tag>
                       </h1>
-                      <p className="text-gray-500 mt-1.5 text-sm">{bank.description || "No description"}</p>
+                      <p className="text-gray-500 mt-1.5 text-sm">{bank.description || t("questionBank.khongCoMoTa")}</p>
                     </div>
                   </div>
 
@@ -622,13 +666,40 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           setModalVisible(true);
                         }}
                       >
-                        {t("questionBank.themCauHoi") || "Thêm câu hỏi"}
+                        {t("questionBank.themCauHoi")}
                       </Button>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="m-0 text-sm font-semibold text-slate-700 dark:text-slate-200">{t("questionBank.danhSachCauHoi")}</p>
+                      <p className="m-0 text-xs text-slate-500">
+                        {questionTagFilterIds.length > 0
+                          ? t("questionBank.cauHoiKhopTag", { count: safeQuestions.length, selected: questionTagFilterIds.length })
+                          : t("questionBank.cauHoiTrongBank", { count: safeQuestions.length })}
+                      </p>
+                    </div>
+                    <div className="w-full sm:w-80">
+                      <Select
+                        allowClear
+                        showSearch
+                        mode="multiple"
+                        maxTagCount="responsive"
+                        value={questionTagFilterIds}
+                        onChange={handleQuestionTagFilterChange}
+                        placeholder={t("questionBank.locTheoTag")}
+                        options={safeBankTags.map((tag) => ({
+                          value: tag.id,
+                          label: tag.name,
+                        }))}
+                        optionFilterProp="label"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
                   <Table dataSource={safeQuestions} columns={columns} rowKey="id" pagination={{ pageSize: 15 }} />
                 </div>
 
@@ -678,7 +749,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           ),
                         },
                         {
-                          title: "Role",
+                          title: t("questionBank.role"),
                           dataIndex: "role",
                           key: "role",
                           render: (role) => <Tag color={role === "OWNER" ? "gold" : role === "EDITOR" ? "blue" : "default"} className="m-0 font-medium">{role}</Tag>,
@@ -694,12 +765,12 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                               <div className="flex flex-wrap gap-2">
                                 {record.role !== "EDITOR" && (
                                   <Button size="small" onClick={() => handleSetMemberRole(record, "EDITOR")} loading={memberActionLoading} className="text-xs">
-                                    Set EDITOR
+                                    {t("questionBank.datRoleEditor")}
                                   </Button>
                                 )}
                                 {record.role !== "VIEWER" && (
                                   <Button size="small" onClick={() => handleSetMemberRole(record, "VIEWER")} loading={memberActionLoading} className="text-xs">
-                                    Set VIEWER
+                                    {t("questionBank.datRoleViewer")}
                                   </Button>
                                 )}
                                 <Button size="small" onClick={() => handleSetMemberRole(record, "OWNER")} loading={memberActionLoading} className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50 hover:border-amber-400">
@@ -718,7 +789,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                 )}
 
                 <QuestionModal
-                  visible={modalVisible}
+                  open={modalVisible}
                   onCancel={() => {
                     setModalVisible(false);
                     setEditingQuestion(null);
@@ -744,45 +815,64 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                   destroyOnHidden
                   className="rounded-xl overflow-hidden"
                 >
+                  <div className="mb-4">
+                    <Input.Search
+                      value={tagSearchValue}
+                      onChange={(e) => setTagSearchValue(e.target.value)}
+                      onSearch={loadTagModalTags}
+                      loading={tagSearchLoading}
+                      allowClear
+                          placeholder={t("questionBank.timTag")}
+                    />
+                  </div>
                   <div className="mb-5 max-h-64 overflow-y-auto space-y-2 pr-1">
-                    {safeBankTags.length === 0 && (
+                    {tagSearchLoading && safeTagModalTags.length === 0 ? (
+                      <div className="flex justify-center py-8">
+                        <Spin size="small" />
+                      </div>
+                    ) : safeTagModalTags.length === 0 ? (
                       <div className="text-center py-6 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-gray-200 dark:border-slate-700">
                         <TagIcon className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                         <p className="text-sm text-gray-500 dark:text-gray-400">{t("questionBank.chuaCoTag")}</p>
                       </div>
-                    )}
-                    {safeBankTags.map((tag) => (
-                      <div key={tag.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
-                          <Tag color="geekblue" className="m-0 w-fit">{tag.name}</Tag>
-                          <span className="text-xs text-slate-500 font-medium">
-                            {t("questionBank.cauHoiVaQuizRule", { q: tag.questionUsageCount || 0, r: tag.quizUsageCount || 0 })}
-                          </span>
-                        </div>
-                        {canManageTags && (
-                          <div className="flex gap-1">
-                            <Button
-                              size="small"
-                              onClick={() => {
-                                setEditingTag(tag);
-                                setTagInput(tag.name);
-                              }}
-                            >
-                              {t("questionBank.sua")}
-                            </Button>
-                            <Button
-                              size="small"
-                              danger
-                              loading={tagActionLoading}
-                              onClick={() => handleDeleteTag(tag)}
-                              className="text-xs"
-                            >
-                              {t("questionBank.xoa")}
-                            </Button>
+                    ) : (
+                      safeTagModalTags.map((tag) => (
+                        <div
+                          key={tag.id}
+                          className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                            <Tag color="geekblue" className="m-0 w-fit">{tag.name}</Tag>
+                            <span className="text-xs text-slate-500 font-medium">
+                              {t("questionBank.cauHoiVaQuizRule", { q: tag.questionUsageCount || 0, r: tag.quizUsageCount || 0 })}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {canManageTags && (
+                            <div className="flex gap-1">
+                              <Button
+                                size="small"
+                                onClick={() => {
+                                  setEditingTag(tag);
+                                  setTagInput(tag.name);
+                                }}
+                              >
+                                {t("questionBank.sua")}
+                              </Button>
+                              <Button
+                                size="small"
+                                danger
+                                loading={tagActionLoading}
+                                onClick={() => handleDeleteTag(tag)}
+                                className="text-xs"
+                              >
+                                {t("questionBank.xoa")}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )
+                    }
                   </div>
 
                   {canManageTags && (

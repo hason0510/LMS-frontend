@@ -32,7 +32,7 @@ import dayjs from "dayjs";
 
 const canManageRole = (role) => role === "TEACHER" || role === "ADMIN";
 
-export default function CourseContent({ enrollmentStatus = null }) {
+export default function CourseContent({ enrollmentStatus = null, workspaceMode = "default", capabilities = [] }) {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const { user } = useAuth();
@@ -42,6 +42,9 @@ export default function CourseContent({ enrollmentStatus = null }) {
   const userRole = user?.role;
   const canManage = canManageRole(userRole);
   const isStudentNotApproved = userRole === "STUDENT" && enrollmentStatus !== "APPROVED";
+  const isTeachingWorkspace = workspaceMode === "teaching";
+  const canReviewQuizzes = capabilities.includes("REVIEW_QUIZZES");
+  const canGradeAssignments = capabilities.includes("GRADE_ASSIGNMENTS");
 
   // Chapter list state
   const [chapters, setChapters] = useState([]);
@@ -97,7 +100,7 @@ export default function CourseContent({ enrollmentStatus = null }) {
     try {
       setLoading(true);
       const response = await getClassChapters(classSectionId);
-      const data = response.data;
+      const data = Array.isArray(response) ? response : response?.data || [];
       const sorted = Array.isArray(data)
         ? [...data].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
         : [];
@@ -113,7 +116,7 @@ export default function CourseContent({ enrollmentStatus = null }) {
     try {
       setLoadingItems((prev) => ({ ...prev, [chapterId]: true }));
       const response = await getClassContentItems(classSectionId, chapterId);
-      const data = response.data;
+      const data = Array.isArray(response) ? response : response?.data || [];
       const sorted = Array.isArray(data)
         ? [...data].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
         : [];
@@ -200,6 +203,36 @@ export default function CourseContent({ enrollmentStatus = null }) {
     const role = userRole?.toLowerCase();
     const classContentQuery = `?classContentItemId=${item.id}`;
 
+    if (isTeachingWorkspace && item.itemType === "QUIZ") {
+      if (!canReviewQuizzes) {
+        message.warning("Bạn không có quyền rà soát bài quiz trong lớp này");
+        return;
+      }
+      const quizId = item.quizId || item.id;
+      navigate(`/teaching/class-sections/${classSectionId}/quizzes/${quizId}/attempts${classContentQuery}`, {
+        state: {
+          classContentItemId: item.id,
+          itemTitle: item.displayTitle || item.title,
+        },
+      });
+      return;
+    }
+
+    if (isTeachingWorkspace && item.itemType === "ASSIGNMENT") {
+      if (!canGradeAssignments) {
+        message.warning("Bạn không có quyền chấm bài tập trong lớp này");
+        return;
+      }
+      const currentAssignmentId = item.assignmentId || item.id;
+      navigate(`/teaching/class-sections/${classSectionId}/assignments/${currentAssignmentId}/submissions${classContentQuery}`, {
+        state: {
+          classContentItemId: item.id,
+          itemTitle: item.displayTitle || item.title,
+        },
+      });
+      return;
+    }
+
     if (item.itemType === "LESSON") {
       const lectureId = item.lessonId || item.id;
       if (userRole === "STUDENT") {
@@ -234,6 +267,19 @@ export default function CourseContent({ enrollmentStatus = null }) {
         });
       }
     }
+  };
+
+  const getTeachingRestrictionMessage = (item) => {
+    if (!isTeachingWorkspace) {
+      return null;
+    }
+    if (item.itemType === "QUIZ" && !canReviewQuizzes) {
+      return "Không có quyền rà soát quiz";
+    }
+    if (item.itemType === "ASSIGNMENT" && !canGradeAssignments) {
+      return "Không có quyền chấm bài tập";
+    }
+    return null;
   };
 
   // ── Create chapter ─────────────────────────────────────────────────────────
@@ -562,11 +608,13 @@ export default function CourseContent({ enrollmentStatus = null }) {
                           const tc = getTypeConfig(item.itemType);
                           const isStudentBlocked =
                             isStudentNotApproved || (userRole === "STUDENT" && item.accessible === false);
+                          const teachingRestrictionMessage = getTeachingRestrictionMessage(item);
+                          const isTeachingBlocked = Boolean(teachingRestrictionMessage);
                           return (
                             <div
                               key={item.id}
                               className={`p-3.5 bg-slate-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 flex items-center gap-3 transition-all ${
-                                isStudentBlocked
+                                isStudentBlocked || isTeachingBlocked
                                   ? "opacity-70 cursor-not-allowed"
                                   : "hover:shadow-sm hover:border-primary/30 cursor-pointer"
                               }`}
@@ -586,6 +634,11 @@ export default function CourseContent({ enrollmentStatus = null }) {
                                 </p>
                                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                   <span className="text-xs text-gray-500 dark:text-gray-400">{tc.label}</span>
+                                  {teachingRestrictionMessage && (
+                                    <span className="text-[10px] font-medium bg-rose-100 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 rounded-full">
+                                      {teachingRestrictionMessage}
+                                    </span>
+                                  )}
                                   {item.hidden && (
                                     <span className="text-[10px] font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full">
                                       {t("classContent.badges.hidden")}

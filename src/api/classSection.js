@@ -78,6 +78,11 @@ export const updateMemberRole = async (classSectionId, userId, data) => {
   return response.data;
 };
 
+export const updateMemberPermissions = async (classSectionId, userId, data) => {
+  const response = await axiosClient.patch(`class-sections/${classSectionId}/members/${userId}/permissions`, data);
+  return response.data;
+};
+
 export const removeMember = async (classSectionId, userId) => {
   const response = await axiosClient.delete(`class-sections/${classSectionId}/members/${userId}`);
   return response.data;

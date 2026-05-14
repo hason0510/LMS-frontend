@@ -1,12 +1,22 @@
 import axiosClient from "./axiosClient";
 
+const unwrapPayload = (response) => response?.data?.data ?? response?.data;
+
+const unwrapArrayPayload = (response) => {
+  const payload = unwrapPayload(response);
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(payload?.pageList)) return payload.pageList;
+  return [];
+};
+
 // ==========================================
 // Curriculum Template Endpoints
 // ==========================================
 
 export const createTemplate = async (templateData) => {
   const response = await axiosClient.post('curriculum-templates', templateData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const deleteTemplate = async (id) => {
@@ -16,19 +26,19 @@ export const deleteTemplate = async (id) => {
 
 export const updateTemplate = async (id, templateData) => {
   const response = await axiosClient.put(`curriculum-templates/${id}`, templateData);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const getTemplateById = async (id) => {
   const response = await axiosClient.get(`curriculum-templates/${id}`);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const getTemplates = async (params) => {
   const response = await axiosClient.get('curriculum-templates', {
     params,
   });
-  return response.data;
+  return unwrapArrayPayload(response);
 };
 
 // ==========================================

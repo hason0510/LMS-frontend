@@ -13,6 +13,7 @@ import {
   updateContentItemTemplate,
 } from "../../api/curriculumTemplate";
 import { createClassSectionFromTemplateId } from "../../api/classSection";
+import { getAllUsers } from "../../api/user";
 import {
   Spin,
   Tag,
@@ -97,6 +98,8 @@ export default function TemplateDetailPage({ isAdmin = false }) {
   const [classForm] = Form.useForm();
   const [classSubmitting, setClassSubmitting] = useState(false);
   const [generatedCode, setGeneratedCode] = useState(null);
+  const [teacherOptions, setTeacherOptions] = useState([]);
+  const [teacherLoading, setTeacherLoading] = useState(false);
 
   const generateRandomCode = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -113,8 +116,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
   const fetchTemplate = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await getTemplateById(templateId);
-      const data = res.data;
+      const data = await getTemplateById(templateId);
       setTemplate(data);
       // Auto-expand all chapters
       const expanded = {};
@@ -232,7 +234,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
         classCode: generatedCode || undefined,
         startDate: values.dates?.[0]?.format("YYYY-MM-DD"),
         endDate: values.dates?.[1]?.format("YYYY-MM-DD"),
-        teacherId: user?.id || user?.sub,
+        teacherId: isAdmin ? values.teacherId : (user?.id || user?.sub),
       });
       message.success("Tạo lớp học thành công!");
       setClassModalOpen(false);
@@ -249,6 +251,30 @@ export default function TemplateDetailPage({ isAdmin = false }) {
 
   const toggleChapter = (chapterId) => {
     setExpandedChapters((prev) => ({ ...prev, [chapterId]: !prev[chapterId] }));
+  };
+
+  const loadTeacherOptions = async () => {
+    try {
+      setTeacherLoading(true);
+      const response = await getAllUsers(0, 500);
+      const users = response?.data?.pageList || [];
+      const teachers = users.filter((item) => {
+        const role = item?.roleName || item?.role?.roleName || item?.role;
+        return role === "TEACHER";
+      });
+      setTeacherOptions(
+        teachers.map((item) => ({
+          value: item.id,
+          label: `${item.fullName || item.userName || item.username || "Teacher"}${item.gmail ? ` - ${item.gmail}` : ""}`,
+        }))
+      );
+    } catch (err) {
+      console.error(err);
+      message.error("Không thể tải danh sách giáo viên");
+      setTeacherOptions([]);
+    } finally {
+      setTeacherLoading(false);
+    }
   };
 
   // ── Chapter reorder ────────────────────────────────────────
@@ -422,9 +448,13 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                       classForm.setFieldsValue({
                         title: `${template?.name} - Lớp mới`,
                         description: template?.description || "",
+                        teacherId: undefined,
                       });
                       setGeneratedCode(generateRandomCode());
                       setClassModalOpen(true);
+                      if (isAdmin) {
+                        loadTeacherOptions();
+                      }
                     }}
                     className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 text-sm font-semibold transition-all shadow-sm shadow-primary/30"
                   >
@@ -746,6 +776,24 @@ export default function TemplateDetailPage({ isAdmin = false }) {
         destroyOnHidden
       >
         <Form form={classForm} layout="vertical" onFinish={handleCreateClass} className="mt-4">
+          {isAdmin && (
+            <Form.Item
+              label="Giáo viên chính"
+              name="teacherId"
+              rules={[{ required: true, message: "Vui lòng chọn giáo viên chính" }]}
+            >
+              <Select
+                showSearch
+                placeholder="Chọn giáo viên đứng lớp"
+                loading={teacherLoading}
+                options={teacherOptions}
+                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  String(option?.label || "").toLowerCase().includes(input.toLowerCase())
+                }
+              />
+            </Form.Item>
+          )}
           <Form.Item
             label="Tên lớp học"
             name="title"

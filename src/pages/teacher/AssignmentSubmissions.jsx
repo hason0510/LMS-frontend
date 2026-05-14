@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { App, Button, InputNumber, Modal, Spin, Table } from "antd";
 import dayjs from "dayjs";
 import ReactQuill from "react-quill";
@@ -7,6 +7,7 @@ import "react-quill/dist/quill.snow.css";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import TeachingLayout from "../../components/teaching/TeachingLayout";
 import { getAssignmentById } from "../../api/assignment";
 import { getAssignmentSubmissions, gradeSubmission, returnSubmission } from "../../api/submission";
 
@@ -26,11 +27,15 @@ function formatSubmissionTime(value) {
   return dayjs(value).format("DD/MM/YYYY HH:mm");
 }
 
-export default function AssignmentSubmissions({ isAdmin = false }) {
+export default function AssignmentSubmissions({ isAdmin = false, teachingMode = false }) {
   const { classSectionId, assignmentId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { message } = App.useApp();
   const basePath = isAdmin ? "/admin" : "/teacher";
+  const classContentItemId =
+    new URLSearchParams(location.search).get("classContentItemId") || location.state?.classContentItemId || null;
+  const returnPath = location.state?.returnPath || null;
 
   const [assignment, setAssignment] = useState(null);
   const [submissions, setSubmissions] = useState([]);
@@ -44,7 +49,7 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
     try {
       setLoading(true);
       const [assignmentResponse, submissionsResponse] = await Promise.all([
-        getAssignmentById(assignmentId),
+        getAssignmentById(assignmentId, classContentItemId),
         getAssignmentSubmissions(assignmentId, classSectionId, true),
       ]);
 
@@ -62,7 +67,7 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
 
   useEffect(() => {
     refreshData();
-  }, [assignmentId, classSectionId]);
+  }, [assignmentId, classSectionId, classContentItemId]);
 
   const openGradeModal = (submission) => {
     setSelectedSubmission(submission);
@@ -181,37 +186,33 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <TeacherHeader />
-      <div className="flex">
-        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-        <main className="flex-1 pt-16 lg:pl-64">
-          <div className="max-w-6xl mx-auto p-6 space-y-4">
-            <button
-              onClick={() => navigate(`${basePath}/class-sections/${classSectionId}/assignments/${assignmentId}`)}
-              className="text-primary text-sm font-medium hover:underline"
-            >
-              Quay lại Assignment
-            </button>
+  const backPath = teachingMode
+    ? returnPath || `/teaching/class-sections/${classSectionId}/content`
+    : `${basePath}/class-sections/${classSectionId}/assignments/${assignmentId}`;
 
-            <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                Bài nộp: {assignment?.title}
-              </h1>
-              <p className="text-sm text-slate-500 mb-5">
-                Tổng số học viên: {submissions.length}
-              </p>
+  const content = (
+    <div className="max-w-6xl mx-auto p-6 space-y-4">
+      <button
+        onClick={() => navigate(backPath)}
+        className="text-primary text-sm font-medium hover:underline"
+      >
+        {teachingMode ? "Quay lại nội dung lớp" : "Quay lại Assignment"}
+      </button>
 
-              <Table
-                rowKey={(record) => `${record.studentId || "none"}-${record.id || "empty"}`}
-                columns={columns}
-                dataSource={submissions}
-                pagination={{ pageSize: 10 }}
-              />
-            </div>
-          </div>
-        </main>
+      <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+          Bài nộp: {assignment?.title}
+        </h1>
+        <p className="text-sm text-slate-500 mb-5">
+          Tổng số học viên: {submissions.length}
+        </p>
+
+        <Table
+          rowKey={(record) => `${record.studentId || "none"}-${record.id || "empty"}`}
+          columns={columns}
+          dataSource={submissions}
+          pagination={{ pageSize: 10 }}
+        />
       </div>
 
       <Modal
@@ -297,6 +298,20 @@ export default function AssignmentSubmissions({ isAdmin = false }) {
           </div>
         )}
       </Modal>
+    </div>
+  );
+
+  if (teachingMode) {
+    return <TeachingLayout>{content}</TeachingLayout>;
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <TeacherHeader />
+      <div className="flex">
+        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
+        <main className="flex-1 pt-16 lg:pl-64">{content}</main>
+      </div>
     </div>
   );
 }

@@ -74,3 +74,8 @@ export async function getStudentAttemptsHistory(contentItemId) {
   const response = await axiosClient.get(`class-content-items/${contentItemId}/my-attempts`);
   return response.data;
 }
+
+export async function getQuizAttemptsByClassContentItem(classContentItemId, params = {}) {
+  const response = await axiosClient.get(`class-content-items/${classContentItemId}/attempts`, { params });
+  return response.data;
+}

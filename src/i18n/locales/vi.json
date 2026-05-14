@@ -14,13 +14,21 @@
     "banCoChacChanMuonDangXuat": "Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?",
     "huyboDangXuat": "Đăng xuất",
     "huyBo": "Hủy bỏ",
-    "dangXuLy": "Đang xử lý..."
+    "dangXuLy": "Đang xử lý...",
+    "thanhVien": "Thành viên"
   },
   "header": {
     "khóaHọc": "Khóa học",
+    "classes": "Lớp học",
+    "teachingWorkspace": "Hỗ trợ lớp",
     "gioiThieu": "Giới thiệu",
     "trangCaNhan": "Trang cá nhân",
-    "timKiem": "Tìm kiếm..."
+    "timKiem": "Tìm kiếm...",
+    "roles": {
+      "admin": "Quản trị viên",
+      "teacher": "Giáo viên",
+      "student": "Học viên"
+    }
   },
   "settings": {
     "caiDatHeThong": "Cài đặt hệ thống",
@@ -325,9 +333,18 @@
     "nganHangCauHoi": "Ngân hàng câu hỏi",
     "chinhSuaThongTin": "Chỉnh sửa thông tin",
     "quanLyTag": "Quản lý tag",
+    "tags": "Tags",
+    "role": "Role",
+    "datRoleEditor": "Đặt EDITOR",
+    "datRoleViewer": "Đặt VIEWER",
+    "danhSachCauHoi": "Danh sách câu hỏi",
+    "locTheoTag": "Lọc theo nhiều tag",
+    "timTag": "Tìm tag theo tên",
     "importGiftAiken": "Import GIFT/AIKEN (.txt)",
     "exportGift": "Export GIFT (.txt)",
     "themCauHoi": "Thêm câu hỏi",
+    "themCauHoiMoi": "Thêm câu hỏi mới",
+    "suaCauHoi": "Chỉnh sửa câu hỏi",
     "xoaBank": "Xóa bank",
     "noiDungCauHoi": "Nội dung câu hỏi",
     "loai": "Loại",
@@ -339,6 +356,8 @@
     "them": "Thêm",
     "capNhat": "Cập nhật",
     "taoMoi": "Tạo mới",
+    "lamMoi": "Làm mới",
+    "luuCauHoi": "Lưu câu hỏi",
     "thanhVienNganHang": "Thành viên ngân hàng câu hỏi",
     "timUser": "Tìm user để thêm vào bank",
     "ownerHienTai": "Owner hiện tại",
@@ -352,6 +371,8 @@
     "tagDangDuocDungXoa": "Tag \"{{name}}\" đang được dùng bởi {{q}} câu hỏi và {{r}} quiz rule.",
     "chuaCoTag": "Chưa có tag nào.",
     "cauHoiVaQuizRule": "{{q}} câu hỏi, {{r}} quiz rule",
+    "cauHoiKhopTag": "{{count}} câu hỏi khớp {{selected}} tag đã chọn",
+    "cauHoiTrongBank": "{{count}} câu hỏi trong bank",
     "taoTagMoi": "Tạo tag mới",
     "dangSuaTag": "Đang sửa: \"{{name}}\"",
     "taoNhieuTag": "Tạo nhiều tag (phân cách bằng dấu phẩy hoặc xuống dòng)",
@@ -362,6 +383,29 @@
     "nhapMoTa": "Nhập mô tả (tùy chọn)",
     "khongCoMoTa": "Chưa có mô tả",
     "tenTag": "Tên tag...",
+    "tagNoiDung": "Tag nội dung (tùy chọn)",
+    "nhapHoacChonTag": "Nhập hoặc chọn tag...",
+    "giaiThichDapAn": "Giải thích đáp án (tùy chọn)",
+    "giaiThichDapAnPlaceholder": "Giải thích tại sao đáp án này đúng...",
+    "difficultyAliasHint": "Alias độ khó ({alias}) sẽ tự map vào Độ khó, không lưu thành tag.",
+    "shortAnswerAutoGradeHint": "Câu trả lời được chấm tự động theo đáp án đúng (không phân biệt hoa/thường).",
+    "nhapDapAnDung": "Nhập đáp án đúng...",
+    "essayHint": "Câu tự luận sẽ được lưu để giáo viên chấm tay sau khi học viên nộp bài.",
+    "themLuaChonMoi": "Thêm lựa chọn mới...",
+    "veTrai": "Vế trái {{index}}",
+    "vePhai": "Vế phải {{index}}",
+    "themCapGhep": "Thêm cặp ghép",
+    "themMuc": "Thêm mục",
+    "clozePlaceholder": "Nhập văn bản với [[đáp án]] hoặc [[đúng|lựa chọn 1|lựa chọn 2]]...",
+    "clozeSyntax": "Cú pháp CLOZE:",
+    "clozeManualBlank": "— chỗ trống nhập tay",
+    "clozeSelectBlank": "— chỗ trống chọn từ danh sách",
+    "xemTruoc": "Xem trước:",
+    "vuiLongNhapDayDuCapGhep": "Vui lòng nhập đầy đủ các cặp ghép",
+    "vuiLongNhapItNhatHaiMucSapXep": "Vui lòng nhập ít nhất 2 mục sắp xếp",
+    "vuiLongThemItNhatMotChoTrong": "Vui lòng thêm ít nhất một chỗ trống với cú pháp [[đáp án]] trong nội dung câu hỏi",
+    "vuiLongChonItNhatMotDapAnDung": "Vui lòng chọn ít nhất một đáp án đúng",
+    "vuiLongNhapNoiDungTatCaDapAn": "Vui lòng nhập nội dung cho tất cả các đáp án",
     "loi": "Lỗi",
     "xoaCauHoiThanhCong": "Đã xóa câu hỏi",
     "capNhatCauHoiThanhCong": "Cập nhật câu hỏi thành công",
@@ -507,6 +551,231 @@
     "loadFailed": "Không thể tải dữ liệu quiz attempts",
     "answerFeedback": "Nhận xét cho câu trả lời này",
     "instructorFeedback": "Phản hồi tổng thể của giáo viên"
+  },
+  "teaching": {
+    "common": {
+      "noDeadline": "Không có hạn"
+    },
+    "nav": {
+      "overview": "Tổng quan",
+      "classes": "Lớp đang hỗ trợ",
+      "classesShort": "Lớp",
+      "people": "Học viên"
+    },
+    "layout": {
+      "title": "Không gian hỗ trợ",
+      "learningWorkspace": "Học tập",
+      "teachingWorkspace": "Hỗ trợ lớp",
+      "backToLearning": "Quay về không gian học tập",
+      "defaultUser": "Người dùng",
+      "focusTitle": "Trọng tâm hôm nay",
+      "focusDescription": "Chấm bài, theo dõi tiến độ học viên và xử lý các việc vận hành lớp mỗi ngày."
+    },
+    "status": {
+      "public": "Công khai",
+      "private": "Riêng tư",
+      "archived": "Lưu trữ"
+    },
+    "roles": {
+      "primaryTeacher": "Giáo viên chính",
+      "teachingAssistant": "Trợ giảng"
+    },
+    "dashboard": {
+      "title": "Bảng điều phối trợ giảng",
+      "subtitle": "Tập trung vào các đầu việc cần xử lý ngay: bài chờ chấm, quiz cần duyệt và học viên có nguy cơ trễ tiến độ.",
+      "myClasses": "Lớp đang hỗ trợ",
+      "reviewQueue": "Hàng đợi xử lý",
+      "openByClass": "Mở theo lớp",
+      "noReviewItems": "Hiện không có mục nào cần xử lý.",
+      "pendingCount": "{{count}} bài chờ chấm",
+      "essayReview": "Cần chấm tự luận",
+      "empty": "Bạn chưa tham gia vai trò giảng dạy ở lớp nào.",
+      "errors": {
+        "loadWorkspace": "Không thể tải không gian hỗ trợ lớp",
+        "loadData": "Không thể tải dữ liệu"
+      },
+      "stats": {
+        "pendingSubmissions": "Bài nộp chờ chấm",
+        "pendingQuizReviews": "Quiz cần duyệt",
+        "atRiskStudents": "Học viên cần chú ý",
+        "totalClasses": "Lớp đang hỗ trợ"
+      }
+    },
+    "classes": {
+      "title": "Danh sách lớp đang hỗ trợ",
+      "searchPlaceholder": "Tìm theo tên lớp, mã lớp hoặc môn học...",
+      "students": "Học viên",
+      "staff": "Nhân sự giảng dạy",
+      "openWorkspace": "Mở không gian lớp",
+      "noSubject": "Chưa có môn học",
+      "empty": "Không tìm thấy lớp phù hợp.",
+      "errors": {
+        "loadClasses": "Không thể tải danh sách lớp",
+        "loadData": "Không thể tải dữ liệu"
+      }
+    },
+    "classDetail": {
+      "backToClasses": "Quay lại danh sách lớp",
+      "manageStaff": "Quản lý nhân sự giảng dạy",
+      "noPrimaryTeacher": "Chưa có giáo viên chính",
+      "noClassData": "Không có dữ liệu lớp học.",
+      "quickStart": "Thao tác nhanh",
+      "tabs": {
+        "overview": "Tổng quan",
+        "content": "Nội dung",
+        "people": "Học viên",
+        "review": "Chấm bài",
+        "announcements": "Thông báo",
+        "progress": "Tiến độ"
+      },
+      "stats": {
+        "students": "Học viên",
+        "pendingSubmissions": "Bài chờ chấm",
+        "pendingQuizReviews": "Quiz cần duyệt",
+        "atRiskStudents": "Cần chú ý"
+      },
+      "progress": {
+        "atRisk": "Học viên cần chú ý",
+        "upcoming": "Bài sắp đến hạn",
+        "pendingReviews": "Mục chờ xử lý"
+      },
+      "errors": {
+        "loadClass": "Không thể tải lớp học"
+      }
+    },
+    "people": {
+      "title": "Danh sách học viên",
+      "subtitle": "Theo dõi danh sách lớp, bài còn thiếu và mức độ cần can thiệp của từng học viên.",
+      "studentProfile": "Hồ sơ học viên",
+      "selfNotice": "Đây là hồ sơ của chính bạn. Các thao tác chấm bài với bài làm của bạn sẽ bị khóa.",
+      "noStudentCode": "Chưa có mã học viên",
+      "empty": "Không có học viên phù hợp.",
+      "filters": {
+        "all": "Tất cả",
+        "approved": "Đã duyệt",
+        "pending": "Chờ duyệt",
+        "rejected": "Từ chối"
+      },
+      "columns": {
+        "student": "Học viên",
+        "status": "Trạng thái",
+        "progress": "Tiến độ",
+        "missingAssignments": "Thiếu bài",
+        "pendingReviews": "Chờ chấm",
+        "latestScore": "Điểm gần nhất"
+      }
+    },
+    "enrollmentStatus": {
+      "approved": "Đã duyệt",
+      "pending": "Chờ duyệt",
+      "rejected": "Từ chối"
+    },
+    "review": {
+      "title": "Hàng đợi chấm bài",
+      "subtitle": "Tổng hợp assignment và quiz tự luận đang chờ xử lý.",
+      "empty": "Không có mục nào đang chờ chấm.",
+      "filters": {
+        "all": "Tất cả",
+        "assignment": "Bài tập",
+        "quiz": "Quiz"
+      },
+      "types": {
+        "assignment": "Bài tập",
+        "quiz": "Quiz"
+      },
+      "columns": {
+        "task": "Đầu việc",
+        "type": "Loại",
+        "submittedAt": "Thời điểm nộp",
+        "dueAt": "Hạn nộp",
+        "flags": "Cờ trạng thái"
+      },
+      "flags": {
+        "late": "Trễ hạn",
+        "selfOwned": "Bài của bạn"
+      },
+      "actions": {
+        "review": "Mở bài",
+        "grade": "Chấm bài",
+        "return": "Trả bài",
+        "saveScore": "Lưu điểm"
+      },
+      "drawer": {
+        "title": "Chấm bài tập",
+        "student": "Học viên",
+        "submittedAt": "Nộp lúc",
+        "score": "Điểm",
+        "feedback": "Nhận xét",
+        "feedbackPlaceholder": "Nhập nhận xét ngắn gọn, nêu rõ điểm mạnh và phần cần cải thiện.",
+        "selfNotice": "Bạn không thể chấm bài của chính mình."
+      },
+      "errors": {
+        "inputGrade": "Vui lòng nhập điểm trước khi lưu.",
+        "inputFeedback": "Vui lòng nhập nhận xét trước khi trả bài.",
+        "gradeFailed": "Không thể chấm bài.",
+        "returnFailed": "Không thể trả bài."
+      },
+      "messages": {
+        "graded": "Đã lưu điểm thành công.",
+        "returned": "Đã trả bài cho học viên."
+      }
+    },
+    "staff": {
+      "title": "Nhân sự giảng dạy",
+      "roleRuleTitle": "Quy tắc vai trò trong lớp",
+      "roleRuleDescription": "Một người có thể học lớp A nhưng làm trợ giảng ở lớp B. Trong cùng một lớp, một người chỉ có thể thuộc một vai trò duy nhất.",
+      "readOnlyTitle": "Bạn đang ở chế độ chỉ xem",
+      "readOnlyDescription": "Bạn không có quyền quản lý nhân sự giảng dạy của lớp này.",
+      "searchPlaceholder": "Tìm người dùng để thêm vào nhóm giảng dạy...",
+      "permissionsTitle": "Quyền trợ giảng - {{name}}",
+      "permissionsDescription": "Các quyền này quyết định trợ giảng nhìn thấy tab nào và được xử lý nghiệp vụ nào trong không gian hỗ trợ lớp.",
+      "fixedTeacherPermissions": "Theo vai trò giáo viên",
+      "actions": {
+        "add": "Thêm",
+        "remove": "Xóa",
+        "manage": "Quản lý",
+        "permissions": "Quyền",
+        "savePermissions": "Lưu quyền"
+      },
+      "columns": {
+        "member": "Thành viên",
+        "role": "Vai trò",
+        "status": "Trạng thái",
+        "permissions": "Quyền truy cập"
+      },
+      "permissions": {
+        "VIEW_CLASS": "Xem lớp hỗ trợ",
+        "VIEW_PEOPLE": "Xem danh sách học viên",
+        "VIEW_PROGRESS": "Xem tiến độ học viên",
+        "GRADE_ASSIGNMENTS": "Xem và chấm bài tập",
+        "REVIEW_QUIZZES": "Xem và rà soát bài quiz",
+        "POST_ANNOUNCEMENTS": "Đăng thông báo",
+        "REPLY_COMMENTS": "Trả lời bình luận"
+      },
+      "permissionShort": {
+        "VIEW_CLASS": "Lớp",
+        "VIEW_PEOPLE": "Học viên",
+        "VIEW_PROGRESS": "Tiến độ",
+        "GRADE_ASSIGNMENTS": "Bài tập",
+        "REVIEW_QUIZZES": "Quiz",
+        "POST_ANNOUNCEMENTS": "Thông báo",
+        "REPLY_COMMENTS": "Bình luận"
+      },
+      "errors": {
+        "loadFailed": "Không thể tải danh sách nhân sự giảng dạy.",
+        "selectUser": "Vui lòng chọn người dùng trước khi thêm.",
+        "addFailed": "Không thể thêm nhân sự giảng dạy.",
+        "updateRoleFailed": "Không thể cập nhật vai trò.",
+        "updatePermissionsFailed": "Không thể cập nhật quyền trợ giảng.",
+        "removeFailed": "Không thể xóa thành viên."
+      },
+      "messages": {
+        "added": "Đã thêm thành viên vào nhóm giảng dạy.",
+        "roleUpdated": "Đã cập nhật vai trò thành viên.",
+        "permissionsUpdated": "Đã cập nhật quyền trợ giảng.",
+        "removed": "Đã xóa thành viên khỏi nhóm giảng dạy."
+      }
+    }
   },
   "classContent": {
     "unknownItem": "Không xác định",

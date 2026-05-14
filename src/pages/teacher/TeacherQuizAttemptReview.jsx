@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import TeachingLayout from "../../components/teaching/TeachingLayout";
 import { getAttemptDetail, reviewQuizAttempt } from "../../api/quiz";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
@@ -95,7 +96,7 @@ const answerResult = (answer, t) => {
   return <Tag>{t("quizAttempts.unanswered")}</Tag>;
 };
 
-export default function TeacherQuizAttemptReview({ isAdmin = false }) {
+export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode = false }) {
   const { t } = useTranslation();
   const { attemptId } = useParams();
   const navigate = useNavigate();
@@ -116,7 +117,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
     try {
       setLoading(true);
       const response = await getAttemptDetail(attemptId);
-      const payload = response?.data;
+      const payload = response?.data || response;
       setAttempt(payload);
       setInstructorFeedback(payload?.instructorFeedback || "");
       const nextReviews = {};
@@ -151,7 +152,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
           feedback: reviews[answer.id]?.feedback || "",
         })),
       });
-      const payload = response?.data;
+      const payload = response?.data || response;
       setAttempt(payload);
       message.success(t("quizAttempts.reviewSaved"));
     } catch (error) {
@@ -234,92 +235,88 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
   }
 
   const base = isAdmin ? "/admin" : "/teacher";
+  const backPath = teachingMode
+    ? attempt?.classSectionId && attempt?.quizId && attempt?.classContentItemId
+      ? `/teaching/class-sections/${attempt.classSectionId}/quizzes/${attempt.quizId}/attempts?classContentItemId=${attempt.classContentItemId}`
+      : "/teaching/classes"
+    : `${base}/quiz-attempts`;
+  const content = (
+    <div className="mx-auto max-w-7xl space-y-5">
+      <Button onClick={() => navigate(backPath)}>{t("quizAttempts.back")}</Button>
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <TeacherHeader />
-      <div className="flex">
-        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-        <main className="flex-1 pt-20 p-6 lg:pl-72">
-          <div className="mx-auto max-w-7xl space-y-5">
-            <Button onClick={() => navigate(`${base}/quiz-attempts`)}>{t("quizAttempts.back")}</Button>
-
-            <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">{t("quizAttempts.quiz")}</p>
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {attempt?.quizTitle || `Quiz #${attempt?.quizId}`}
-                  </h1>
-                  <p className="text-sm text-slate-500">
-                    {t("quizAttempts.student")}: {attempt?.studentName || attempt?.studentEmail || attempt?.studentId}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">
-                    {Number(attempt?.earnedPoints || 0).toFixed(2)} / {Number(attempt?.totalPoints || 0).toFixed(2)}
-                  </div>
-                  <div className="text-sm text-slate-500">{attempt?.grade ?? 0}%</div>
-                </div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
-                <Summary label={t("quizAttempts.completedAt")} value={formatDate(attempt?.completedTime)} />
-                <Summary label={t("quizAttempts.questions")} value={attempt?.totalQuestions ?? 0} />
-                <Summary label={t("quizAttempts.correct")} value={attempt?.correctAnswers ?? 0} />
-                <Summary label={t("quizAttempts.incorrect")} value={attempt?.incorrectAnswers ?? 0} />
-                <Summary
-                  label={t("quizAttempts.result")}
-                  value={
-                    attempt?.gradingStatus === "NEEDS_REVIEW"
-                      ? t("quizAttempts.pending")
-                      : attempt?.isPassed
-                        ? t("quizAttempts.pass")
-                        : t("quizAttempts.fail")
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
-              <Table rowKey="id" columns={columns} dataSource={attempt?.answers || []} pagination={false} />
-
-              <div className="mt-5 space-y-3">
-                {essayAnswers.map((answer) => (
-                  <div key={answer.id} className="rounded border border-slate-200 p-3">
-                    <div className="mb-2 text-sm font-semibold">
-                      <QuizRichText html={answer.quizQuestion?.content || ""} className="text-sm font-semibold text-slate-900 dark:text-white" />
-                    </div>
-                    <Input.TextArea
-                      rows={2}
-                      placeholder={t("quizAttempts.answerFeedback")}
-                      value={reviews[answer.id]?.feedback}
-                      onChange={(event) =>
-                        setReviews((prev) => ({
-                          ...prev,
-                          [answer.id]: { ...(prev[answer.id] || {}), feedback: event.target.value },
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
-
-                <Input.TextArea
-                  rows={4}
-                  placeholder={t("quizAttempts.instructorFeedback")}
-                  value={instructorFeedback}
-                  onChange={(event) => setInstructorFeedback(event.target.value)}
-                />
-
-                <div className="flex justify-end">
-                  <Button type="primary" loading={saving} onClick={saveReview}>
-                    {t("quizAttempts.saveReview")}
-                  </Button>
-                </div>
-              </div>
-            </div>
+      <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-sm text-slate-500">{t("quizAttempts.quiz")}</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              {attempt?.quizTitle || `Quiz #${attempt?.quizId}`}
+            </h1>
+            <p className="text-sm text-slate-500">
+              {t("quizAttempts.student")}: {attempt?.studentName || attempt?.studentEmail || attempt?.studentId}
+            </p>
           </div>
-        </main>
+          <div className="text-right">
+            <div className="text-2xl font-bold">
+              {Number(attempt?.earnedPoints || 0).toFixed(2)} / {Number(attempt?.totalPoints || 0).toFixed(2)}
+            </div>
+            <div className="text-sm text-slate-500">{attempt?.grade ?? 0}%</div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+          <Summary label={t("quizAttempts.completedAt")} value={formatDate(attempt?.completedTime)} />
+          <Summary label={t("quizAttempts.questions")} value={attempt?.totalQuestions ?? 0} />
+          <Summary label={t("quizAttempts.correct")} value={attempt?.correctAnswers ?? 0} />
+          <Summary label={t("quizAttempts.incorrect")} value={attempt?.incorrectAnswers ?? 0} />
+          <Summary
+            label={t("quizAttempts.result")}
+            value={
+              attempt?.gradingStatus === "NEEDS_REVIEW"
+                ? t("quizAttempts.pending")
+                : attempt?.isPassed
+                ? t("quizAttempts.pass")
+                : t("quizAttempts.fail")
+            }
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+        <Table rowKey="id" columns={columns} dataSource={attempt?.answers || []} pagination={false} scroll={{ x: 900 }} />
+
+        <div className="mt-5 space-y-3">
+          {essayAnswers.map((answer) => (
+            <div key={answer.id} className="rounded border border-slate-200 p-3 dark:border-slate-700">
+              <div className="mb-2 text-sm font-semibold">
+                <QuizRichText html={answer.quizQuestion?.content || ""} className="text-sm font-semibold text-slate-900 dark:text-white" />
+              </div>
+              <Input.TextArea
+                rows={2}
+                placeholder={t("quizAttempts.answerFeedback")}
+                value={reviews[answer.id]?.feedback}
+                onChange={(event) =>
+                  setReviews((prev) => ({
+                    ...prev,
+                    [answer.id]: { ...(prev[answer.id] || {}), feedback: event.target.value },
+                  }))
+                }
+              />
+            </div>
+          ))}
+
+          <Input.TextArea
+            rows={4}
+            placeholder={t("quizAttempts.instructorFeedback")}
+            value={instructorFeedback}
+            onChange={(event) => setInstructorFeedback(event.target.value)}
+          />
+
+          <div className="flex justify-end">
+            <Button type="primary" loading={saving} onClick={saveReview}>
+              {t("quizAttempts.saveReview")}
+            </Button>
+          </div>
+        </div>
       </div>
 
       <Modal
@@ -328,12 +325,27 @@ export default function TeacherQuizAttemptReview({ isAdmin = false }) {
         footer={null}
         title="Nội dung câu hỏi"
         width={700}
+        destroyOnHidden
       >
         <div className="prose prose-sm max-w-none">
           {previewQuestion && <QuizRichText html={previewQuestion.content || ""} className="prose prose-sm max-w-none" />}
         </div>
         {previewQuestion && <ResourcePreview resource={previewQuestion.resource} className="mt-4" />}
       </Modal>
+    </div>
+  );
+
+  if (teachingMode) {
+    return <TeachingLayout>{content}</TeachingLayout>;
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <TeacherHeader />
+      <div className="flex">
+        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
+        <main className="flex-1 pt-20 p-6 lg:pl-72">{content}</main>
+      </div>
     </div>
   );
 }

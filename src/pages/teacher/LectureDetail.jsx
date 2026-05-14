@@ -165,8 +165,8 @@ export default function LectureDetail({ isAdmin = false }) {
         
         // Fetch course or template data based on mode
         if (isTemplateMode && templateIdFromPath) {
-          const templateResponse = await getTemplateById(templateIdFromPath);
-          setCourse(templateResponse.data || templateResponse);
+          const templateData = await getTemplateById(templateIdFromPath);
+          setCourse(templateData);
         } else if (classSectionId) {
           const courseResponse = await getCourseById(classSectionId);
           setCourse(courseResponse.data || courseResponse);
