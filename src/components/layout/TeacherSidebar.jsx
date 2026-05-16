@@ -14,6 +14,7 @@ import {
   MegaphoneIcon,
   ClipboardDocumentCheckIcon,
   ClipboardDocumentListIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/outline";
 
 export default function TeacherSidebar() {
@@ -74,6 +75,13 @@ export default function TeacherSidebar() {
           label={t("teacher.nganHangCauHoi") || "Ngân hàng câu hỏi"}
           active={currentPath.startsWith("/teacher/question-banks")}
           to="/teacher/question-banks"
+          isCollapsed={isCollapsed}
+        />
+        <SidebarLink
+          icon={<PhotoIcon className="h-6 w-6" />}
+          label={t("teacher.quanLyMedia")}
+          active={currentPath.startsWith("/teacher/media")}
+          to="/teacher/media"
           isCollapsed={isCollapsed}
         />
         <SidebarLink

@@ -11,6 +11,7 @@ import {
   CheckBadgeIcon,
   TagIcon,
   ListBulletIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/outline";
 import { Spin } from "antd";
 import { getAllUsers } from "../../api/user";
@@ -183,6 +184,7 @@ export default function AdminDashboard() {
     { label: "Duyệt lớp học", icon: CheckBadgeIcon, to: "/admin/class-sections" },
     { label: "Danh mục", icon: TagIcon, to: "/admin/categories" },
     { label: "Môn học", icon: ListBulletIcon, to: "/admin/subjects" },
+    { label: "Quản lý media", icon: PhotoIcon, to: "/admin/media" },
   ];
 
   if (loading) {

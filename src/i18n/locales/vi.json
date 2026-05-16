@@ -188,6 +188,7 @@
     "lopHoc": "Lớp học",
     "assignments": "Assignments",
     "nganHangCauHoi": "Ngân hàng câu hỏi",
+    "quanLyMedia": "Quản lý media",
     "quanLyKhoaHoc": "Quản lý khóa học",
     "quanLyHocVien": "Quản lý học viên",
     "quizAttempts": "Lượt làm quiz",
@@ -203,6 +204,7 @@
     "quanLyKhoaHoc": "Quản lý khóa học",
     "chuongTrinhHoc": "Chương trình học",
     "nganHangCauHoi": "Ngân hàng câu hỏi",
+    "quanLyMedia": "Quản lý media",
     "quizAttempts": "Lượt làm quiz",
     "thongKe": "Thống kê",
     "hoSo": "Hồ sơ",
@@ -257,11 +259,16 @@
     "search": "Tìm kiếm",
     "byDate": "Theo ngày",
     "byName": "Theo tên",
+    "bySize": "Theo dung lượng",
     "empty": "Chưa có media phù hợp",
     "untitled": "Chưa đặt tên",
     "loadFailed": "Không thể tải thư viện media",
     "uploadSuccess": "Tải file thành công",
     "uploadFailed": "Tải file thất bại",
+    "uploadPolicy": "Cho phép: {{extensions}} · Tối đa {{size}}",
+    "invalidFileType": "Định dạng file này chưa được hỗ trợ",
+    "fileTooLarge": "File vượt quá giới hạn {{size}}",
+    "loadMore": "Tải thêm",
     "attachByUrl": "Đính kèm bằng link",
     "attachLink": "Đính kèm link",
     "attachSuccess": "Đính kèm link thành công",
@@ -273,6 +280,7 @@
     "changeMedia": "Đổi media",
     "questionMedia": "Media câu hỏi",
     "questionMediaHint": "Có thể thêm ảnh, video hoặc file mp3/audio cho câu hỏi.",
+    "selectQuestionMediaType": "Chọn loại media cho câu hỏi",
     "uploadImage": "Tải ảnh",
     "changeImage": "Đổi ảnh",
     "remove": "Xóa",
@@ -281,12 +289,149 @@
       "VIDEO": "Video",
       "AUDIO": "Âm thanh"
     },
+    "answerModes": {
+      "text": "Đáp án không ảnh",
+      "image": "Đáp án có ảnh"
+    },
     "videoSources": {
       "MP4": "HTML (MP4)",
       "YOUTUBE": "YouTube",
       "VIMEO": "Vimeo",
       "EMBED": "Embed",
       "EXTERNAL": "External link"
+    }
+  },
+  "mediaManager": {
+    "uploadPolicy": "Giới hạn tải lên: {{size}}. Định dạng cho phép: {{extensions}}",
+    "searchPlaceholder": "Tìm media",
+    "empty": "Chưa có media trong phạm vi này.",
+    "untitled": "Chưa đặt tên",
+    "usedCount": "{{count}} nơi dùng",
+    "pages": {
+      "personal": {
+        "title": "Kho media của tôi",
+        "subtitle": "Nơi lưu các media riêng của bạn để dùng lại khi soạn bài, bài tập hoặc quiz."
+      },
+      "admin": {
+        "title": "Quản lý media",
+        "subtitle": "Theo dõi media theo phạm vi, trạng thái, loại file và người tạo."
+      },
+      "questionBank": {
+        "title": "Media ngân hàng câu hỏi",
+        "subtitle": "Media dùng chung trong ngân hàng câu hỏi #{{id}}"
+      },
+      "classSection": {
+        "title": "Media lớp học",
+        "subtitle": "Media dùng cho bài học, bài tập và quiz của lớp #{{id}}",
+        "teachingSubtitle": "Media trong phạm vi lớp #{{id}}"
+      }
+    },
+    "types": {
+      "IMAGE": "Hình ảnh",
+      "VIDEO": "Video",
+      "AUDIO": "Âm thanh",
+      "PDF": "PDF",
+      "FILE": "Tệp",
+      "LINK": "Liên kết"
+    },
+    "scopes": {
+      "QUESTION_BANK": "Ngân hàng câu hỏi",
+      "CLASS_SECTION": "Lớp học",
+      "PRIVATE_USER": "Kho cá nhân",
+      "INSTITUTION_SHARED": "Thư viện chung",
+      "LEGACY": "Dữ liệu cũ"
+    },
+    "status": {
+      "ACTIVE": "Đang dùng",
+      "ARCHIVED": "Đã lưu trữ"
+    },
+    "sort": {
+      "newest": "Mới nhất",
+      "name": "Tên",
+      "size": "Dung lượng"
+    },
+    "filters": {
+      "scope": "Phạm vi",
+      "type": "Loại media"
+    },
+    "stats": {
+      "currentResult": "Kết quả hiện tại",
+      "visibleSize": "Dung lượng hiển thị",
+      "archivedInView": "Đã lưu trữ"
+    },
+    "drawer": {
+      "title": "Chi tiết media"
+    },
+    "link": {
+      "open": "Dán link",
+      "title": "Tạo media bằng link",
+      "titlePlaceholder": "Tên link (tùy chọn)",
+      "urlPlaceholder": "Dán URL hoặc embed URL ở đây",
+      "hint": "Link sẽ được lưu như media dạng embed. Với YouTube, Vimeo hoặc OneDrive, hãy dùng link nhúng nếu cần hiển thị trực tiếp.",
+      "create": "Tạo link",
+      "invalidUrl": "Vui lòng nhập URL hợp lệ.",
+      "success": "Đã tạo media link",
+      "failed": "Không thể tạo media link"
+    },
+    "fields": {
+      "title": "Tên media",
+      "description": "Mô tả",
+      "type": "Loại",
+      "size": "Dung lượng",
+      "scope": "Phạm vi",
+      "owner": "Người tạo",
+      "status": "Trạng thái",
+      "usageCount": "Số nơi dùng",
+      "lastUsedAt": "Dùng lần cuối"
+    },
+    "references": {
+      "title": "Đang được dùng ở",
+      "empty": "Chưa thấy nơi nào đang dùng media này."
+    },
+    "referenceTypes": {
+      "BANK_QUESTION": "Câu hỏi ngân hàng #{{id}}",
+      "BANK_QUESTION_OPTION": "Đáp án ngân hàng #{{id}}",
+      "QUIZ_QUESTION": "Câu hỏi quiz #{{id}}",
+      "QUIZ_ANSWER": "Đáp án quiz #{{id}}",
+      "INTERACTION_ITEM": "Tương tác #{{id}}",
+      "LESSON": "Bài học #{{id}}",
+      "ASSIGNMENT": "Bài tập #{{id}}",
+      "SUBMISSION": "Bài nộp #{{id}}"
+    },
+    "audit": {
+      "title": "Lịch sử gần đây",
+      "empty": "Chưa có lịch sử thao tác.",
+      "byActor": " bởi {{actor}}"
+    },
+    "auditActions": {
+      "CREATE": "Tạo mới",
+      "UPLOAD": "Tải lên",
+      "UPDATE": "Cập nhật",
+      "ARCHIVE": "Lưu trữ",
+      "RESTORE": "Khôi phục",
+      "DELETE": "Xóa"
+    },
+    "actions": {
+      "upload": "Tải media lên",
+      "loadMore": "Tải thêm",
+      "save": "Lưu",
+      "restore": "Khôi phục",
+      "archive": "Lưu trữ",
+      "delete": "Xóa"
+    },
+    "messages": {
+      "loadFailed": "Không thể tải media",
+      "uploadSuccess": "Tải media lên thành công",
+      "uploadFailed": "Tải media lên thất bại",
+      "detailsFailed": "Không thể tải lịch sử media",
+      "updateSuccess": "Đã cập nhật thông tin media",
+      "updateFailed": "Không thể cập nhật media",
+      "archiveSuccess": "Đã lưu trữ media",
+      "restoreSuccess": "Đã khôi phục media",
+      "statusFailed": "Không thể đổi trạng thái media",
+      "deleteBlocked": "Media này đang được sử dụng. Hãy lưu trữ thay vì xóa.",
+      "deleteSuccess": "Đã xóa media",
+      "deleteFailed": "Không thể xóa media"
     }
   },
   "quizBuilder": {

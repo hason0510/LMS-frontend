@@ -22,6 +22,7 @@ import {
   BookOpenIcon,
   BellIcon,
   ClockIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/outline";
 
 export default function TeacherDashboard() {
@@ -168,6 +169,11 @@ export default function TeacherDashboard() {
                       icon={<BookOpenIcon className="h-8 w-8" />}
                       label="Ngân hàng câu hỏi"
                       to="/teacher/question-banks"
+                    />
+                    <QuickActionCard
+                      icon={<PhotoIcon className="h-8 w-8" />}
+                      label="Kho media"
+                      to="/teacher/media"
                     />
                     <QuickActionCard
                       icon={<ClipboardDocumentCheckIcon className="h-8 w-8" />}

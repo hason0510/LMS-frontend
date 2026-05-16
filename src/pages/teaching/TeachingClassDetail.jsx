@@ -244,6 +244,9 @@ function Overview({
             {canPostAnnouncements && (
               <Button onClick={() => onNavigate(`/teaching/class-sections/${course.id}/announcements`)}>{t("teaching.classDetail.tabs.announcements")}</Button>
             )}
+            <Button onClick={() => onNavigate(`/teaching/class-sections/${course.id}/media`)}>
+              Media
+            </Button>
           </div>
         </div>
         <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">

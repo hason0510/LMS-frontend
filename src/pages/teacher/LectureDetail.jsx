@@ -71,6 +71,9 @@ export default function LectureDetail({ isAdmin = false }) {
   const isTemplateMode = location.state?.isTemplateMode || false;
   const chapterIdFromState = location.state?.chapterId || chapterId;
   const templateIdFromPath = useParams().templateId;
+  const classResourceScope = !isTemplateMode && classSectionId
+    ? { scopeType: "CLASS_SECTION", scopeId: Number(classSectionId) }
+    : {};
 
   useEffect(() => {
     const handleResize = () => {
@@ -278,6 +281,7 @@ export default function LectureDetail({ isAdmin = false }) {
               title: file.name,
               fileUrl: "",
               type: resourceType,
+              ...classResourceScope,
             });
             const resourceId = resourceResponse?.id || resourceResponse?.data?.id;
 
@@ -417,6 +421,7 @@ export default function LectureDetail({ isAdmin = false }) {
             fileUrl: "",
             type: "VIDEO",
             source: "UPLOAD",
+            ...classResourceScope,
           });
           const resourceId = resourceResponse?.id || resourceResponse?.data?.id;
           if (resourceId) {
@@ -446,6 +451,7 @@ export default function LectureDetail({ isAdmin = false }) {
               title: file.name,
               fileUrl: "",
               type: resourceType,
+              ...classResourceScope,
             });
             if (resourceResponse?.id || resourceResponse?.data?.id) {
               const resourceId = resourceResponse.id || resourceResponse.data.id;
@@ -532,6 +538,7 @@ export default function LectureDetail({ isAdmin = false }) {
         fileUrl: "",
         type: "VIDEO",
         source: "UPLOAD",
+        ...classResourceScope,
       });
       const resourceId = resourceResponse?.id || resourceResponse?.data?.id;
 

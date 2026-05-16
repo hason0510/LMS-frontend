@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import ClassCoverField from "../../components/media/ClassCoverField";
 import {
   getTemplateById,
   createChapterTemplate,
@@ -100,6 +101,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
   const [generatedCode, setGeneratedCode] = useState(null);
   const [teacherOptions, setTeacherOptions] = useState([]);
   const [teacherLoading, setTeacherLoading] = useState(false);
+  const classImageUrl = Form.useWatch("imageUrl", classForm);
 
   const generateRandomCode = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -231,6 +233,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
       await createClassSectionFromTemplateId(templateId, {
         title: values.title,
         description: values.description,
+        imageUrl: values.imageUrl || null,
         classCode: generatedCode || undefined,
         startDate: values.dates?.[0]?.format("YYYY-MM-DD"),
         endDate: values.dates?.[1]?.format("YYYY-MM-DD"),
@@ -448,6 +451,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                       classForm.setFieldsValue({
                         title: `${template?.name} - Lớp mới`,
                         description: template?.description || "",
+                        imageUrl: null,
                         teacherId: undefined,
                       });
                       setGeneratedCode(generateRandomCode());
@@ -776,6 +780,9 @@ export default function TemplateDetailPage({ isAdmin = false }) {
         destroyOnHidden
       >
         <Form form={classForm} layout="vertical" onFinish={handleCreateClass} className="mt-4">
+          <Form.Item name="imageUrl" hidden>
+            <Input />
+          </Form.Item>
           {isAdmin && (
             <Form.Item
               label="Giáo viên chính"
@@ -801,6 +808,10 @@ export default function TemplateDetailPage({ isAdmin = false }) {
           >
             <Input placeholder="Ví dụ: Lớp Java Backend - K12" />
           </Form.Item>
+          <ClassCoverField
+            imageUrl={classImageUrl}
+            onChange={(value) => classForm.setFieldValue("imageUrl", value)}
+          />
           {/* Teams-style class code display */}
           <div className="mb-4">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Mã lớp học</p>

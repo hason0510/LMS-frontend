@@ -16,6 +16,7 @@ import {
   MegaphoneIcon,
   ClipboardDocumentCheckIcon,
   ClipboardDocumentListIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar() {
@@ -73,6 +74,12 @@ export default function AdminSidebar() {
           label={t("admin.nganHangCauHoi") || "Ngân hàng câu hỏi"}
           active={currentPath.startsWith("/admin/question-banks")}
           to="/admin/question-banks"
+        />
+        <SidebarLink
+          icon={<PhotoIcon className="h-6 w-6" />}
+          label={t("admin.quanLyMedia")}
+          active={currentPath.startsWith("/admin/media")}
+          to="/admin/media"
         />
         <SidebarLink
           icon={<MegaphoneIcon className="h-6 w-6" />}

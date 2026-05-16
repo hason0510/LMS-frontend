@@ -99,8 +99,21 @@ const buildClozePreview = (syntax = "") =>
     return `<span style="border-bottom:2px solid #9ca3af;min-width:3rem;display:inline-block;margin:0 4px;color:#2563eb;font-weight:600">${parts[0]}</span>`;
   });
 
+const isImageResource = (resource) =>
+  !!resource && (resource.type === "IMAGE" || resource.mimeType?.startsWith("image/"));
+
 /* ─── Answer Option Row ─── */
-function OptionRow({ option, index, type, onChangeContent, onChangeResource, onToggleCorrect, onDelete, onChangeExplanation }) {
+function OptionRow({
+  option,
+  index,
+  type,
+  mediaContext,
+  onChangeContent,
+  onChangeResource,
+  onToggleCorrect,
+  onDelete,
+  onChangeExplanation,
+}) {
   const { t } = useTranslation();
   const [showExp, setShowExp] = useState(false);
   const [expVal, setExpVal] = useState(option.explanation || "");
@@ -129,8 +142,10 @@ function OptionRow({ option, index, type, onChangeContent, onChangeResource, onT
         )}
         <MediaAttachButton
           compact
+          variant="question-slot"
           resource={option.resource}
           allowedTypes={["IMAGE"]}
+          mediaContext={mediaContext}
           onChange={onChangeResource}
         />
         <button
@@ -172,17 +187,10 @@ function OptionRow({ option, index, type, onChangeContent, onChangeResource, onT
           </div>
         </div>
       )}
-      {option.resource && (
+      {isImageResource(option.resource) && (
         <div className="px-3 pb-3">
-          <div className="relative rounded-lg bg-slate-50 p-2">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
             <ResourceRenderer resource={option.resource} compact />
-            <button
-              type="button"
-              onClick={() => onChangeResource({ resourceId: null, resource: null })}
-              className="absolute right-3 top-3 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
-            >
-              {t("quizMedia.remove")}
-            </button>
           </div>
         </div>
       )}
@@ -244,6 +252,13 @@ export default function QuestionForm({
   const [newOptionText, setNewOptionText] = useState("");
   const [clozeContent, setClozeContent] = useState("");
   const tagSearchRequestIdRef = useRef(0);
+  const questionBankMediaContext = useMemo(() => {
+    if (!questionBankId) return null;
+    return {
+      scopeType: "QUESTION_BANK",
+      scopeId: Number(questionBankId),
+    };
+  }, [questionBankId]);
 
   const dndSensors = useSensors(useSensor(PointerSensor));
 
@@ -647,27 +662,21 @@ export default function QuestionForm({
           <MediaAttachButton
             resource={questionResource}
             allowedTypes={["IMAGE", "VIDEO", "AUDIO"]}
-            label={questionResource ? t("quizMedia.changeMedia") : t("quizMedia.addMedia")}
+            variant="question-slot"
+            iconOnly
+            mediaContext={questionBankMediaContext}
             onChange={(mediaPatch) => {
               setQuestionResource(mediaPatch.resource || null);
               form.setFieldValue("resourceId", mediaPatch.resourceId || null);
             }}
           />
         </div>
-        {questionResource ? (
-          <div className="relative">
+        {isImageResource(questionResource) ? (
+          <div className="mb-2 overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
             <ResourceRenderer resource={questionResource} compact />
-            <button
-              type="button"
-              onClick={() => { setQuestionResource(null); form.setFieldValue("resourceId", null); }}
-              className="absolute right-2 top-2 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
-            >
-              {t("quizMedia.remove")}
-            </button>
           </div>
-        ) : (
-          <p className="text-xs text-slate-500">{t("quizMedia.questionMediaHint")}</p>
-        )}
+        ) : null}
+        <p className="text-xs text-slate-500">{t("quizMedia.questionMediaHint")}</p>
       </div>
 
       {/* Type / Difficulty / Points */}
@@ -741,6 +750,7 @@ export default function QuestionForm({
               onToggleCorrect={() => handleCorrectChange(index)}
               onDelete={() => handleRemoveOption(index)}
               onChangeExplanation={(v) => handleOptionExplanationChange(index, v)}
+              mediaContext={questionBankMediaContext}
             />
           ))}
           {type !== "TRUE_FALSE" && (

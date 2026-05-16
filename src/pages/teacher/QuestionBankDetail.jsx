@@ -647,6 +647,12 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                       className="hidden"
                       onChange={handleGiftFileSelected}
                     />
+                    <Button
+                      onClick={() => navigate(`${isAdmin ? "/admin" : "/teacher"}/question-banks/${id}/media`)}
+                      className="h-9 rounded-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      Media bank
+                    </Button>
                     
                     {actionMenuItems.length > 0 && (
                       <Dropdown menu={{ items: actionMenuItems }} trigger={['click']} placement="bottomRight">

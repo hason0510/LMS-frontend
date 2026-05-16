@@ -77,6 +77,21 @@ export async function getResourcePage(params = {}) {
   return response.data;
 }
 
+export async function getResourceUploadPolicy() {
+  const response = await axiosClient.get("resources/upload-policy");
+  return response.data;
+}
+
+export async function getResourceReferences(resourceId) {
+  const response = await axiosClient.get(`resources/${resourceId}/references`);
+  return response.data;
+}
+
+export async function getResourceAuditLogs(resourceId) {
+  const response = await axiosClient.get(`resources/${resourceId}/audit-log`);
+  return response.data;
+}
+
 export async function createStandaloneResource(resourceData) {
   const response = await axiosClient.post("resources/standalone", resourceData);
   return response.data;
@@ -101,10 +116,11 @@ export async function deleteResource(resourceId) {
   return response.data;
 }
 
-export async function uploadStandaloneResource(file) {
+export async function uploadStandaloneResource(file, params = {}) {
   const formData = new FormData();
   formData.append("file", file);
   const response = await axiosClient.post("upload/resource", formData, {
+    params,
     headers: {
       "Content-Type": "multipart/form-data",
     },

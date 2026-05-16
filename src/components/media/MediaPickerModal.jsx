@@ -1,7 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useDeferredValue, useEffect, useRef, useState } from "react";
 import { Button, Input, Modal, Select, Spin, message } from "antd";
 import { useTranslation } from "react-i18next";
-import { createStandaloneResource, getResourcePage, uploadStandaloneResource } from "../../api/resource";
+import {
+  createStandaloneResource,
+  getResourcePage,
+  getResourceUploadPolicy,
+  uploadStandaloneResource,
+} from "../../api/resource";
 import ResourceRenderer from "./ResourceRenderer";
 
 const TYPE_ACCEPT = {
@@ -9,6 +14,14 @@ const TYPE_ACCEPT = {
   VIDEO: "video/*",
   AUDIO: "audio/*,.mp3",
 };
+
+const POLICY_TYPE = {
+  IMAGE: "image",
+  VIDEO: "video",
+  AUDIO: "audio",
+};
+
+const PAGE_SIZE = 24;
 
 const normalizeUploadResponse = (response) => {
   const payload = response?.data ?? response ?? {};
@@ -36,10 +49,63 @@ const getResourceList = (response) => {
 const getPaginationMeta = (response) => {
   const payload = response?.data ?? response;
   if (payload && typeof payload.currentPage === "number" && typeof payload.totalPage === "number") {
-    return { currentPage: payload.currentPage, totalPage: payload.totalPage };
+    return { currentPage: payload.currentPage, totalPage: payload.totalPage, totalElements: payload.totalElements };
   }
   return null;
 };
+
+const getExtension = (fileName = "") => {
+  const index = fileName.lastIndexOf(".");
+  return index >= 0 ? fileName.slice(index + 1).toLowerCase() : "";
+};
+
+const formatBytes = (value) => {
+  if (!value) return "";
+  if (value >= 1024 * 1024) return `${Math.round(value / (1024 * 1024))} MB`;
+  return `${Math.round(value / 1024)} KB`;
+};
+
+const createDraftId = () => `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createDraftFileResource = (file, mediaType, scopedParams) => {
+  const objectUrl = URL.createObjectURL(file);
+  return {
+    id: null,
+    title: file.name,
+    fileUrl: objectUrl,
+    mimeType: file.type,
+    fileSize: file.size,
+    type: mediaType,
+    source: "UPLOAD",
+    scopeType: scopedParams.scopeType || null,
+    scopeId: scopedParams.scopeId || null,
+    __draftMedia: {
+      draftId: createDraftId(),
+      kind: "file",
+      file,
+      objectUrl,
+      mediaType,
+      scopedParams,
+    },
+  };
+};
+
+const createDraftUrlResource = (payload, scopedParams) => ({
+  id: null,
+  title: payload.title,
+  type: payload.type,
+  source: payload.source,
+  fileUrl: payload.fileUrl || null,
+  embedUrl: payload.embedUrl || null,
+  scopeType: scopedParams.scopeType || null,
+  scopeId: scopedParams.scopeId || null,
+  __draftMedia: {
+    draftId: createDraftId(),
+    kind: "url",
+    payload,
+    scopedParams,
+  },
+});
 
 const extractYoutubeId = (url = "") => {
   const direct = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
@@ -55,6 +121,8 @@ export default function MediaPickerModal({
   open,
   mediaType = "IMAGE",
   allowedTypes,
+  mediaContext,
+  deferUpload = false,
   onCancel,
   onSelect,
 }) {
@@ -66,66 +134,96 @@ export default function MediaPickerModal({
   const [creatingLink, setCreatingLink] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("date");
+  const [pagination, setPagination] = useState({ currentPage: 1, totalPage: 1, totalElements: 0 });
+  const [uploadPolicy, setUploadPolicy] = useState(null);
   const [url, setUrl] = useState("");
   const [customTitle, setCustomTitle] = useState("");
   const [videoSource, setVideoSource] = useState("MP4");
 
   const acceptedTypes = allowedTypes?.length ? allowedTypes : [mediaType];
   const accept = acceptedTypes.map((type) => TYPE_ACCEPT[type]).filter(Boolean).join(",");
+  const deferredSearch = useDeferredValue(search);
+  const activePolicyType = POLICY_TYPE[acceptedTypes[0]] || "resource";
+  const policyExtensions =
+    uploadPolicy?.allowedExtensionsByType?.[activePolicyType] || uploadPolicy?.allowedExtensions || [];
+  const policyMaxSize =
+    uploadPolicy?.maxSizeBytesByType?.[activePolicyType] || uploadPolicy?.maxSizeBytes;
+  const scopedParams = mediaContext?.scopeType && mediaContext?.scopeId
+    ? {
+        scopeType: mediaContext.scopeType,
+        scopeId: mediaContext.scopeId,
+      }
+    : {};
 
-  const loadAllResources = async () => {
-    const pageSize = 100;
-    let pageNumber = 1;
-    let totalPage = 1;
-    const all = [];
-
-    while (pageNumber <= totalPage) {
-      const response = await getResourcePage({ pageNumber, pageSize });
-      all.push(...getResourceList(response));
-      const meta = getPaginationMeta(response);
-      totalPage = meta?.totalPage || pageNumber;
-      pageNumber += 1;
+  const loadResources = async (pageNumber = 1, append = false) => {
+    const params = {
+      pageNumber,
+      pageSize: PAGE_SIZE,
+      sortBy,
+      ...scopedParams,
+    };
+    if (acceptedTypes.length === 1) {
+      params.type = acceptedTypes[0];
+    }
+    if (deferredSearch.trim()) {
+      params.search = deferredSearch.trim();
     }
 
-    return all;
+    const response = await getResourcePage(params);
+    const nextItems = getResourceList(response);
+    const meta = getPaginationMeta(response);
+    setPagination({
+      currentPage: meta?.currentPage || pageNumber,
+      totalPage: meta?.totalPage || pageNumber,
+      totalElements: meta?.totalElements || nextItems.length,
+    });
+    setResources((prev) => (append ? [...prev, ...nextItems] : nextItems));
   };
 
   useEffect(() => {
     if (!open) return;
 
     setLoading(true);
-    loadAllResources()
-      .then((items) => setResources(items))
+    loadResources(1, false)
       .catch(() => message.error(t("quizMedia.loadFailed")))
       .finally(() => setLoading(false));
-  }, [open, t]);
+  }, [open, deferredSearch, sortBy, mediaType, mediaContext?.scopeType, mediaContext?.scopeId, t]);
 
-  const filteredResources = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-    const list = resources.filter((resource) => {
-      const typeMatched = acceptedTypes.includes(resource.type);
-      const textMatched = !keyword || [resource.title, resource.description, resource.mimeType]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword));
-      return typeMatched && textMatched;
-    });
+  useEffect(() => {
+    if (!open) return;
+    getResourceUploadPolicy()
+      .then((policy) => setUploadPolicy(policy?.data ?? policy))
+      .catch(() => setUploadPolicy(null));
+  }, [open]);
 
-    return [...list].sort((left, right) => {
-      if (sortBy === "name") {
-        return String(left.title || "").localeCompare(String(right.title || ""));
-      }
-      return (right.id || 0) - (left.id || 0);
-    });
-  }, [acceptedTypes, resources, search, sortBy]);
+  const validateUploadFile = (file) => {
+    const extension = getExtension(file.name);
+    if (policyExtensions.length && !policyExtensions.includes(extension)) {
+      message.error(t("quizMedia.invalidFileType"));
+      return false;
+    }
+    if (policyMaxSize && file.size > policyMaxSize) {
+      message.error(t("quizMedia.fileTooLarge", { size: formatBytes(policyMaxSize) }));
+      return false;
+    }
+    return true;
+  };
 
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    if (!validateUploadFile(file)) return;
+
+    if (deferUpload) {
+      onSelect(createDraftFileResource(file, acceptedTypes[0], scopedParams));
+      message.success(t("quizMedia.attachSuccess"));
+      return;
+    }
 
     setUploading(true);
     try {
-      const uploaded = normalizeUploadResponse(await uploadStandaloneResource(file));
+      const uploaded = normalizeUploadResponse(await uploadStandaloneResource(file, scopedParams));
       setResources((prev) => [uploaded, ...prev]);
       onSelect(uploaded);
       message.success(t("quizMedia.uploadSuccess"));
@@ -145,6 +243,7 @@ export default function MediaPickerModal({
       type: mediaType,
       source: "UPLOAD",
       fileUrl: trimmed,
+      ...scopedParams,
     };
 
     if (mediaType !== "VIDEO") return payload;
@@ -157,6 +256,7 @@ export default function MediaPickerModal({
         type: "VIDEO",
         source: "EMBED",
         embedUrl: `https://www.youtube.com/embed/${videoId}`,
+        ...scopedParams,
       };
     }
 
@@ -168,6 +268,7 @@ export default function MediaPickerModal({
         type: "VIDEO",
         source: "EMBED",
         embedUrl: `https://player.vimeo.com/video/${videoId}`,
+        ...scopedParams,
       };
     }
 
@@ -177,6 +278,7 @@ export default function MediaPickerModal({
         type: "VIDEO",
         source: "EMBED",
         embedUrl: trimmed,
+        ...scopedParams,
       };
     }
 
@@ -187,6 +289,12 @@ export default function MediaPickerModal({
     const payload = createPayloadFromUrl();
     if (!payload) {
       message.warning(t("quizMedia.invalidUrl"));
+      return;
+    }
+
+    if (deferUpload) {
+      onSelect(createDraftUrlResource(payload, scopedParams));
+      message.success(t("quizMedia.attachSuccess"));
       return;
     }
 
@@ -223,6 +331,14 @@ export default function MediaPickerModal({
           <>
             <div className="text-base font-semibold text-gray-800">{t("quizMedia.uploadFile")}</div>
             <div className="mt-1 text-sm text-gray-500">{t("quizMedia.dropOrBrowse")}</div>
+            {policyMaxSize ? (
+              <div className="mt-1 text-xs text-gray-500">
+                {t("quizMedia.uploadPolicy", {
+                  extensions: policyExtensions.slice(0, 8).join(", "),
+                  size: formatBytes(policyMaxSize),
+                })}
+              </div>
+            ) : null}
             <Button type="primary" className="mt-4">{t("quizMedia.browseFiles")}</Button>
           </>
         )}
@@ -279,28 +395,41 @@ export default function MediaPickerModal({
           options={[
             { value: "date", label: t("quizMedia.byDate") },
             { value: "name", label: t("quizMedia.byName") },
+            { value: "size", label: t("quizMedia.bySize") },
           ]}
         />
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12"><Spin /></div>
-      ) : filteredResources.length > 0 ? (
-        <div className="grid max-h-[420px] grid-cols-1 gap-3 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-          {filteredResources.map((resource) => (
-            <button
-              key={resource.id}
-              type="button"
-              onClick={() => onSelect(resource)}
-              className="group rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm"
-            >
-              <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-gray-50">
-                <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
-              </div>
-              <div className="mt-2 truncate text-sm font-medium text-gray-800">{resource.title || t("quizMedia.untitled")}</div>
-              <div className="text-xs text-gray-500">{resource.type || resource.mimeType}</div>
-            </button>
-          ))}
+      ) : resources.length > 0 ? (
+        <div className="max-h-[420px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {resources.map((resource) => (
+              <button
+                key={resource.id}
+                type="button"
+                onClick={() => onSelect(resource)}
+                className="group rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm"
+              >
+                <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-gray-50">
+                  <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
+                </div>
+                <div className="mt-2 truncate text-sm font-medium text-gray-800">{resource.title || t("quizMedia.untitled")}</div>
+                <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                  <span>{resource.type || resource.mimeType}</span>
+                  {resource.fileSize ? <span>{formatBytes(resource.fileSize)}</span> : null}
+                </div>
+              </button>
+            ))}
+          </div>
+          {pagination.currentPage < pagination.totalPage && (
+            <div className="mt-4 flex justify-center">
+              <Button onClick={() => loadResources(pagination.currentPage + 1, true)}>
+                {t("quizMedia.loadMore")}
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">

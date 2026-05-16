@@ -26,6 +26,8 @@ import TeacherCurriculums from "./pages/teacher/TeacherCurriculums";
 import CreateCurriculumTemplate from "./pages/teacher/CreateCurriculumTemplate";
 import QuestionBanks from "./pages/teacher/QuestionBanks";
 import QuestionBankDetail from "./pages/teacher/QuestionBankDetail";
+import QuestionBankMediaPage from "./pages/teacher/QuestionBankMediaPage";
+import ClassSectionMediaPage from "./pages/teacher/ClassSectionMediaPage";
 import CreateChapter from "./pages/teacher/CreateChapter";
 import LectureDetail from "./pages/teacher/LectureDetail";
 import AssignmentDetail from "./pages/teacher/AssignmentDetail";
@@ -34,6 +36,7 @@ import TeacherAssignmentsPage from "./pages/teacher/TeacherAssignmentsPage";
 import TeachingDashboard from "./pages/teaching/TeachingDashboard";
 import TeachingClasses from "./pages/teaching/TeachingClasses";
 import TeachingClassDetail from "./pages/teaching/TeachingClassDetail";
+import TeachingClassMediaPage from "./pages/teaching/TeachingClassMediaPage";
 import TeachingQuizContentAttempts from "./pages/teaching/TeachingQuizContentAttempts";
 import TeacherLessonPreview from "./pages/teacher/TeacherLessonPreview";
 import TeacherQuizPreview from "./pages/teacher/TeacherQuizPreview";
@@ -52,6 +55,9 @@ import AdminProfilePage from "./pages/admin/AdminProfilePage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminCategoryManagement from "./pages/admin/AdminCategoryManagement";
 import AdminSubjectManagement from "./pages/admin/AdminSubjectManagement";
+import AdminMediaLibraryPage from "./pages/admin/AdminMediaLibraryPage";
+import MediaLibraryRedirectPage from "./pages/common/MediaLibraryRedirectPage";
+import TeacherMediaLibraryPage from "./pages/teacher/TeacherMediaLibraryPage";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import { useTokenExpiration } from "./hooks/useTokenExpiration";
 
@@ -189,6 +195,10 @@ function AppContent() {
         element={<ProtectedRoute element={<NotificationsPage />} allowedRoles={["STUDENT", "TEACHER", "ADMIN"]} />}
       />
       <Route
+        path="/media"
+        element={<ProtectedRoute element={<MediaLibraryRedirectPage />} allowedRoles={["TEACHER", "ADMIN"]} />}
+      />
+      <Route
         path="/classes"
         element={<ProtectedRoute element={<ClassesPage />} allowedRoles={["STUDENT", "TEACHER", "ADMIN"]} />}
       />
@@ -231,6 +241,10 @@ function AppContent() {
         element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
       />
       <Route
+        path="/teaching/class-sections/:id/media"
+        element={<ProtectedRoute element={<TeachingClassMediaPage />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
         path="/teaching/quiz-attempts/:attemptId"
         element={<ProtectedRoute element={<TeacherQuizAttemptReview teachingMode={true} />} allowedRoles={["STUDENT"]} />}
       />
@@ -271,6 +285,10 @@ function AppContent() {
       <Route
         path="/teacher/class-sections/:id"
         element={<ProtectedRoute element={<ClassDetailPage />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/class-sections/:id/media"
+        element={<ProtectedRoute element={<ClassSectionMediaPage />} allowedRoles={["TEACHER"]} />}
       />
       <Route
         path="/teacher/class-sections/:classSectionId/lectures/:lectureId"
@@ -385,6 +403,10 @@ function AppContent() {
         element={<ProtectedRoute element={<QuestionBankDetail />} allowedRoles={["TEACHER"]} />}
       />
       <Route
+        path="/teacher/question-banks/:id/media"
+        element={<ProtectedRoute element={<QuestionBankMediaPage />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
         path="/teacher/students"
         element={<ProtectedRoute element={<TeacherStudentManagement />} allowedRoles={["TEACHER"]} />}
       />
@@ -395,6 +417,10 @@ function AppContent() {
       <Route
         path="/teacher/settings"
         element={<ProtectedRoute element={<TeacherSettingsPage />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/media"
+        element={<ProtectedRoute element={<TeacherMediaLibraryPage />} allowedRoles={["TEACHER"]} />}
       />
       <Route
         path="/teacher/assignments"
@@ -427,6 +453,10 @@ function AppContent() {
         element={<ProtectedRoute element={<AdminSubjectManagement />} allowedRoles={["ADMIN"]} />}
       />
       <Route
+        path="/admin/media"
+        element={<ProtectedRoute element={<AdminMediaLibraryPage />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
         path="/admin/class-sections"
         element={<ProtectedRoute element={<TeacherClassSections isAdmin={true} />} allowedRoles={["ADMIN"]} />}
       />
@@ -437,6 +467,10 @@ function AppContent() {
       <Route
         path="/admin/class-sections/:id"
         element={<ProtectedRoute element={<ClassDetailPage />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/class-sections/:id/media"
+        element={<ProtectedRoute element={<ClassSectionMediaPage isAdmin={true} />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/class-sections/:classSectionId/lectures/:lectureId"
@@ -489,6 +523,10 @@ function AppContent() {
       <Route
         path="/admin/question-banks/:id"
         element={<ProtectedRoute element={<QuestionBankDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/question-banks/:id/media"
+        element={<ProtectedRoute element={<QuestionBankMediaPage isAdmin={true} />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/curriculums/create"

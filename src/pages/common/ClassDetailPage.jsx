@@ -3,6 +3,7 @@ import Header from "../../components/layout/Header";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import ClassCoverField from "../../components/media/ClassCoverField";
 import CourseTabs from "../../components/course/CourseTabs";
 import CourseContent from "../../components/course/CourseContent";
 import TeacherTab from "../../components/course/TeacherTab";
@@ -78,6 +79,7 @@ export default function ClassSectionDetailPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [editForm] = Form.useForm();
+  const editImageUrl = Form.useWatch("imageUrl", editForm);
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -191,6 +193,7 @@ export default function ClassSectionDetailPage() {
     editForm.setFieldsValue({
       title: course.title,
       description: course.description,
+      imageUrl: course.imageUrl || null,
       dateRange:
         course.startDate && course.endDate
           ? [dayjs(course.startDate), dayjs(course.endDate)]
@@ -206,6 +209,7 @@ export default function ClassSectionDetailPage() {
       const payload = {
         title: values.title,
         description: values.description,
+        imageUrl: values.imageUrl || null,
         startDate: values.dateRange?.[0]?.format("YYYY-MM-DD") || null,
         endDate: values.dateRange?.[1]?.format("YYYY-MM-DD") || null,
       };
@@ -468,6 +472,15 @@ export default function ClassSectionDetailPage() {
 
               {/* Class Hero Card */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+                {course.imageUrl ? (
+                  <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <img
+                      src={course.imageUrl}
+                      alt={displayTitle}
+                      className="h-56 w-full object-cover sm:h-64"
+                    />
+                  </div>
+                ) : null}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -526,6 +539,13 @@ export default function ClassSectionDetailPage() {
                     >
                       <UserGroupIcon className="w-4 h-4" />
                       Trợ giảng
+                    </button>
+                    <button
+                      onClick={() => navigate(`/${userRole}/class-sections/${id}/media`)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                    >
+                      <BookOpenIcon className="w-4 h-4" />
+                      Media lớp
                     </button>
 
                     {/* PRIVATE → publish */}
@@ -648,6 +668,13 @@ export default function ClassSectionDetailPage() {
           destroyOnHidden
         >
           <Form form={editForm} layout="vertical" className="mt-4">
+            <Form.Item name="imageUrl" hidden>
+              <Input />
+            </Form.Item>
+            <ClassCoverField
+              imageUrl={editImageUrl}
+              onChange={(value) => editForm.setFieldValue("imageUrl", value)}
+            />
             <Form.Item
               name="title"
               label="Tên lớp học"
@@ -710,6 +737,15 @@ export default function ClassSectionDetailPage() {
 
         {/* Hero */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+          {course.imageUrl ? (
+            <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
+              <img
+                src={course.imageUrl}
+                alt={displayTitle}
+                className="h-56 w-full object-cover sm:h-64"
+              />
+            </div>
+          ) : null}
           {course.subjectTitle && (
             <span className="inline-block mb-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               {course.subjectTitle}

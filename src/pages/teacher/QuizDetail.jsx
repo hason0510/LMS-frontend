@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import {
@@ -15,10 +15,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslation } from "react-i18next";
+import { Image as ImageIcon, List } from "lucide-react";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { createQuiz, getQuizById, updateQuiz } from "../../api/quiz";
+import { createStandaloneResource, deleteResource, uploadStandaloneResource } from "../../api/resource";
 import { getQuestionBankById, getQuestionBanks, getTags } from "../../api/questionBank";
 import { createClassContentItem } from "../../api/classSection";
 import MediaAttachButton from "../../components/media/MediaAttachButton";
@@ -65,6 +67,118 @@ const QUILL_MODULES = {
    Helper functions
 ───────────────────────────────────────────── */
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+const normalizeUploadedResource = (response, scopeType, scopeId) => {
+  const payload = response?.data ?? response ?? {};
+  const id = payload.resourceId ?? payload.id ?? null;
+  return {
+    id,
+    title: payload.title || null,
+    fileUrl: payload.fileUrl || payload.url || null,
+    hlsUrl: payload.hlsUrl || null,
+    mimeType: payload.mimeType || null,
+    fileSize: payload.fileSize || null,
+    type: payload.type || null,
+    source: "UPLOAD",
+    scopeType: scopeType || null,
+    scopeId: scopeId || null,
+  };
+};
+
+const extractScopeParams = (mediaContext) =>
+  mediaContext?.scopeType && mediaContext?.scopeId
+    ? {
+        scopeType: mediaContext.scopeType,
+        scopeId: mediaContext.scopeId,
+      }
+    : {};
+
+async function materializeDraftResource(resource, mediaContext, resolvedDrafts, createdResourceIds) {
+  if (!resource) return null;
+  if (!resource.__draftMedia) return resource;
+
+  const draft = resource.__draftMedia;
+  const draftId = draft.draftId;
+  if (draftId && resolvedDrafts.has(draftId)) {
+    return resolvedDrafts.get(draftId);
+  }
+
+  const scopedParams = Object.keys(extractScopeParams(mediaContext)).length > 0
+    ? extractScopeParams(mediaContext)
+    : (draft.scopedParams || {});
+
+  let persisted;
+  if (draft.kind === "file") {
+    const uploaded = await uploadStandaloneResource(draft.file, scopedParams);
+    persisted = normalizeUploadedResource(uploaded, scopedParams.scopeType, scopedParams.scopeId);
+    if (draft.objectUrl) {
+      URL.revokeObjectURL(draft.objectUrl);
+    }
+  } else {
+    const created = await createStandaloneResource({
+      ...(draft.payload || {}),
+      ...scopedParams,
+    });
+    persisted = created?.data ?? created;
+  }
+
+  if (persisted?.id != null) {
+    createdResourceIds.push(persisted.id);
+  }
+  if (draftId) {
+    resolvedDrafts.set(draftId, persisted);
+  }
+  return persisted;
+}
+
+async function materializeQuestionMedia(question, mediaContext, resolvedDrafts, createdResourceIds) {
+  const nextQuestionResource = await materializeDraftResource(
+    question.resource,
+    mediaContext,
+    resolvedDrafts,
+    createdResourceIds
+  );
+
+  const nextAnswers = await Promise.all(
+    (question.answers || []).map(async (answer) => {
+      const nextResource = await materializeDraftResource(
+        answer.resource,
+        mediaContext,
+        resolvedDrafts,
+        createdResourceIds
+      );
+      return {
+        ...answer,
+        resource: nextResource,
+        resourceId: nextResource?.id ?? null,
+      };
+    })
+  );
+
+  const nextItems = await Promise.all(
+    (question.items || []).map(async (item) => {
+      const nextResource = await materializeDraftResource(
+        item.resource,
+        mediaContext,
+        resolvedDrafts,
+        createdResourceIds
+      );
+      return {
+        ...item,
+        resource: nextResource,
+        resourceId: nextResource?.id ?? null,
+      };
+    })
+  );
+
+  return {
+    ...question,
+    resource: nextQuestionResource,
+    resourceId: nextQuestionResource?.id ?? null,
+    answers: nextAnswers,
+    items: nextItems,
+  };
+}
 
 const makeAnswer = (content = "", isCorrect = false) => ({
   localId: `a-${uid()}`,
@@ -293,6 +407,9 @@ const convertBankQToLocal = (bq) => {
   return base;
 };
 
+const isImageResource = (resource) =>
+  !!resource && (resource.type === "IMAGE" || resource.mimeType?.startsWith("image/"));
+
 /* ─────────────────────────────────────────────
    Answer sub-components
 ───────────────────────────────────────────── */
@@ -305,6 +422,7 @@ function AnswerRow({
   onChangeResource,
   onDelete,
   showDelete = true,
+  mediaContext,
 }) {
   const { t } = useTranslation();
   const [showExp, setShowExp] = useState(false);
@@ -330,12 +448,6 @@ function AnswerRow({
             {answer.explanation ? t("quizBuilder.editExplanation") : t("quizBuilder.addExplanation")}
           </button>
         )}
-        <MediaAttachButton
-          compact
-          resource={answer.resource}
-          allowedTypes={["IMAGE"]}
-          onChange={onChangeResource}
-        />
         {showDelete && (
           <button onClick={onDelete} className="text-red-400 hover:text-red-600 p-1 rounded shrink-0">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -376,17 +488,10 @@ function AnswerRow({
           </div>
         </div>
       )}
-      {answer.resource && (
+      {isImageResource(answer.resource) && (
         <div className="px-3 pb-3">
-          <div className="relative rounded-lg bg-gray-50 p-2">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
             <ResourceRenderer resource={answer.resource} compact />
-            <button
-              type="button"
-              onClick={() => onChangeResource({ resourceId: null, resource: null })}
-              className="absolute right-3 top-3 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
-            >
-              {t("quizMedia.remove")}
-            </button>
           </div>
         </div>
       )}
@@ -412,7 +517,17 @@ function AddAnswerInput({ onAdd }) {
   );
 }
 
-function AnswerGridCard({ answer, isSingle, onToggleCorrect, onChangeContent, onChangeExplanation, onChangeResource, onDelete, showDelete }) {
+function AnswerGridCard({
+  answer,
+  isSingle,
+  mediaContext,
+  onToggleCorrect,
+  onChangeContent,
+  onChangeExplanation,
+  onChangeResource,
+  onDelete,
+  showDelete,
+}) {
   const { t } = useTranslation();
   const [showExp, setShowExp] = useState(false);
   const [expVal, setExpVal] = useState(answer.explanation || "");
@@ -435,26 +550,16 @@ function AnswerGridCard({ answer, isSingle, onToggleCorrect, onChangeContent, on
           <Checkbox checked={answer.isCorrect} onChange={onToggleCorrect} />
         )}
       </div>
-      <div className="flex-1 mx-3 mb-2 rounded-lg border border-dashed border-gray-200 overflow-hidden min-h-24 flex items-center justify-center bg-gray-50/60">
-        {answer.resource ? (
-          <div className="relative w-full h-full">
-            <ResourceRenderer resource={answer.resource} compact />
-            <button
-              type="button"
-              onClick={() => onChangeResource({ resourceId: null, resource: null })}
-              className="absolute right-2 top-2 rounded bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-900"
-            >
-              {t("quizMedia.remove")}
-            </button>
-          </div>
-        ) : (
-          <MediaAttachButton
-            allowedTypes={["IMAGE"]}
-            resource={null}
-            onChange={onChangeResource}
-            label={t("quizMedia.addMedia")}
-          />
-        )}
+      <div className="mx-3 mb-2">
+        <MediaAttachButton
+          allowedTypes={["IMAGE"]}
+          resource={answer.resource}
+          variant="answer-image-frame"
+          previewImage
+          mediaContext={mediaContext}
+          deferUpload
+          onChange={onChangeResource}
+        />
       </div>
       {showExp && (
         <div className="px-3 pb-2 border-t border-gray-100">
@@ -490,11 +595,17 @@ function AnswerGridCard({ answer, isSingle, onToggleCorrect, onChangeContent, on
   );
 }
 
-function ChoiceAnswers({ question, onChange }) {
+function ChoiceAnswers({ question, onChange, mediaContext }) {
   const { t } = useTranslation();
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState(() =>
+    question.answers?.some((answer) => isImageResource(answer.resource)) ? "image" : "text"
+  );
   const isSingle = question.type === "SINGLE_CHOICE" || question.type === "TRUE_FALSE";
   const { answers } = question;
+
+  useEffect(() => {
+    setViewMode(question.answers?.some((answer) => isImageResource(answer.resource)) ? "image" : "text");
+  }, [question.localId, question.answers]);
 
   const update = (idx, patch) =>
     onChange({ answers: answers.map((a, i) => (i === idx ? { ...a, ...patch } : a)) });
@@ -507,6 +618,18 @@ function ChoiceAnswers({ question, onChange }) {
       onChange({ answers: answers.map((a, i) => (i === idx ? { ...a, isCorrect: !a.isCorrect } : a)) });
     }
   };
+  const switchMode = (nextMode) => {
+    setViewMode(nextMode);
+    if (nextMode === "text") {
+      onChange({
+        answers: answers.map((answer) => ({
+          ...answer,
+          resourceId: null,
+          resource: null,
+        })),
+      });
+    }
+  };
 
   return (
     <div>
@@ -514,28 +637,29 @@ function ChoiceAnswers({ question, onChange }) {
         <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t("quizBuilder.answers")}</div>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setViewMode("list")}
-            className={`p-1.5 rounded transition-colors ${viewMode === "list" ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
-            title="List view"
+            onClick={() => switchMode("text")}
+            className={`p-1.5 rounded transition-colors ${viewMode === "text" ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
+            title={t("quizMedia.answerModes.text")}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+            <List className="h-4 w-4" strokeWidth={2} />
           </button>
           <button
-            onClick={() => setViewMode("grid")}
-            className={`p-1.5 rounded transition-colors ${viewMode === "grid" ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
-            title="Grid view"
+            onClick={() => switchMode("image")}
+            className={`p-1.5 rounded transition-colors ${viewMode === "image" ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
+            title={t("quizMedia.answerModes.image")}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+            <ImageIcon className="h-4 w-4" strokeWidth={2} />
           </button>
         </div>
       </div>
-      {viewMode === "grid" ? (
+      {viewMode === "image" ? (
         <div className="grid grid-cols-2 gap-3">
           {answers.map((a, idx) => (
             <AnswerGridCard
               key={a.localId}
               answer={a}
               isSingle={isSingle}
+              mediaContext={mediaContext}
               onToggleCorrect={() => setCorrect(idx)}
               onChangeContent={(v) => update(idx, { content: v })}
               onChangeExplanation={(v) => update(idx, { explanation: v || null })}
@@ -552,6 +676,7 @@ function ChoiceAnswers({ question, onChange }) {
               key={a.localId}
               answer={a}
               isSingle={isSingle}
+              mediaContext={mediaContext}
               onToggleCorrect={() => setCorrect(idx)}
               onChangeContent={(v) => update(idx, { content: v })}
               onChangeExplanation={(v) => update(idx, { explanation: v || null })}
@@ -567,7 +692,7 @@ function ChoiceAnswers({ question, onChange }) {
   );
 }
 
-function MatchingPairs({ question, onChange }) {
+function MatchingPairs({ question, onChange, mediaContext }) {
   const { t } = useTranslation();
   const isImage = question.type === "IMAGE_MATCHING";
   const { items } = question;
@@ -612,13 +737,21 @@ function MatchingPairs({ question, onChange }) {
               <div className="text-xs text-gray-400 mb-1">{t("quizBuilder.question")}</div>
               {isImage ? (
                 <div className="space-y-2">
-                  {prompts[i]?.resource && <ResourceRenderer resource={prompts[i].resource} compact />}
-                  <MediaAttachButton
-                    allowedTypes={["IMAGE"]}
-                    resource={prompts[i]?.resource}
-                    label={prompts[i]?.resource ? t("quizMedia.changeImage") : t("quizMedia.uploadImage")}
-                    onChange={(mediaPatch) => updatePrompt(prompts[i].localId, mediaPatch)}
-                  />
+                  {isImageResource(prompts[i]?.resource) ? (
+                    <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
+                      <ResourceRenderer resource={prompts[i].resource} compact />
+                    </div>
+                  ) : null}
+                  <div className="flex justify-center py-1">
+                    <MediaAttachButton
+                      allowedTypes={["IMAGE"]}
+                      resource={prompts[i]?.resource}
+                      variant="question-slot"
+                      mediaContext={mediaContext}
+                      deferUpload
+                      onChange={(mediaPatch) => updatePrompt(prompts[i].localId, mediaPatch)}
+                    />
+                  </div>
                 </div>
               ) : (
                 <Input
@@ -633,13 +766,21 @@ function MatchingPairs({ question, onChange }) {
               <div className="text-xs text-gray-400 mb-1">{t("quizBuilder.answer")}</div>
               {isImage ? (
                 <div className="space-y-2">
-                  {matches[i]?.resource && <ResourceRenderer resource={matches[i].resource} compact />}
-                  <MediaAttachButton
-                    allowedTypes={["IMAGE"]}
-                    resource={matches[i]?.resource}
-                    label={matches[i]?.resource ? t("quizMedia.changeImage") : t("quizMedia.uploadImage")}
-                    onChange={(mediaPatch) => updateMatch(matches[i].localId, mediaPatch)}
-                  />
+                  {isImageResource(matches[i]?.resource) ? (
+                    <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
+                      <ResourceRenderer resource={matches[i].resource} compact />
+                    </div>
+                  ) : null}
+                  <div className="flex justify-center py-1">
+                    <MediaAttachButton
+                      allowedTypes={["IMAGE"]}
+                      resource={matches[i]?.resource}
+                      variant="question-slot"
+                      mediaContext={mediaContext}
+                      deferUpload
+                      onChange={(mediaPatch) => updateMatch(matches[i].localId, mediaPatch)}
+                    />
+                  </div>
                 </div>
               ) : (
                 <Input
@@ -803,11 +944,11 @@ function ClozeSection({ question, onChange }) {
   );
 }
 
-function AnswerSection({ question, onChange }) {
+function AnswerSection({ question, onChange, mediaContext }) {
   if (["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TRUE_FALSE"].includes(question.type))
-    return <ChoiceAnswers question={question} onChange={onChange} />;
+    return <ChoiceAnswers question={question} onChange={onChange} mediaContext={mediaContext} />;
   if (question.type === "MATCHING" || question.type === "IMAGE_MATCHING")
-    return <MatchingPairs question={question} onChange={onChange} />;
+    return <MatchingPairs question={question} onChange={onChange} mediaContext={mediaContext} />;
   if (question.type === "DRAG_ORDER")
     return <OrderingItems question={question} onChange={onChange} />;
   if (question.type === "SHORT_ANSWER")
@@ -826,36 +967,23 @@ function AnswerSection({ question, onChange }) {
 /* ─────────────────────────────────────────────
    QuestionCard
 ───────────────────────────────────────────── */
-function MediaSquare({ resource, onChange }) {
-  const { t } = useTranslation();
+function MediaSquare({ resource, onChange, mediaContext }) {
   return (
-    <div className="shrink-0 w-14 h-14 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden hover:border-blue-300 transition-colors relative group">
-      {resource ? (
-        <>
-          <div className="absolute inset-0">
-            <ResourceRenderer resource={resource} compact />
-          </div>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onChange({ resourceId: null, resource: null }); }}
-            className="absolute inset-0 bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10"
-          >
-            {t("quizMedia.remove")}
-          </button>
-        </>
-      ) : (
-        <MediaAttachButton
-          compact
-          resource={resource}
-          allowedTypes={["IMAGE", "VIDEO", "AUDIO"]}
-          onChange={onChange}
-        />
-      )}
+    <div className="shrink-0">
+      <MediaAttachButton
+        resource={resource}
+        allowedTypes={["IMAGE", "VIDEO", "AUDIO"]}
+        variant="question-slot"
+        previewImage
+        mediaContext={mediaContext}
+        deferUpload
+        onChange={onChange}
+      />
     </div>
   );
 }
 
-function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) {
+function QuestionCard({ question, index, mediaContext, onChange, onDelete, dragHandleProps }) {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const questionTypeOptions = getQuestionTypeOptions(t);
@@ -865,7 +993,7 @@ function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) 
       {/* Header */}
       <div className="flex items-start gap-3 px-3 py-3">
         {/* Left: media square */}
-        <MediaSquare resource={question.resource} onChange={onChange} />
+        <MediaSquare resource={question.resource} onChange={onChange} mediaContext={mediaContext} />
 
         {/* Center: content + sub-row */}
         <div className="flex-1 min-w-0">
@@ -940,7 +1068,7 @@ function QuestionCard({ question, index, onChange, onDelete, dragHandleProps }) 
       {/* Answers */}
       {!collapsed && (
         <div className="px-3 pb-4 pt-1 border-t border-gray-100">
-          <AnswerSection question={question} onChange={onChange} />
+          <AnswerSection question={question} onChange={onChange} mediaContext={mediaContext} />
         </div>
       )}
     </div>
@@ -1391,6 +1519,13 @@ export default function QuizDetail() {
   const questionTypeOptions = getQuestionTypeOptions(t);
 
   const sensors = useSensors(useSensor(PointerSensor));
+  const quizMediaContext = useMemo(() => {
+    if (!classSectionId || isTemplateMode) return null;
+    return {
+      scopeType: "CLASS_SECTION",
+      scopeId: Number(classSectionId),
+    };
+  }, [classSectionId, isTemplateMode]);
 
   // load quiz in edit mode
   useEffect(() => {
@@ -1505,8 +1640,19 @@ export default function QuizDetail() {
   const handleSave = async (previewAfter = false) => {
     if (!title.trim()) { message.warning(t("quizEditor.messages.titleRequired")); return; }
     setSaving(true);
+    const createdResourceIds = [];
     try {
-      const processedQuestions = questions.map((q) => {
+      const resolvedDrafts = new Map();
+      const persistedQuestions = await Promise.all(
+        questions.map((question) => materializeQuestionMedia(
+          question,
+          quizMediaContext,
+          resolvedDrafts,
+          createdResourceIds
+        ))
+      );
+
+      const processedQuestions = persistedQuestions.map((q) => {
         const base = {
           id: q.id,
           content: q.type === "CLOZE" ? q.clozeSyntax : q.content,
@@ -1580,6 +1726,7 @@ export default function QuizDetail() {
         } else {
           savedQuiz = await updateQuiz(quizId, payload);
         }
+        setQuestions(persistedQuestions);
         message.success(t("quizEditor.messages.quizSaved"));
         if (previewAfter) {
           const basePath = isAdmin ? "/admin" : "/teacher";
@@ -1613,6 +1760,7 @@ export default function QuizDetail() {
             setClassContentItemId(createdContentItem?.id ?? null);
           }
         }
+        setQuestions(persistedQuestions);
         message.success(t("quizEditor.messages.quizCreated"));
         const basePath = isAdmin ? "/admin" : "/teacher";
         if (previewAfter && savedQuizId) {
@@ -1631,6 +1779,11 @@ export default function QuizDetail() {
         );
       }
     } catch (err) {
+      if (createdResourceIds.length > 0) {
+        await Promise.allSettled(
+          [...new Set(createdResourceIds)].map((resourceId) => deleteResource(resourceId))
+        );
+      }
       message.error(t("quizEditor.messages.saveQuizFailed"));
       console.error(err);
     } finally {
@@ -1712,7 +1865,6 @@ export default function QuizDetail() {
                 : t("quizEditor.tabs.questions"),
             },
             { key: "settings", label: t("quizEditor.tabs.settings") },
-            { key: "qa", label: t("quizEditor.tabs.qa") },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -1762,6 +1914,7 @@ export default function QuizDetail() {
                         key={q.localId}
                         question={q}
                         index={idx}
+                        mediaContext={quizMediaContext}
                         onChange={(patch) => updateQuestion(q.localId, patch)}
                         onDelete={() => deleteQuestion(q.localId)}
                       />
@@ -1832,15 +1985,6 @@ export default function QuizDetail() {
           {activeTab === "settings" && (
             <div className="px-6 py-6">
               <SettingsPanel settings={settings} onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))} />
-            </div>
-          )}
-
-          {activeTab === "qa" && (
-            <div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">
-              <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <p className="text-sm">{t("quizEditor.qaPlaceholder")}</p>
             </div>
           )}
         </div>

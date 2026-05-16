@@ -188,6 +188,7 @@
     "lopHoc": "Class Sections",
     "assignments": "Assignments",
     "nganHangCauHoi": "Question Bank",
+    "quanLyMedia": "Media Management",
     "quanLyKhoaHoc": "Manage Courses",
     "quanLyHocVien": "Manage Students",
     "quizAttempts": "Quiz Attempts",
@@ -203,6 +204,7 @@
     "quanLyKhoaHoc": "Course Management",
     "chuongTrinhHoc": "Curriculum",
     "nganHangCauHoi": "Question Bank",
+    "quanLyMedia": "Media Management",
     "quizAttempts": "Quiz Attempts",
     "thongKe": "Analytics",
     "hoSo": "Profile",
@@ -257,11 +259,16 @@
     "search": "Search",
     "byDate": "By date",
     "byName": "By name",
+    "bySize": "By size",
     "empty": "No matching media",
     "untitled": "Untitled",
     "loadFailed": "Could not load media library",
     "uploadSuccess": "File uploaded successfully",
     "uploadFailed": "File upload failed",
+    "uploadPolicy": "Allowed: {{extensions}} · Max {{size}}",
+    "invalidFileType": "This file format is not supported",
+    "fileTooLarge": "File exceeds the {{size}} limit",
+    "loadMore": "Load more",
     "attachByUrl": "Attach by URL",
     "attachLink": "Attach link",
     "attachSuccess": "Link attached successfully",
@@ -273,6 +280,7 @@
     "changeMedia": "Change media",
     "questionMedia": "Question media",
     "questionMediaHint": "Add an image, video, or mp3/audio file to this question.",
+    "selectQuestionMediaType": "Select question media type",
     "uploadImage": "Upload image",
     "changeImage": "Change image",
     "remove": "Remove",
@@ -281,12 +289,149 @@
       "VIDEO": "Video",
       "AUDIO": "Audio"
     },
+    "answerModes": {
+      "text": "Answers without images",
+      "image": "Answers with images"
+    },
     "videoSources": {
       "MP4": "HTML (MP4)",
       "YOUTUBE": "YouTube",
       "VIMEO": "Vimeo",
       "EMBED": "Embed",
       "EXTERNAL": "External link"
+    }
+  },
+  "mediaManager": {
+    "uploadPolicy": "Upload limit: {{size}}. Allowed formats: {{extensions}}",
+    "searchPlaceholder": "Search media",
+    "empty": "No media in this scope yet.",
+    "untitled": "Untitled",
+    "usedCount": "{{count}} uses",
+    "pages": {
+      "personal": {
+        "title": "My media library",
+        "subtitle": "Your private media library for files you want to reuse in lessons, assignments, or quizzes."
+      },
+      "admin": {
+        "title": "Media management",
+        "subtitle": "Track media by scope, status, file type, and creator."
+      },
+      "questionBank": {
+        "title": "Question bank media",
+        "subtitle": "Shared media in question bank #{{id}}"
+      },
+      "classSection": {
+        "title": "Class media",
+        "subtitle": "Media used for lessons, assignments, and quizzes in class #{{id}}",
+        "teachingSubtitle": "Media in class #{{id}}"
+      }
+    },
+    "types": {
+      "IMAGE": "Image",
+      "VIDEO": "Video",
+      "AUDIO": "Audio",
+      "PDF": "PDF",
+      "FILE": "File",
+      "LINK": "Link"
+    },
+    "scopes": {
+      "QUESTION_BANK": "Question bank",
+      "CLASS_SECTION": "Class",
+      "PRIVATE_USER": "Personal library",
+      "INSTITUTION_SHARED": "Shared library",
+      "LEGACY": "Legacy data"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "ARCHIVED": "Archived"
+    },
+    "sort": {
+      "newest": "Newest",
+      "name": "Name",
+      "size": "Size"
+    },
+    "filters": {
+      "scope": "Scope",
+      "type": "Media type"
+    },
+    "stats": {
+      "currentResult": "Current results",
+      "visibleSize": "Visible size",
+      "archivedInView": "Archived"
+    },
+    "drawer": {
+      "title": "Media details"
+    },
+    "link": {
+      "open": "Paste link",
+      "title": "Create media from link",
+      "titlePlaceholder": "Link title (optional)",
+      "urlPlaceholder": "Paste a URL or embed URL here",
+      "hint": "The link will be saved as an embedded media item. For YouTube, Vimeo, or OneDrive, use an embed URL when you need direct rendering.",
+      "create": "Create link",
+      "invalidUrl": "Please enter a valid URL.",
+      "success": "Media link created",
+      "failed": "Could not create media link"
+    },
+    "fields": {
+      "title": "Media name",
+      "description": "Description",
+      "type": "Type",
+      "size": "Size",
+      "scope": "Scope",
+      "owner": "Creator",
+      "status": "Status",
+      "usageCount": "Usage count",
+      "lastUsedAt": "Last used"
+    },
+    "references": {
+      "title": "Used in",
+      "empty": "This media is not used anywhere yet."
+    },
+    "referenceTypes": {
+      "BANK_QUESTION": "Bank question #{{id}}",
+      "BANK_QUESTION_OPTION": "Bank answer #{{id}}",
+      "QUIZ_QUESTION": "Quiz question #{{id}}",
+      "QUIZ_ANSWER": "Quiz answer #{{id}}",
+      "INTERACTION_ITEM": "Interaction item #{{id}}",
+      "LESSON": "Lesson #{{id}}",
+      "ASSIGNMENT": "Assignment #{{id}}",
+      "SUBMISSION": "Submission #{{id}}"
+    },
+    "audit": {
+      "title": "Recent history",
+      "empty": "No activity yet.",
+      "byActor": " by {{actor}}"
+    },
+    "auditActions": {
+      "CREATE": "Created",
+      "UPLOAD": "Uploaded",
+      "UPDATE": "Updated",
+      "ARCHIVE": "Archived",
+      "RESTORE": "Restored",
+      "DELETE": "Deleted"
+    },
+    "actions": {
+      "upload": "Upload media",
+      "loadMore": "Load more",
+      "save": "Save",
+      "restore": "Restore",
+      "archive": "Archive",
+      "delete": "Delete"
+    },
+    "messages": {
+      "loadFailed": "Could not load media",
+      "uploadSuccess": "Media uploaded successfully",
+      "uploadFailed": "Media upload failed",
+      "detailsFailed": "Could not load media history",
+      "updateSuccess": "Media information updated",
+      "updateFailed": "Could not update media",
+      "archiveSuccess": "Media archived",
+      "restoreSuccess": "Media restored",
+      "statusFailed": "Could not change media status",
+      "deleteBlocked": "This media is still in use. Archive it instead of deleting it.",
+      "deleteSuccess": "Media deleted",
+      "deleteFailed": "Could not delete media"
     }
   },
   "quizBuilder": {
