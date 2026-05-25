@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Button, message, Table, Popconfirm, Tag } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
+import { Button, Empty, Form, Input, Modal, Popconfirm, Table, message } from "antd";
+import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
-import {
-  MagnifyingGlassIcon,
-  PlusCircleIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline";
-import { getAllCategories, createCategory, updateCategory, deleteCategory } from "../../api/category";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
+import { createCategory, deleteCategory, getAllCategories, updateCategory } from "../../api/category";
 
 const { TextArea } = Input;
+const DEFAULT_PAGE_SIZE = 10;
 
 export default function AdminCategoryManagement() {
+  const { t } = useTranslation();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create"); // "create" or "edit"
+  const [modalMode, setModalMode] = useState("create");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [form] = Form.useForm();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -33,18 +33,35 @@ export default function AdminCategoryManagement() {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, pageSize]);
+
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res = await getAllCategories(1, 100);
+      const res = await getAllCategories(1, 1000);
       setCategories(res.data?.pageList || []);
     } catch (err) {
       console.error(err);
-      message.error("Lỗi khi tải danh mục");
+      message.error(t("adminCatalog.messages.loadCategoriesFailed"));
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredCategories = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return categories;
+    return categories.filter((category) =>
+      [category.title, category.description].filter(Boolean).some((value) => value.toLowerCase().includes(keyword))
+    );
+  }, [categories, searchQuery]);
+
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredCategories.slice(start, start + pageSize);
+  }, [filteredCategories, page, pageSize]);
 
   const handleOpenCreateModal = () => {
     setModalMode("create");
@@ -67,74 +84,85 @@ export default function AdminCategoryManagement() {
     try {
       if (modalMode === "create") {
         await createCategory(values);
-        message.success("Tạo danh mục thành công");
+        message.success(t("adminCatalog.messages.categoryCreated"));
       } else {
         await updateCategory(selectedCategory.id, values);
-        message.success("Cập nhật danh một thành công");
+        message.success(t("adminCatalog.messages.categoryUpdated"));
       }
       setModalOpen(false);
       fetchCategories();
     } catch (err) {
-      message.error(err.message || "Lỗi khi lưu danh mục");
+      message.error(err?.response?.data?.message || err.message || t("adminCatalog.messages.saveCategoryFailed"));
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await deleteCategory(id);
-      message.success("Xóa danh mục thành công");
+      message.success(t("adminCatalog.messages.categoryDeleted"));
       fetchCategories();
     } catch (err) {
-      message.error("Lỗi khi xóa danh mục");
+      message.error(err?.response?.data?.message || t("adminCatalog.messages.deleteCategoryFailed"));
     }
   };
 
-  const filteredCategories = categories.filter(c => 
-    c.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const columns = [
     {
-      title: "STT",
+      title: t("adminCatalog.columns.index"),
       key: "index",
-      width: 60,
-      render: (_, __, index) => index + 1,
+      width: 80,
+      render: (_, __, index) => (page - 1) * pageSize + index + 1,
     },
     {
-      title: "Tiêu đề",
+      title: t("adminCatalog.columns.categoryTitle"),
       dataIndex: "title",
       key: "title",
-      render: (text) => <span className="font-semibold">{text}</span>,
+      render: (text) => <span className="font-semibold text-slate-900 dark:text-white">{text}</span>,
     },
     {
-      title: "Mô tả",
+      title: t("adminCatalog.columns.description"),
       dataIndex: "description",
       key: "description",
       ellipsis: true,
+      render: (text) =>
+        text ? (
+          <span className="block truncate" title={text}>
+            {text}
+          </span>
+        ) : (
+          <span className="text-slate-400">{t("adminCatalog.empty.noDescription")}</span>
+        ),
     },
     {
-      title: "Hành động",
+      title: t("adminCatalog.columns.action"),
       key: "action",
-      width: 120,
+      width: 150,
+      align: "right",
       render: (_, record) => (
-        <div className="flex gap-2">
-          <button
+        <div className="flex justify-end gap-2">
+          <Button
+            type="text"
+            size="small"
+            className="!inline-flex !h-8 !items-center !justify-center !rounded-md !border !border-slate-300 !bg-white !px-3 !text-slate-700 hover:!border-slate-400 hover:!bg-slate-50 hover:!text-slate-900 dark:!border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!border-slate-500 dark:hover:!bg-slate-700 dark:hover:!text-white"
             onClick={() => handleOpenEditModal(record)}
-            className="p-1 text-slate-500 hover:text-primary transition-colors"
           >
-            <PencilIcon className="h-4 w-4" />
-          </button>
+            {t("adminCatalog.actions.edit")}
+          </Button>
           <Popconfirm
-            title="Xóa danh mục?"
-            description="Lưu ý: Hành động này có thể ảnh hưởng đến các môn học thuộc danh mục này."
-            onConfirm={() => handleDelete(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
+            title={t("adminCatalog.confirm.deleteCategoryTitle")}
+            description={t("adminCatalog.confirm.deleteCategoryDescription")}
+            okText={t("adminCatalog.actions.delete")}
+            cancelText={t("adminCatalog.actions.cancel")}
             okButtonProps={{ danger: true }}
+            onConfirm={() => handleDelete(record.id)}
           >
-            <button className="p-1 text-red-500 hover:text-red-700 transition-colors">
-              <TrashIcon className="h-4 w-4" />
-            </button>
+            <Button
+              type="text"
+              size="small"
+              className="!inline-flex !h-8 !items-center !justify-center !rounded-md !border !border-red-300 !bg-white !px-3 !text-red-600 hover:!border-red-400 hover:!bg-red-50 hover:!text-red-700 dark:!border-red-900/60 dark:!bg-slate-800 dark:!text-red-300 dark:hover:!border-red-700 dark:hover:!bg-red-950/40 dark:hover:!text-red-200"
+            >
+              {t("adminCatalog.actions.delete")}
+            </Button>
           </Popconfirm>
         </div>
       ),
@@ -142,55 +170,83 @@ export default function AdminCategoryManagement() {
   ];
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="min-h-screen bg-slate-50 dark:bg-background-dark">
       <TeacherHeader />
       <AdminSidebar />
-      <main className={`pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"}`}>
-        <div className="mx-auto max-w-7xl">
-          <div className="flex flex-wrap mt-3 items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Quản lý Danh mục</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý các danh mục chính trong hệ thống</p>
-            </div>
-            <button
-              onClick={handleOpenCreateModal}
-              className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-bold hover:bg-primary/90 transition-colors"
-            >
-              <PlusCircleIcon className="h-5 w-5" />
-              Tạo danh mục mới
-            </button>
-          </div>
-
-          <div className="mb-6">
-            <div className="relative max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-slate-400" />
+      <main
+        className={`px-4 pb-8 pt-16 transition-all duration-300 sm:px-6 lg:px-8 ${
+          sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+        }`}
+      >
+        <div className="mx-auto mt-3 max-w-7xl">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+              <div>
+                <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
+                  {t("adminCatalog.categories.title")}
+                </h1>
+                <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {t("adminCatalog.categories.subtitle")}
+                </p>
               </div>
-              <input
-                type="text"
-                placeholder="Tìm kiếm danh mục..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              <Button type="primary" onClick={handleOpenCreateModal}>
+                {t("adminCatalog.categories.create")}
+              </Button>
+            </div>
+
+            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+              <Input.Search
+                allowClear
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t("adminCatalog.categories.searchPlaceholder")}
+                className="max-w-xl"
               />
             </div>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-            <Table
-              columns={columns}
-              dataSource={filteredCategories}
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-              className="dark:text-white"
-            />
+            <div className="px-5 py-4 sm:px-6">
+              <Table
+                columns={columns}
+                dataSource={pageItems}
+                rowKey="id"
+                loading={loading}
+                pagination={false}
+                tableLayout="fixed"
+                locale={{
+                  emptyText: <Empty description={t("adminCatalog.empty.categories")} />,
+                }}
+                scroll={{ x: 760 }}
+              />
+            </div>
+
+            {!loading && filteredCategories.length > 0 && (
+              <DataPaginationFooter
+                currentPage={page}
+                pageSize={pageSize}
+                total={filteredCategories.length}
+                totalLabel={t("adminCatalog.pagination.total", { count: filteredCategories.length })}
+                pageSizeLabel={t("adminCatalog.pagination.pageSize")}
+                rangeLabel={t("adminCatalog.pagination.range", {
+                  start: (page - 1) * pageSize + 1,
+                  end: Math.min(page * pageSize, filteredCategories.length),
+                })}
+                onPageChange={setPage}
+                onPageSizeChange={(nextSize) => {
+                  setPageSize(nextSize);
+                  setPage(1);
+                }}
+              />
+            )}
           </div>
         </div>
       </main>
 
       <Modal
-        title={modalMode === "create" ? "Tạo danh mục mới" : "Chỉnh sửa danh mục"}
+        title={
+          modalMode === "create"
+            ? t("adminCatalog.categories.createModalTitle")
+            : t("adminCatalog.categories.editModalTitle")
+        }
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         footer={null}
@@ -198,19 +254,19 @@ export default function AdminCategoryManagement() {
       >
         <Form form={form} layout="vertical" onFinish={handleSave} className="mt-4">
           <Form.Item
-            label="Tiêu đề"
+            label={t("adminCatalog.fields.title")}
             name="title"
-            rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
+            rules={[{ required: true, message: t("adminCatalog.validation.titleRequired") }]}
           >
-            <Input placeholder="Ví dụ: Công nghệ thông tin" />
+            <Input placeholder={t("adminCatalog.categories.titlePlaceholder")} />
           </Form.Item>
-          <Form.Item label="Mô tả" name="description">
-            <TextArea rows={4} placeholder="Nhập mô tả cho danh mục" />
+          <Form.Item label={t("adminCatalog.fields.description")} name="description">
+            <TextArea rows={4} placeholder={t("adminCatalog.categories.descriptionPlaceholder")} />
           </Form.Item>
-          <div className="flex justify-end gap-2 mt-6">
-            <Button onClick={() => setModalOpen(false)}>Hủy</Button>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button onClick={() => setModalOpen(false)}>{t("adminCatalog.actions.cancel")}</Button>
             <Button type="primary" htmlType="submit">
-              {modalMode === "create" ? "Tạo mới" : "Lưu thay đổi"}
+              {modalMode === "create" ? t("adminCatalog.actions.create") : t("adminCatalog.actions.save")}
             </Button>
           </div>
         </Form>

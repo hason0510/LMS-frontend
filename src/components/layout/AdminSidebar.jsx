@@ -41,13 +41,13 @@ export default function AdminSidebar() {
         />
         <SidebarLink
           icon={<TagIcon className="h-6 w-6" />}
-          label="Quản lý danh mục"
+          label={t("admin.quanLyDanhMuc")}
           active={currentPath.startsWith("/admin/categories")}
           to="/admin/categories"
         />
         <SidebarLink
           icon={<BookmarkIcon className="h-6 w-6" />}
-          label="Quản lý môn học"
+          label={t("admin.quanLyMonHoc")}
           active={currentPath.startsWith("/admin/subjects")}
           to="/admin/subjects"
         />
@@ -83,7 +83,7 @@ export default function AdminSidebar() {
         />
         <SidebarLink
           icon={<MegaphoneIcon className="h-6 w-6" />}
-          label="Announcements"
+          label={t("admin.announcements")}
           active={currentPath.startsWith("/admin/announcements")}
           to="/admin/announcements"
         />

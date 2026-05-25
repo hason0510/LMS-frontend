@@ -76,21 +76,22 @@ export default function OtpModal({
 
       const response = await verifyOtp(otpCode, userId);
       console.log('OTP verification response:', response);
+      const payload = response?.data ?? response;
 
-      if (response.data && response.data.accessToken) {
+      if (payload?.accessToken) {
         message.success('Xác thực OTP thành công!');
         
         // Login user with response data
-        const authedUser = await loginUser(response.data.accessToken, response.data.user);
+        const authedUser = await loginUser(payload.accessToken, payload.user);
 
         // Delay before redirect to show success message
         setTimeout(() => {
           onClose();
           
           // Redirect based on user role
-          if ((authedUser?.role || response.data.user?.role) === 'TEACHER') {
+          if ((authedUser?.role || payload.user?.role) === 'TEACHER') {
             navigate('/teacher/dashboard');
-          } else if ((authedUser?.role || response.data.user?.role) === 'ADMIN') {
+          } else if ((authedUser?.role || payload.user?.role) === 'ADMIN') {
             navigate('/admin/dashboard');
           } else {
             navigate('/home');

@@ -17,7 +17,7 @@ import { getAllSubjects, getSubjectsByCategory } from "../../api/subject";
 import {
   ArrowPathIcon,
   PencilSquareIcon,
-  PlusCircleIcon,
+  PlusIcon,
   TrashIcon,
   EyeIcon,
   CircleStackIcon,
@@ -288,13 +288,25 @@ export default function QuestionBanks({ isAdmin = false }) {
                   <p className="text-slate-500 mt-1">Quản lý kho câu hỏi dùng cho bài Quizz/Assignment.</p>
                 </div>
               </div>
-              <Button
+              {/*<Button
                 type="primary"
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center gap-2 rounded-full px-5 h-10 shadow-sm bg-blue-600 hover:bg-blue-700 border-0"
                 icon={<PlusCircleIcon className="h-5 w-5" />}
               >
                 Tạo mới
+              </Button>*/}
+              <Button
+                  type="primary"
+                  onClick={() => setIsModalOpen(true)}
+                  // 1. Thêm justify-center để căn giữa hoàn hảo
+                  className="flex items-center justify-center gap-2 rounded-full px-5 h-10 shadow-sm bg-blue-600 hover:bg-blue-700 border-0"
+              >
+                {/* 2. Đưa icon vào đây làm con trực tiếp */}
+                <PlusIcon className="h-4 w-4" />
+
+                {/* 3. Bọc chữ trong thẻ span và thêm leading-none để triệt tiêu chiều cao dòng thừa */}
+                <span className="leading-none">Tạo mới</span>
               </Button>
             </div>
 

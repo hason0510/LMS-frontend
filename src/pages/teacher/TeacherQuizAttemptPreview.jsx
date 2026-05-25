@@ -450,6 +450,8 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
               <Select
                 value={current.matches?.[prompt.id]}
                 onChange={(value) => handleMatchingSelect(question, prompt.id, value)}
+                showSearch
+                optionFilterProp="label"
                 options={matches.map((match, matchIndex) => ({
                   value: match.id,
                   label: renderItem(match, `Đáp án ${matchIndex + 1}`),
@@ -504,6 +506,8 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                     <Select
                       value={current.blanks?.[blank.id]}
                       onChange={(value) => handleClozeChange(question, blank.id, value)}
+                      showSearch
+                      optionFilterProp="label"
                       options={options.map((option) => ({ value: option, label: option }))}
                       placeholder="Chọn đáp án"
                       className="w-full"

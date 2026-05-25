@@ -20,10 +20,11 @@ import {
 import { Form, Input, Button, Spin, Alert, Modal, App } from "antd";
 import { getCourseById, createClassContentItem } from "../../api/classSection";
 import { getLessonById, updateLesson, deleteLesson, createLesson } from "../../api/lesson";
-import { createResource, uploadVideoResource, uploadSlideResource, getResourcesByLessonId, deleteResource } from "../../api/resource";
+import { attachResourceToLesson, createResource, uploadVideoResource, uploadSlideResource, getResourcesByLessonId, deleteResource, detachResourceFromLesson } from "../../api/resource";
 import { getResourceTypeFromFile, isVideoFile } from "../../utils/fileUtils";
 import FileItem from "../../components/common/FileItem";
 import VideoPlayer from "../../components/common/VideoPlayer";
+import ResourceLibrarySelectModal from "../../components/media/ResourceLibrarySelectModal";
 import {
   createContentItemTemplate,
   getTemplateById,
@@ -55,6 +56,8 @@ export default function LectureDetail({ isAdmin = false }) {
   const [notes, setNotes] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [resources, setResources] = useState([]);
+  const [pendingLibraryResources, setPendingLibraryResources] = useState([]);
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState({}); // { fileId: 0-100 }
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef(null);
@@ -328,6 +331,65 @@ export default function LectureDetail({ isAdmin = false }) {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
+  const handleRemovePendingLibraryResource = (resourceId) => {
+    setPendingLibraryResources((prev) => prev.filter((item) => item.id !== resourceId));
+  };
+
+  const handleDetachSavedResource = async (resourceId) => {
+    if (!lectureId || !resourceId) return;
+    try {
+      await detachResourceFromLesson(lectureId, resourceId);
+      const resourcesResponse = await getResourcesByLessonId(lectureId);
+      const list = Array.isArray(resourcesResponse)
+        ? resourcesResponse
+        : resourcesResponse.data || [];
+      setResources(list);
+      messageApi.success("Đã gỡ media khỏi bài giảng");
+    } catch (error) {
+      console.error(error);
+      messageApi.error(error?.response?.data?.message || "Không thể gỡ media khỏi bài giảng");
+    }
+  };
+
+  const handleSelectLibraryResource = async (resource) => {
+    if (!resource) return;
+
+    if (isTemplateMode) {
+      messageApi.info("Template lesson chưa hỗ trợ media library.");
+      setLibraryPickerOpen(false);
+      return;
+    }
+
+    const duplicateInSaved = resources.some((item) => item.id === resource.id);
+    const duplicateInPending = pendingLibraryResources.some((item) => item.id === resource.id);
+    if (duplicateInSaved || duplicateInPending) {
+      messageApi.info("Media này đã có trong bài giảng");
+      setLibraryPickerOpen(false);
+      return;
+    }
+
+    if (lectureId) {
+      try {
+        await attachResourceToLesson(lectureId, resource.id);
+        const resourcesResponse = await getResourcesByLessonId(lectureId);
+        const list = Array.isArray(resourcesResponse)
+          ? resourcesResponse
+          : resourcesResponse.data || [];
+        setResources(list);
+        messageApi.success("Đã gắn media vào bài giảng");
+      } catch (error) {
+        console.error(error);
+        messageApi.error(error?.response?.data?.message || "Không thể gắn media vào bài giảng");
+      } finally {
+        setLibraryPickerOpen(false);
+      }
+      return;
+    }
+
+    setPendingLibraryResources((prev) => [...prev, resource]);
+    setLibraryPickerOpen(false);
+  };
+
   const handleSubmit = async () => {
     // Prevent submission in view mode
     if (isViewMode) return;
@@ -360,23 +422,21 @@ export default function LectureDetail({ isAdmin = false }) {
       if (isTemplateMode && templateIdFromPath) {
         if (isEditMode) {
           // ── Template edit: update existing LessonTemplate ──
-          const response = await updateLessonTemplate(lectureId, {
+          savedLesson = await updateLessonTemplate(lectureId, {
             title: lessonData.title,
             content: lessonData.content,
             videoUrl: lessonData.videoUrl,
             notes: lessonData.notes,
           });
-          savedLesson = response.data;
           messageApi.success("Cập nhật bài giảng mẫu thành công");
         } else {
           // ── Template create: create LessonTemplate → link to template chapter ──
-          const response = await createLessonTemplate({
+          savedLesson = await createLessonTemplate({
             title: lessonData.title,
             content: lessonData.content,
             videoUrl: lessonData.videoUrl,
             notes: lessonData.notes,
           });
-          savedLesson = response.data;
 
           await createContentItemTemplate(templateIdFromPath, chapterIdFromState, {
             itemType: "LESSON",
@@ -437,6 +497,19 @@ export default function LectureDetail({ isAdmin = false }) {
           setVideoUploadProgress(0);
           setPendingVideoFile(null);
         }
+      }
+
+      // Attach pending resources selected from media library (create mode only)
+      if (!isTemplateMode && pendingLibraryResources.length > 0 && savedLesson?.id) {
+        for (const resource of pendingLibraryResources) {
+          try {
+            await attachResourceToLesson(savedLesson.id, resource.id);
+          } catch (attachErr) {
+            console.error("Failed to attach library resource:", attachErr);
+            messageApi.warning(`Không thể gắn media: ${resource.title || "Resource"}`);
+          }
+        }
+        setPendingLibraryResources([]);
       }
 
       // Upload files only for class section lessons (LessonTemplate has no resources)
@@ -944,13 +1017,20 @@ export default function LectureDetail({ isAdmin = false }) {
 
                     {/* Document/Slides Section */}
                     <div className="bg-white dark:bg-card-dark p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
-                          <DocumentTextIcon className="h-6 w-6" />
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
+                            <DocumentTextIcon className="h-6 w-6" />
+                          </div>
+                          <h3 className="font-bold text-lg dark:text-white">
+                            Tài liệu / Slide
+                          </h3>
                         </div>
-                        <h3 className="font-bold text-lg dark:text-white">
-                          Tài liệu / Slide
-                        </h3>
+                        {!isViewMode && !isTemplateMode && (
+                          <Button onClick={() => setLibraryPickerOpen(true)}>
+                            Chọn từ kho media
+                          </Button>
+                        )}
                       </div>
                       {/* Drag Drop Zone */}
                       <div
@@ -981,6 +1061,26 @@ export default function LectureDetail({ isAdmin = false }) {
                           className="!hidden"
                         />
                       </div>
+                      {/* File List Items - Pending / Uploading */}
+                      {pendingLibraryResources.length > 0 && (
+                        <div className="space-y-2">
+                          {pendingLibraryResources.map((resource) => (
+                            <FileItem
+                              key={`pending-library-${resource.id}`}
+                              fileUrl={resource.fileUrl}
+                              fileName={resource.title || "Resource"}
+                              fileSize={resource.fileSize}
+                              mimeType={resource.mimeType}
+                              type={resource.type}
+                              source={resource.source}
+                              embedUrl={resource.embedUrl}
+                              onDelete={() => handleRemovePendingLibraryResource(resource.id)}
+                              showDelete={!isViewMode}
+                            />
+                          ))}
+                        </div>
+                      )}
+
                       {/* File List Items - Pending / Uploading */}
                       {uploadedFiles.length > 0 && (
                         <div className="space-y-2">
@@ -1050,6 +1150,7 @@ export default function LectureDetail({ isAdmin = false }) {
                                 type={resource.type}
                                 source={resource.source}
                                 embedUrl={resource.embedUrl}
+                                onDelete={() => handleDetachSavedResource(resource.id)}
                                 showDelete={!isViewMode}
                               />
                             ))}
@@ -1058,6 +1159,14 @@ export default function LectureDetail({ isAdmin = false }) {
                       )}
                     </div>
                   </div>
+
+                  <ResourceLibrarySelectModal
+                    open={libraryPickerOpen}
+                    onCancel={() => setLibraryPickerOpen(false)}
+                    onSelect={handleSelectLibraryResource}
+                    mediaContext={classResourceScope}
+                    title="Chọn media từ kho của tôi"
+                  />
 
                   {/* Notes Section */}
                   <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 p-6 rounded-xl">

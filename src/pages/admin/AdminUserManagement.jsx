@@ -274,6 +274,8 @@ export default function AdminUserManagement() {
                   }}
                   className="flex-1"
                   style={{ height: "40px" }}
+                  showSearch
+                  optionFilterProp="label"
                   options={[
                     { label: "Vai trò: Tất cả", value: "all" },
                     { label: "Sinh viên", value: "student" },
@@ -290,6 +292,8 @@ export default function AdminUserManagement() {
                   }}
                   className="flex-1"
                   style={{ height: "40px" }}
+                  showSearch
+                  optionFilterProp="label"
                   options={[
                     { label: "Trạng thái: Tất cả", value: "all" },
                     { label: "Hoạt động", value: "active" },

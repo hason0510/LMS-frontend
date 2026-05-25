@@ -10,8 +10,9 @@ import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { getCourseById, createClassContentItem } from "../../api/classSection";
 import { createAssignment, getAssignmentById, updateAssignment } from "../../api/assignment";
-import { uploadStandaloneResource } from "../../api/resource";
+import { createStandaloneResource, uploadStandaloneResource, detachResourceFromAssignment } from "../../api/resource";
 import FileItem from "../../components/common/FileItem";
+import ResourceLibrarySelectModal from "../../components/media/ResourceLibrarySelectModal";
 
 const quillModules = {
   toolbar: [
@@ -33,13 +34,6 @@ const quillFormats = [
   "link",
 ];
 
-function mapUploadTypeToResourceType(uploadType) {
-  if (uploadType === "video") return "VIDEO";
-  if (uploadType === "audio") return "AUDIO";
-  if (uploadType === "image") return "IMAGE";
-  return "FILE";
-}
-
 export default function AssignmentDetail({ isAdmin = false }) {
   const { classSectionId, chapterId, assignmentId } = useParams();
   const navigate = useNavigate();
@@ -57,6 +51,10 @@ export default function AssignmentDetail({ isAdmin = false }) {
   const [resources, setResources] = useState([]);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
+  const assignmentScopeParams = classSectionId
+    ? { scopeType: "CLASS_SECTION", scopeId: Number(classSectionId) }
+    : {};
 
   useEffect(() => {
     const init = async () => {
@@ -82,6 +80,7 @@ export default function AssignmentDetail({ isAdmin = false }) {
           setResources(
             (assignment.resources || []).map((resource) => ({
               id: resource.id || `${resource.source}-${Math.random()}`,
+              resourceId: resource.id || null,
               title: resource.title,
               source: resource.source,
               type: resource.type,
@@ -90,6 +89,8 @@ export default function AssignmentDetail({ isAdmin = false }) {
               cloudinaryId: resource.cloudinaryId,
               mimeType: resource.mimeType,
               fileSize: resource.fileSize,
+              scopeType: resource.scopeType || null,
+              scopeId: resource.scopeId || null,
             }))
           );
         } else {
@@ -117,18 +118,18 @@ export default function AssignmentDetail({ isAdmin = false }) {
     try {
       const uploadedResources = [];
       for (const file of files) {
-        const uploadResponse = await uploadStandaloneResource(file);
-        const uploaded = uploadResponse?.data || uploadResponse;
+        const uploaded = await uploadStandaloneResource(file, assignmentScopeParams);
         uploadedResources.push({
-          id: `${Date.now()}-${Math.random()}`,
-          title: file.name,
+          id: uploaded.resourceId || uploaded.id || `${Date.now()}-${Math.random()}`,
+          resourceId: uploaded.resourceId || uploaded.id || null,
+          title: uploaded.title || file.name,
           source: "UPLOAD",
-          type: mapUploadTypeToResourceType(uploaded.type),
-          fileUrl: uploaded.url,
+          type: uploaded.type || "FILE",
+          fileUrl: uploaded.fileUrl || uploaded.url,
           embedUrl: null,
-          cloudinaryId: uploaded.publicId,
-          mimeType: file.type,
-          fileSize: file.size,
+          cloudinaryId: uploaded.publicId || uploaded.cloudinaryId || null,
+          mimeType: uploaded.mimeType || file.type,
+          fileSize: uploaded.fileSize || file.size,
         });
       }
       setResources((prev) => [...prev, ...uploadedResources]);
@@ -142,7 +143,7 @@ export default function AssignmentDetail({ isAdmin = false }) {
     }
   };
 
-  const handleAddLink = () => {
+  const handleAddLink = async () => {
     if (!linkUrl.trim()) {
       message.warning("Vui lòng nhập URL");
       return;
@@ -155,26 +156,86 @@ export default function AssignmentDetail({ isAdmin = false }) {
       return;
     }
 
+    try {
+      const created = await createStandaloneResource({
+        title: linkTitle.trim() || null,
+        source: "LINK",
+        type: "LINK",
+        fileUrl: linkUrl.trim(),
+        ...assignmentScopeParams,
+      });
+      setResources((prev) => [
+        ...prev,
+        {
+          id: created.id || `${Date.now()}-${Math.random()}`,
+          resourceId: created.id || null,
+          title: created.title || linkUrl.trim(),
+          source: created.source || "LINK",
+          type: created.type || "LINK",
+          fileUrl: created.fileUrl || linkUrl.trim(),
+          embedUrl: created.embedUrl || null,
+          cloudinaryId: created.cloudinaryId || null,
+          mimeType: created.mimeType || null,
+          fileSize: created.fileSize || null,
+        },
+      ]);
+      setLinkTitle("");
+      setLinkUrl("");
+    } catch (error) {
+      console.error(error);
+      message.error(error?.response?.data?.message || "Không thể tạo media link");
+    }
+  };
+
+  const handleRemoveResource = (resourceItem) => {
+    const targetResourceId = resourceItem?.resourceId || resourceItem?.id;
+    if (!isEditMode || !assignmentId) {
+      setResources((prev) => prev.filter((resource) => resource.id !== resourceItem?.id));
+      return;
+    }
+
+    detachResourceFromAssignment(assignmentId, targetResourceId)
+      .then(() => {
+        setResources((prev) => prev.filter((resource) => resource.id !== resourceItem?.id));
+        message.success("Đã gỡ media khỏi assignment");
+      })
+      .catch((error) => {
+        console.error(error);
+        message.error(error?.response?.data?.message || "Không thể gỡ media khỏi assignment");
+      });
+  };
+
+  const handleSelectFromLibrary = (resource) => {
+    if (!resource) return;
+    const duplicate = resources.some(
+      (item) =>
+        item.resourceId === resource.id
+        || (item.fileUrl && resource.fileUrl && item.fileUrl === resource.fileUrl)
+        || (item.embedUrl && resource.embedUrl && item.embedUrl === resource.embedUrl)
+    );
+    if (duplicate) {
+      message.info("Media này đã có trong danh sách resources");
+      return;
+    }
+
     setResources((prev) => [
       ...prev,
       {
-        id: `${Date.now()}-${Math.random()}`,
-        title: linkTitle.trim() || linkUrl.trim(),
-        source: "EMBED",
-        type: "LINK",
-        fileUrl: null,
-        embedUrl: linkUrl.trim(),
-        cloudinaryId: null,
-        mimeType: null,
-        fileSize: null,
+        id: resource.id,
+        resourceId: resource.id,
+        title: resource.title,
+        source: resource.source,
+        type: resource.type,
+        fileUrl: resource.fileUrl || null,
+        embedUrl: resource.embedUrl || null,
+        cloudinaryId: resource.cloudinaryId || null,
+        mimeType: resource.mimeType || null,
+        fileSize: resource.fileSize || null,
+        scopeType: resource.scopeType || assignmentScopeParams.scopeType || null,
+        scopeId: resource.scopeId || assignmentScopeParams.scopeId || null,
       },
     ]);
-    setLinkTitle("");
-    setLinkUrl("");
-  };
-
-  const handleRemoveResource = (resourceId) => {
-    setResources((prev) => prev.filter((resource) => resource.id !== resourceId));
+    setLibraryPickerOpen(false);
   };
 
   const buildPayload = (values) => ({
@@ -186,17 +247,9 @@ export default function AssignmentDetail({ isAdmin = false }) {
     closeAt: values.closeAt ? values.closeAt.toISOString() : null,
     allowLateSubmission: Boolean(values.allowLateSubmission),
     classSectionId: Number(classSectionId),
-    resources: resources.map((resource) => ({
-      title: resource.title,
-      description: null,
-      source: resource.source,
-      type: resource.type || (resource.source === "EMBED" ? "LINK" : "FILE"),
-      fileUrl: resource.fileUrl || null,
-      embedUrl: resource.embedUrl || null,
-      cloudinaryId: resource.cloudinaryId || null,
-      mimeType: resource.mimeType || null,
-      fileSize: resource.fileSize || null,
-    })),
+    resourceIds: resources
+      .map((resource) => Number(resource.resourceId || resource.id))
+      .filter((resourceId) => Number.isFinite(resourceId) && resourceId > 0),
   });
 
   const handleSubmit = async (values) => {
@@ -358,6 +411,9 @@ export default function AssignmentDetail({ isAdmin = false }) {
                   <h2 className="text-base font-semibold text-slate-900 dark:text-white">Resources</h2>
 
                   <div className="flex items-center gap-3 flex-wrap">
+                    <Button onClick={() => setLibraryPickerOpen(true)}>
+                      Chọn từ kho media
+                    </Button>
                     <label className="px-4 py-2 rounded-lg border border-slate-300 text-sm cursor-pointer hover:bg-slate-50">
                       {uploading ? "Đang tải..." : "Upload file"}
                       <input
@@ -396,13 +452,21 @@ export default function AssignmentDetail({ isAdmin = false }) {
                           type={resource.type}
                           source={resource.source}
                           embedUrl={resource.embedUrl}
-                          onDelete={() => handleRemoveResource(resource.id)}
+                          onDelete={() => handleRemoveResource(resource)}
                           showDelete={true}
                         />
                       ))}
                     </div>
                   )}
                 </div>
+
+                <ResourceLibrarySelectModal
+                  open={libraryPickerOpen}
+                  onCancel={() => setLibraryPickerOpen(false)}
+                  onSelect={handleSelectFromLibrary}
+                  mediaContext={assignmentScopeParams}
+                  title="Chọn media từ kho của tôi"
+                />
 
                 <div className="flex justify-end">
                   <Button type="primary" htmlType="submit" loading={submitting}>

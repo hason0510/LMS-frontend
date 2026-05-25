@@ -59,6 +59,96 @@
     "danhGia": "Đánh giá",
     "apDungBoLoc": "Áp dụng bộ lọc"
   },
+  "classesPage": {
+    "title": "Lớp học",
+    "subtitle": "Tách rõ lớp bạn đã tham gia và lớp công khai để tìm kiếm, theo dõi tiến độ và tham gia nhanh hơn.",
+    "sectionCount": "{{count}} lớp",
+    "teacher": {
+      "title": "Danh sách lớp học",
+      "subtitle": "Quản lý và theo dõi toàn bộ lớp học trong hệ thống."
+    },
+    "myClasses": {
+      "title": "Lớp của tôi",
+      "subtitle": "Theo dõi các lớp đang học, trạng thái tham gia và tiến độ hiện tại."
+    },
+    "publicClasses": {
+      "title": "Lớp công khai",
+      "subtitle": "Khám phá các lớp public và tham gia ngay mà không cần chờ duyệt."
+    },
+    "joinBanner": {
+      "title": "Tham gia lớp riêng tư bằng mã",
+      "subtitle": "Nhập mã lớp để mở thông tin xác nhận trước khi gửi yêu cầu tham gia.",
+      "description": "Với lớp public, bạn có thể tham gia trực tiếp từ danh sách bên dưới hoặc dùng mã nếu giảng viên cung cấp.",
+      "placeholder": "VD: EGQ6EA"
+    },
+    "filters": {
+      "keywordPlaceholder": "Tìm theo tên lớp, học phần, giảng viên...",
+      "category": "Khoa học",
+      "teacher": "Giảng viên",
+      "subject": "Mã học phần",
+      "status": "Trạng thái lớp",
+      "showAdvanced": "Tìm kiếm nâng cao",
+      "hideAdvanced": "Thu gọn bộ lọc",
+      "reset": "Đặt lại",
+      "publicScopeHint": "Lớp công khai luôn dùng trạng thái Public."
+    },
+    "sort": {
+      "createdAsc": "Cũ nhất",
+      "createdDesc": "Mới nhất",
+      "startAsc": "Khai giảng sớm nhất",
+      "titleAsc": "Tên lớp A - Z"
+    },
+    "status": {
+      "public": "Công khai",
+      "private": "Riêng tư",
+      "archived": "Lưu trữ"
+    },
+    "enrollment": {
+      "approved": "Đang học",
+      "pending": "Chờ duyệt"
+    },
+    "card": {
+      "classSection": "Lớp học",
+      "noTeacher": "Chưa có giảng viên",
+      "classCode": "Mã lớp: {{code}}",
+      "students": "{{count}} học viên",
+      "progress": "Tiến độ hiện tại",
+      "pendingApproval": "Chờ duyệt",
+      "noSchedule": "Chưa có lịch học",
+      "from": "Từ",
+      "until": "Đến"
+    },
+    "actions": {
+      "openClass": "Vào lớp",
+      "viewDetails": "Chi tiết",
+      "joinClass": "Tham gia",
+      "joinNow": "Tham gia ngay",
+      "previewJoin": "Gia nhập",
+      "sendJoinRequest": "Gửi yêu cầu tham gia",
+      "alreadyJoined": "Đã tham gia",
+      "pendingJoined": "Đang chờ duyệt"
+    },
+    "pagination": {
+      "total": "Tổng số: {{count}}",
+      "pageSize": "Số dòng/trang",
+      "range": "{{start}} - {{end}}"
+    },
+    "empty": {
+      "myClasses": "Bạn chưa có lớp học phù hợp với bộ lọc hiện tại.",
+      "publicClasses": "Không có lớp công khai phù hợp với bộ lọc hiện tại."
+    },
+    "messages": {
+      "loadMyFailed": "Không thể tải danh sách lớp của bạn.",
+      "loadPublicFailed": "Không thể tải danh sách lớp công khai.",
+      "previewFailed": "Không thể xem trước lớp học từ mã này.",
+      "joinFailed": "Không thể tham gia lớp học.",
+      "joinRequestSent": "Đã gửi yêu cầu tham gia lớp học.",
+      "joinedPublic": "Tham gia lớp học công khai thành công."
+    },
+    "modal": {
+      "students": "{{count}} thành viên"
+    }
+  },
   "notifications": {
     "thongBao": "Thông báo",
     "banCo": "Bạn có",
@@ -75,16 +165,26 @@
   "profile": {
     "thongTinCaNhan": "Thông tin cá nhân",
     "capNhatThongTin": "Cập nhật thông tin cá nhân của bạn tại đây",
+    "thongTinCoBan": "Thông tin cơ bản",
+    "thongTinHocTap": "Thông tin học tập",
+    "thongTinLienHe": "Thông tin liên hệ",
     "hoVaTen": "Họ và tên",
     "nhapHoVaTen": "Nhập họ và tên của bạn",
     "email": "Email",
     "nhapEmail": "Nhập email của bạn",
+    "tenDangNhap": "Tên đăng nhập",
     "soDienThoai": "Số điện thoại",
     "nhapSoDienThoai": "Nhập số điện thoại của bạn",
     "ngaySinh": "Ngày sinh",
     "chonNgaySinh": "Chọn ngày sinh của bạn",
     "diaChi": "Địa chỉ",
     "nhapDiaChi": "Nhập địa chỉ của bạn",
+    "anhDaiDien": "Ảnh đại diện",
+    "nhapMaSinhVien": "Nhập mã số sinh viên",
+    "taiAnhLen": "Tải ảnh",
+    "danLinkAnh": "Link ảnh",
+    "danLinkAnhDaiDien": "Dán link ảnh đại diện",
+    "capNhatAnhDaiDien": "Bạn có thể tải ảnh mới hoặc dùng link ảnh công khai. Ảnh sẽ được cập nhật ngay sau khi lưu.",
     "chinhSua": "Chỉnh sửa",
     "capNhatThanhCong": "Cập nhật thông tin thành công!",
     "capNhatThatBai": "Cập nhật thất bại. Vui lòng thử lại.",
@@ -186,7 +286,8 @@
     "tongQuan": "Tổng quan",
     "chuongTrinhHoc": "Chương trình học",
     "lopHoc": "Lớp học",
-    "assignments": "Assignments",
+    "assignments": "Quản lý bài tập",
+    "announcements": "Bản tin",
     "nganHangCauHoi": "Ngân hàng câu hỏi",
     "quanLyMedia": "Quản lý media",
     "quanLyKhoaHoc": "Quản lý khóa học",
@@ -200,7 +301,10 @@
     "tongQuan": "Tổng quan",
     "quanLyNguoiDung": "Quản lý người dùng",
     "quanLyLopHoc": "Quản lý lớp học",
-    "assignments": "Assignments",
+    "quanLyDanhMuc": "Quản lý danh mục",
+    "quanLyMonHoc": "Quản lý môn học",
+    "assignments": "Quản lý bài tập",
+    "announcements": "Bản tin",
     "quanLyKhoaHoc": "Quản lý khóa học",
     "chuongTrinhHoc": "Chương trình học",
     "nganHangCauHoi": "Ngân hàng câu hỏi",
@@ -210,26 +314,148 @@
     "hoSo": "Hồ sơ",
     "caiDat": "Cài đặt"
   },
+  "adminCatalog": {
+    "categories": {
+      "title": "Quản lý danh mục",
+      "subtitle": "Quản lý các nhóm học phần dùng để phân loại môn học và chương trình học.",
+      "create": "Tạo danh mục",
+      "searchPlaceholder": "Tìm theo tên hoặc mô tả danh mục...",
+      "createModalTitle": "Tạo danh mục mới",
+      "editModalTitle": "Chỉnh sửa danh mục",
+      "titlePlaceholder": "Ví dụ: Công nghệ thông tin",
+      "descriptionPlaceholder": "Nhập mô tả cho danh mục"
+    },
+    "subjects": {
+      "title": "Quản lý môn học",
+      "subtitle": "Quản lý môn học và liên kết từng môn với danh mục chủ quản.",
+      "create": "Tạo môn học",
+      "searchPlaceholder": "Tìm theo tên, mô tả hoặc danh mục...",
+      "categoryFilterPlaceholder": "Lọc theo danh mục",
+      "createModalTitle": "Tạo môn học mới",
+      "editModalTitle": "Chỉnh sửa môn học",
+      "titlePlaceholder": "Ví dụ: Java Web Development",
+      "categoryPlaceholder": "Chọn danh mục",
+      "descriptionPlaceholder": "Nhập mô tả cho môn học"
+    },
+    "columns": {
+      "index": "STT",
+      "categoryTitle": "Tên danh mục",
+      "subjectTitle": "Tên môn học",
+      "category": "Danh mục",
+      "description": "Mô tả",
+      "action": "Hành động"
+    },
+    "fields": {
+      "title": "Tiêu đề",
+      "subjectTitle": "Tên môn học",
+      "category": "Danh mục chủ quản",
+      "description": "Mô tả"
+    },
+    "actions": {
+      "create": "Tạo mới",
+      "save": "Lưu thay đổi",
+      "edit": "Sửa",
+      "delete": "Xóa",
+      "more": "Thao tác",
+      "cancel": "Hủy"
+    },
+    "validation": {
+      "titleRequired": "Vui lòng nhập tiêu đề",
+      "subjectRequired": "Vui lòng nhập tên môn học",
+      "categoryRequired": "Vui lòng chọn danh mục"
+    },
+    "confirm": {
+      "deleteCategoryTitle": "Xóa danh mục?",
+      "deleteCategoryDescription": "Hành động này có thể ảnh hưởng đến các môn học thuộc danh mục này.",
+      "deleteSubjectTitle": "Xóa môn học?",
+      "deleteSubjectDescription": "Hành động này sẽ xóa môn học khỏi hệ thống."
+    },
+    "empty": {
+      "categories": "Không có danh mục phù hợp",
+      "subjects": "Không có môn học phù hợp",
+      "noDescription": "Chưa có mô tả",
+      "noCategory": "Chưa có danh mục"
+    },
+    "pagination": {
+      "total": "Tổng số: {{count}}",
+      "pageSize": "Số dòng/trang",
+      "range": "{{start}} - {{end}}"
+    },
+    "messages": {
+      "loadCategoriesFailed": "Không thể tải danh mục",
+      "loadSubjectsFailed": "Không thể tải dữ liệu môn học",
+      "categoryCreated": "Tạo danh mục thành công",
+      "categoryUpdated": "Cập nhật danh mục thành công",
+      "categoryDeleted": "Xóa danh mục thành công",
+      "subjectCreated": "Tạo môn học thành công",
+      "subjectUpdated": "Cập nhật môn học thành công",
+      "subjectDeleted": "Xóa môn học thành công",
+      "saveCategoryFailed": "Không thể lưu danh mục",
+      "deleteCategoryFailed": "Không thể xóa danh mục",
+      "saveSubjectFailed": "Không thể lưu môn học",
+      "deleteSubjectFailed": "Không thể xóa môn học"
+    }
+  },
+  "curriculumTemplate": {
+    "createTitle": "Tạo chương trình học mới",
+    "detailTitle": "Chi tiết chương trình học",
+    "errorTitle": "Lỗi",
+    "contentHint": "Quản lý chương và nội dung học tập của chương trình này.",
+    "fields": {
+      "name": "Tên chương trình học",
+      "subject": "Môn học",
+      "category": "Danh mục",
+      "description": "Mô tả"
+    },
+    "placeholders": {
+      "name": "Ví dụ: Java Backend Development v1",
+      "subject": "Chọn môn học",
+      "categoryAuto": "Danh mục sẽ tự điền theo môn học",
+      "description": "Nhập mô tả chi tiết..."
+    },
+    "validation": {
+      "nameRequired": "Vui lòng nhập tên chương trình học",
+      "subjectRequired": "Vui lòng chọn môn học",
+      "categoryRequired": "Môn học này chưa có danh mục"
+    },
+    "actions": {
+      "edit": "Chỉnh sửa",
+      "cancel": "Hủy",
+      "create": "Tạo mới",
+      "update": "Cập nhật",
+      "viewContent": "Xem nội dung"
+    },
+    "messages": {
+      "loadReferencesFailed": "Không thể tải danh mục và môn học",
+      "loadTemplateFailed": "Không thể tải thông tin chương trình học",
+      "created": "Tạo chương trình học thành công. Hãy thêm chương học.",
+      "updated": "Cập nhật chương trình học thành công",
+      "saveFailed": "Có lỗi xảy ra"
+    }
+  },
   "assignments": {
     "studentTitle": "Bài tập",
-    "teacherTitle": "Assignment",
-    "searchPlaceholder": "Tìm theo tiêu đề assignment",
+    "studentSubtitle": "Theo dõi bài sắp đến hạn, bài quá hạn và các bài đã hoàn thành.",
+    "teacherTitle": "Bài tập",
+    "teacherSubtitle": "Quản lý bài tập theo lớp, hạn nộp, lượt nộp và trạng thái chấm.",
+    "searchPlaceholder": "Tìm theo tên bài tập",
+    "classLabel": "Lớp",
     "classFilterPlaceholder": "Lớp học",
     "allCourses": "Tất cả",
     "sortBy": "Sắp xếp",
     "sortDesc": "Mới nhất",
     "sortAsc": "Cũ nhất",
     "dueDateFilter": "Hạn nộp",
-    "loadFailed": "Không thể tải dữ liệu assignment",
-    "empty": "Không có assignment phù hợp",
+    "loadFailed": "Không thể tải dữ liệu bài tập",
+    "empty": "Không có bài tập phù hợp",
     "details": "Chi tiết",
     "dueLabel": "Hạn nộp",
     "noDeadline": "Không có hạn nộp",
     "tabs": {
       "all": "Tất cả",
-      "upcoming": "Upcoming",
-      "past_due": "Past due",
-      "completed": "Completed"
+      "upcoming": "Sắp đến hạn",
+      "past_due": "Quá hạn",
+      "completed": "Đã hoàn thành"
     },
     "status": {
       "pending": "Chưa nộp",
@@ -239,8 +465,21 @@
       "upcoming": "Sắp đến hạn",
       "pastDue": "Quá hạn"
     },
+    "submissionStatus": {
+      "NOT_SUBMITTED": "Chưa nộp",
+      "SUBMITTED": "Đã nộp",
+      "LATE_SUBMITTED": "Nộp muộn",
+      "GRADED": "Đã chấm",
+      "RETURNED": "Đã trả bài"
+    },
+    "metrics": {
+      "total": "Tổng bài tập",
+      "submitted": "Lượt đã nộp",
+      "pending": "Chờ chấm",
+      "graded": "Đã chấm"
+    },
     "table": {
-      "assignment": "Tên Assignment",
+      "assignment": "Tên bài tập",
       "dueAt": "Hạn nộp",
       "score": "Điểm tối đa",
       "totalMarks": "Điểm tối đa",
@@ -248,6 +487,61 @@
       "submitted": "Đã nộp",
       "pending": "Chờ chấm",
       "status": "Trạng thái"
+    },
+    "pagination": {
+      "total": "Tổng số: {{count}}",
+      "pageSize": "Số dòng/trang",
+      "range": "{{start}} - {{end}}"
+    },
+    "submissions": {
+      "title": "Bài nộp: {{title}}",
+      "subtitle": "Theo dõi danh sách học viên, trạng thái nộp bài và xử lý chấm/trả bài.",
+      "backToContent": "Quay lại nội dung lớp",
+      "backToAssignment": "Quay lại bài tập",
+      "searchPlaceholder": "Tìm theo tên, MSSV hoặc ID học viên",
+      "empty": "Không có bài nộp phù hợp",
+      "notSubmitted": "Chưa nộp",
+      "studentNumber": "MSSV",
+      "unknownStudent": "Học viên #{{id}}",
+      "filters": {
+        "allStatuses": "Tất cả trạng thái"
+      },
+      "metrics": {
+        "total": "Tổng học viên",
+        "submitted": "Đã nộp",
+        "pending": "Chờ chấm",
+        "graded": "Đã chấm"
+      },
+      "columns": {
+        "student": "Học viên",
+        "status": "Trạng thái",
+        "submittedAt": "Nộp lúc",
+        "grade": "Điểm",
+        "action": "Thao tác"
+      },
+      "actions": {
+        "gradeReturn": "Chấm / Trả bài",
+        "returnOnly": "Trả bài không chấm",
+        "saveGrade": "Lưu điểm"
+      },
+      "modal": {
+        "title": "Chấm bài / Trả bài",
+        "content": "Nội dung bài nộp",
+        "attachments": "Tệp/Link đính kèm",
+        "grade": "Điểm",
+        "feedback": "Nhận xét"
+      },
+      "errors": {
+        "inputGrade": "Vui lòng nhập điểm",
+        "inputFeedback": "Vui lòng nhập nhận xét trước khi trả bài",
+        "gradeFailed": "Không thể chấm bài",
+        "returnFailed": "Không thể trả bài"
+      },
+      "messages": {
+        "loadFailed": "Không thể tải danh sách bài nộp",
+        "graded": "Đã chấm bài thành công",
+        "returned": "Đã trả bài cho học viên"
+      }
     }
   },
   "quizMedia": {
@@ -284,6 +578,12 @@
     "uploadImage": "Tải ảnh",
     "changeImage": "Đổi ảnh",
     "remove": "Xóa",
+    "detach": "Gỡ media",
+    "cancel": "Hủy",
+    "detachConfirmTitle": "Gỡ media khỏi nội dung?",
+    "detachConfirmMessage": "Media chỉ bị gỡ khỏi câu hỏi/đáp án này, không xóa khỏi kho media.",
+    "answerModeDetachTitle": "Chuyển sang chế độ đáp án không ảnh?",
+    "answerModeDetachMessage": "Tất cả ảnh ở các đáp án hiện tại sẽ bị gỡ khỏi câu hỏi này.",
     "types": {
       "IMAGE": "Ảnh",
       "VIDEO": "Video",
@@ -304,14 +604,14 @@
   "mediaManager": {
     "uploadPolicy": "Giới hạn tải lên: {{size}}. Định dạng cho phép: {{extensions}}",
     "searchPlaceholder": "Tìm media",
-    "empty": "Chưa có media trong phạm vi này.",
+    "empty": "Chưa có media nào phù hợp bộ lọc hiện tại.",
     "untitled": "Chưa đặt tên",
     "usedCount": "{{count}} nơi dùng",
     "pages": {
-      "personal": {
-        "title": "Kho media của tôi",
-        "subtitle": "Nơi lưu các media riêng của bạn để dùng lại khi soạn bài, bài tập hoặc quiz."
-      },
+        "personal": {
+          "title": "Kho media của tôi",
+          "subtitle": "Nơi lưu media bạn đã tạo để dùng lại trong bài giảng, bài tập, quiz và ngân hàng câu hỏi."
+        },
       "admin": {
         "title": "Quản lý media",
         "subtitle": "Theo dõi media theo phạm vi, trạng thái, loại file và người tạo."
@@ -343,21 +643,22 @@
     },
     "status": {
       "ACTIVE": "Đang dùng",
-      "ARCHIVED": "Đã lưu trữ"
+      "ARCHIVED": "Ngừng sử dụng"
     },
     "sort": {
       "newest": "Mới nhất",
       "name": "Tên",
       "size": "Dung lượng"
     },
-    "filters": {
-      "scope": "Phạm vi",
-      "type": "Loại media"
-    },
+      "filters": {
+        "scope": "Phạm vi",
+        "type": "Loại media",
+        "owner": "Người tạo"
+      },
     "stats": {
       "currentResult": "Kết quả hiện tại",
       "visibleSize": "Dung lượng hiển thị",
-      "archivedInView": "Đã lưu trữ"
+      "archivedInView": "Ngừng sử dụng"
     },
     "drawer": {
       "title": "Chi tiết media"
@@ -407,7 +708,7 @@
       "CREATE": "Tạo mới",
       "UPLOAD": "Tải lên",
       "UPDATE": "Cập nhật",
-      "ARCHIVE": "Lưu trữ",
+      "ARCHIVE": "Ngừng sử dụng",
       "RESTORE": "Khôi phục",
       "DELETE": "Xóa"
     },
@@ -416,7 +717,7 @@
       "loadMore": "Tải thêm",
       "save": "Lưu",
       "restore": "Khôi phục",
-      "archive": "Lưu trữ",
+      "archive": "Ngừng sử dụng",
       "delete": "Xóa"
     },
     "messages": {
@@ -426,9 +727,10 @@
       "detailsFailed": "Không thể tải lịch sử media",
       "updateSuccess": "Đã cập nhật thông tin media",
       "updateFailed": "Không thể cập nhật media",
-      "archiveSuccess": "Đã lưu trữ media",
+      "archiveSuccess": "Đã ngừng sử dụng media",
       "restoreSuccess": "Đã khôi phục media",
       "statusFailed": "Không thể đổi trạng thái media",
+      "deleteConfirm": "Xóa media này?",
       "deleteBlocked": "Media này đang được sử dụng. Hãy lưu trữ thay vì xóa.",
       "deleteSuccess": "Đã xóa media",
       "deleteFailed": "Không thể xóa media"

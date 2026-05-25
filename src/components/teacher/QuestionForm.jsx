@@ -682,7 +682,7 @@ export default function QuestionForm({
       {/* Type / Difficulty / Points */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Form.Item label={t("quizBuilder.questionType")} required>
-          <Select value={type} onChange={handleTypeChange}>
+          <Select value={type} onChange={handleTypeChange} showSearch optionFilterProp="children">
             <Select.Option value="SINGLE_CHOICE">{t("quizBuilder.types.SINGLE_CHOICE")}</Select.Option>
             <Select.Option value="MULTIPLE_CHOICE">{t("quizBuilder.types.MULTIPLE_CHOICE")}</Select.Option>
             <Select.Option value="TRUE_FALSE">{t("quizBuilder.types.TRUE_FALSE")}</Select.Option>
@@ -694,7 +694,7 @@ export default function QuestionForm({
           </Select>
         </Form.Item>
         <Form.Item label={t("quizBuilder.difficulty")} name="difficultyLevel">
-          <Select>
+          <Select showSearch optionFilterProp="children">
             <Select.Option value="EASY">{t("quizBuilder.difficulties.EASY")}</Select.Option>
             <Select.Option value="MEDIUM">{t("quizBuilder.difficulties.MEDIUM")}</Select.Option>
             <Select.Option value="HARD">{t("quizBuilder.difficulties.HARD")}</Select.Option>

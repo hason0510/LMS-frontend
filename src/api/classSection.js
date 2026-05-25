@@ -1,4 +1,5 @@
 import axiosClient from "./axiosClient";
+import { unwrapPagePayload, unwrapPayload } from "./responseAdapter";
 
 export const createClassSectionFromTemplateId = async (curriculumVersionId, data) => {
   const response = await axiosClient.post(`class-sections/from-template/${curriculumVersionId}`, data);
@@ -20,6 +21,18 @@ export const getClassSections = async (params) => {
     params,
   });
   return response.data;
+};
+
+export const searchClassSections = async (params = {}) => {
+  const response = await axiosClient.get("class-sections/search", { params });
+  return unwrapPagePayload(response);
+};
+
+export const getClassSectionJoinPreview = async (classCode) => {
+  const response = await axiosClient.get("class-sections/join-preview", {
+    params: { classCode },
+  });
+  return unwrapPayload(response);
 };
 
 // ── Functional equivalents for legacy course API ────────────────

@@ -159,6 +159,8 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
                   }}
                   options={[10, 20, 50].map((value) => ({ value, label: `${value}/page` }))}
                   className="w-28"
+                  showSearch
+                  optionFilterProp="label"
                 />
               </div>
             </div>

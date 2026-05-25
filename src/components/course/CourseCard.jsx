@@ -7,6 +7,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { Popconfirm } from "antd";
+import { useTranslation } from "react-i18next";
 
 export default function CourseCard({
   id,
@@ -25,6 +26,7 @@ export default function CourseCard({
   onDelete,
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const getProgressColor = (progress) => {
     if (progress === 100) return "#22c55e";
@@ -51,7 +53,7 @@ export default function CourseCard({
             )}
             {status === "PRIVATE" && (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-                Bản nháp
+                {t("teaching.status.private")}
               </span>
             )}
           </div>

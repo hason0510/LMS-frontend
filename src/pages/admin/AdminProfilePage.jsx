@@ -14,6 +14,15 @@ export default function AdminProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  const normalizeUserProfile = (data) => {
+    if (!data) return data;
+    return {
+      ...data,
+      username: data.userName || data.username || "",
+      role: data.role || data.roleName || user?.role,
+    };
+  };
+
   useEffect(() => {
     const handleResize = () => {
       setSidebarCollapsed(window.innerWidth < 1024);
@@ -30,10 +39,11 @@ export default function AdminProfilePage() {
         try {
           setIsLoading(true);
           const fullData = await getUserById(user.id);
-          setUserData(fullData);
+          const normalizedFullData = normalizeUserProfile(fullData);
+          setUserData(normalizedFullData);
 
-          if (fullData) {
-            useUserStore.getState().updateUser(fullData);
+          if (normalizedFullData) {
+            useUserStore.getState().updateUser(normalizedFullData);
           }
         } catch (err) {
           console.error("Failed to fetch user data:", err);
@@ -46,7 +56,9 @@ export default function AdminProfilePage() {
   }, [user?.id]);
 
   const handleProfileUpdate = (updatedData) => {
-    setUserData(updatedData);
+    const normalizedUpdatedData = normalizeUserProfile(updatedData);
+    setUserData(normalizedUpdatedData);
+    useUserStore.getState().updateUser(normalizedUpdatedData);
   };
 
   return (

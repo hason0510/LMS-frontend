@@ -1,14 +1,5 @@
 import axiosClient from "./axiosClient";
-
-const unwrapPayload = (response) => response?.data?.data ?? response?.data;
-
-const unwrapArrayPayload = (response) => {
-  const payload = unwrapPayload(response);
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.content)) return payload.content;
-  if (Array.isArray(payload?.pageList)) return payload.pageList;
-  return [];
-};
+import { unwrapListPayload, unwrapPayload } from "./responseAdapter";
 
 // ==========================================
 // Question Bank Management
@@ -25,8 +16,7 @@ export const updateQuestionBank = async (id, bankData) => {
 };
 
 export const deleteQuestionBank = async (id) => {
-  const response = await axiosClient.delete(`question-banks/${id}`);
-  return response.data;
+  await axiosClient.delete(`question-banks/${id}`);
 };
 
 export const getQuestionBankById = async (id, params = {}) => {
@@ -38,7 +28,7 @@ export const getQuestionBanks = async (params) => {
   const response = await axiosClient.get('question-banks', {
     params, // { subjectId, curriculumVersionId, classSectionId, includeQuestions }
   });
-  return unwrapArrayPayload(response);
+  return unwrapListPayload(response);
 };
 
 // ==========================================
@@ -56,8 +46,7 @@ export const updateQuestion = async (questionId, questionData) => {
 };
 
 export const deleteQuestion = async (questionId) => {
-  const response = await axiosClient.delete(`question-banks/questions/${questionId}`);
-  return response.data;
+  await axiosClient.delete(`question-banks/questions/${questionId}`);
 };
 
 export const importGiftQuestions = async (bankId, file) => {
@@ -89,12 +78,12 @@ export const createTag = async (bankId, tagData) => {
 
 export const createTagsBatch = async (bankId, names) => {
   const response = await axiosClient.post(`question-banks/${bankId}/tags/batch`, { names });
-  return unwrapArrayPayload(response);
+  return unwrapListPayload(response);
 };
 
 export const getTags = async (bankId, params) => {
   const response = await axiosClient.get(`question-banks/${bankId}/tags`, { params });
-  return unwrapArrayPayload(response);
+  return unwrapListPayload(response);
 };
 
 export const updateTag = async (bankId, tagId, tagData) => {
@@ -103,8 +92,7 @@ export const updateTag = async (bankId, tagId, tagData) => {
 };
 
 export const deleteTag = async (bankId, tagId) => {
-  const response = await axiosClient.delete(`question-banks/${bankId}/tags/${tagId}`);
-  return response.data;
+  await axiosClient.delete(`question-banks/${bankId}/tags/${tagId}`);
 };
 
 // ==========================================
@@ -122,11 +110,10 @@ export const updateMemberRole = async (bankId, userId, roleData) => {
 };
 
 export const removeMember = async (bankId, userId) => {
-  const response = await axiosClient.delete(`question-banks/${bankId}/members/${userId}`);
-  return response.data;
+  await axiosClient.delete(`question-banks/${bankId}/members/${userId}`);
 };
 
 export const getMembers = async (bankId) => {
   const response = await axiosClient.get(`question-banks/${bankId}/members`);
-  return unwrapArrayPayload(response);
+  return unwrapListPayload(response);
 };

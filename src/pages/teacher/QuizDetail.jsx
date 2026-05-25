@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import {
   Button, Input, Select, Switch, InputNumber, Drawer, Checkbox,
-  Spin, Dropdown, Tag, Radio, message,
+  Spin, Dropdown, Tag, Radio, Modal, message,
 } from "antd";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -69,7 +69,7 @@ const QUILL_MODULES = {
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const normalizeUploadedResource = (response, scopeType, scopeId) => {
-  const payload = response?.data ?? response ?? {};
+  const payload = response ?? {};
   const id = payload.resourceId ?? payload.id ?? null;
   return {
     id,
@@ -119,7 +119,7 @@ async function materializeDraftResource(resource, mediaContext, resolvedDrafts, 
       ...(draft.payload || {}),
       ...scopedParams,
     });
-    persisted = created?.data ?? created;
+    persisted = created;
   }
 
   if (persisted?.id != null) {
@@ -621,12 +621,26 @@ function ChoiceAnswers({ question, onChange, mediaContext }) {
   const switchMode = (nextMode) => {
     setViewMode(nextMode);
     if (nextMode === "text") {
-      onChange({
-        answers: answers.map((answer) => ({
-          ...answer,
-          resourceId: null,
-          resource: null,
-        })),
+      const hasAttachedImages = answers.some((answer) => !!(answer?.resourceId || answer?.resource));
+      if (!hasAttachedImages) {
+        return;
+      }
+      Modal.confirm({
+        title: t("quizMedia.answerModeDetachTitle"),
+        content: t("quizMedia.answerModeDetachMessage"),
+        okText: t("quizMedia.detach"),
+        cancelText: t("quizMedia.cancel"),
+        okButtonProps: { danger: true },
+        onOk: () => {
+          onChange({
+            answers: answers.map((answer) => ({
+              ...answer,
+              resourceId: null,
+              resource: null,
+            })),
+          });
+        },
+        onCancel: () => setViewMode("image"),
       });
     }
   };
@@ -1022,6 +1036,8 @@ function QuestionCard({ question, index, mediaContext, onChange, onDelete, dragH
               size="small"
               value={question.type}
               options={questionTypeOptions}
+              showSearch
+              optionFilterProp="label"
               onChange={(v) => {
                 const fresh = makeQuestion(v);
                 onChange({ type: v, answers: fresh.answers, items: fresh.items, clozeSyntax: "" });
@@ -1190,6 +1206,8 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
               value={source.difficultyLevel ?? undefined}
               placeholder={t("quizEditor.placeholders.anyDifficulty")}
               options={difficultyOptions}
+              showSearch
+              optionFilterProp="label"
               onChange={(value) => onUpdate({ difficultyLevel: value ?? null })}
               className="w-full"
               size="large"
@@ -1204,6 +1222,8 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
             <Select
               value={source.tagMatchMode || "ANY"}
               options={tagMatchModeOptions}
+              showSearch
+              optionFilterProp="label"
               onChange={(value) => onUpdate({ tagMatchMode: value })}
               className="w-full"
               size="large"
@@ -1218,6 +1238,8 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
             <Select
               value={source.selectionMode}
               options={selectionModeOptions}
+              showSearch
+              optionFilterProp="label"
               onChange={(value) => onUpdate({
                 selectionMode: value,
                 questionCount: value === "RANDOM" ? source.questionCount : null,
@@ -1449,6 +1471,8 @@ function SettingsPanel({ settings, onChange }) {
           value={settings.displayMode}
           onChange={(v) => onChange({ displayMode: v })}
           className="w-72"
+          showSearch
+          optionFilterProp="label"
           options={[
             { value: "PAGINATION", label: t("quizEditor.displayModes.PAGINATION") },
             { value: "ONE_PAGE", label: t("quizEditor.displayModes.ONE_PAGE") },

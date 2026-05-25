@@ -1,13 +1,15 @@
 import axiosClient from "./axiosClient";
 
+const unwrapApiData = (payload) => payload?.data ?? payload;
+
 export async function getUserById(id) {
   const response = await axiosClient.get(`users/${id}`);
-  return response.data;
+  return unwrapApiData(response.data);
 }
 
 export async function updateUser(id, userData) {
   const response = await axiosClient.put(`users/${id}`, userData);
-  return response.data;
+  return unwrapApiData(response.data);
 }
 
 export async function getAllUsers(page = 0, size = 50) {

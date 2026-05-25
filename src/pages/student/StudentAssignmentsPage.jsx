@@ -1,22 +1,38 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { App, Empty, Input, Select, Spin, Tag } from "antd";
+import { App, AutoComplete, Button, Empty, Input, Select, Spin, Table, Tag } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
+import { Eye } from "lucide-react";
 import dayjs from "dayjs";
 import Header from "../../components/layout/Header";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { getStudentAssignmentFeed } from "../../api/assignment";
 import { getApprovedClassSections } from "../../api/classSection";
 import { useTranslation } from "react-i18next";
 
 const TAB_OPTIONS = [
-  { key: "UPCOMING", color: "blue" },
-  { key: "PAST_DUE", color: "red" },
-  { key: "COMPLETED", color: "green" },
+  { key: "UPCOMING" },
+  { key: "PAST_DUE" },
+  { key: "COMPLETED" },
 ];
+const DEFAULT_PAGE_SIZE = 10;
+const SUBMISSION_STATUS_COLORS = {
+  NOT_SUBMITTED: "processing",
+  SUBMITTED: "processing",
+  LATE_SUBMITTED: "warning",
+  GRADED: "success",
+  RETURNED: "purple",
+};
 
-function formatDue(value) {
-  if (!value) return "No deadline";
+function formatDue(value, fallback) {
+  if (!value) return fallback;
   return dayjs(value).format("DD/MM/YYYY HH:mm");
+}
+
+function getFeedState(item) {
+  if (item.pastDue) return { key: "missing", color: "error" };
+  const key = item.submissionStatus || (item.completed ? "SUBMITTED" : "NOT_SUBMITTED");
+  return { key, color: SUBMISSION_STATUS_COLORS[key] || "default" };
 }
 
 export default function StudentAssignmentsPage() {
@@ -32,6 +48,8 @@ export default function StudentAssignmentsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingClasses, setLoadingClasses] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(searchKeyword.trim()), 300);
@@ -80,30 +98,119 @@ export default function StudentAssignmentsPage() {
     fetchFeed();
   }, [activeTab, classSectionId, debouncedKeyword, message, t]);
 
-  const groupedItems = useMemo(() => {
-    const map = new Map();
-    for (const item of items) {
-      const dateKey = item.dueAt ? dayjs(item.dueAt).format("MMM D") : t("assignments.noDeadline");
-      if (!map.has(dateKey)) {
-        map.set(dateKey, []);
-      }
-      map.get(dateKey).push(item);
-    }
-    return Array.from(map.entries());
-  }, [items, t]);
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, classSectionId, debouncedKeyword, pageSize]);
+
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return items.slice(start, start + pageSize);
+  }, [items, page, pageSize]);
+
+  const searchOptions = useMemo(() => {
+    const values = new Set();
+    items.forEach((item) => {
+      if (item.assignmentTitle) values.add(item.assignmentTitle);
+      if (item.classSectionTitle) values.add(item.classSectionTitle);
+    });
+    return Array.from(values).slice(0, 12).map((value) => ({ value }));
+  }, [items]);
+
+  const columns = useMemo(
+    () => [
+      {
+        title: t("assignments.table.assignment"),
+        key: "assignment",
+        render: (_, record) => (
+          <div className="min-w-0">
+            <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
+              {record.assignmentTitle}
+            </p>
+            <p className="m-0 mt-1 text-xs text-slate-500">
+              {record.classSectionTitle}
+            </p>
+          </div>
+        ),
+      },
+      {
+        title: t("assignments.table.dueAt"),
+        dataIndex: "dueAt",
+        key: "dueAt",
+        width: 180,
+        render: (value) => (
+          <span className="text-sm text-slate-700 dark:text-slate-300">
+            {formatDue(value, t("assignments.noDeadline"))}
+          </span>
+        ),
+      },
+      {
+        title: t("assignments.table.score"),
+        key: "score",
+        width: 130,
+        align: "right",
+        render: (_, record) => (
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {record.grade !== null && record.grade !== undefined
+              ? `${record.grade}/${record.maxScore || 100}`
+              : `—/${record.maxScore || 100}`}
+          </span>
+        ),
+      },
+      {
+        title: t("assignments.table.status"),
+        key: "status",
+        width: 160,
+        align: "center",
+        render: (_, record) => {
+          const state = getFeedState(record);
+          const labelKey =
+            state.key === "missing"
+              ? "assignments.status.missing"
+              : `assignments.submissionStatus.${state.key}`;
+          return <Tag color={state.color}>{t(labelKey)}</Tag>;
+        },
+      },
+      {
+        title: "",
+        key: "action",
+        width: 120,
+        align: "right",
+        render: (_, record) => (
+          <Button
+            icon={<Eye size={16} />}
+            onClick={() =>
+              navigate(`/class-sections/${record.classSectionId}/assignments/${record.assignmentId}`)
+            }
+          >
+            {t("assignments.details")}
+          </Button>
+        ),
+      },
+    ],
+    [navigate, t]
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10">
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-            <div className="flex flex-wrap items-center gap-3 mb-4">
+      <main className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-16 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+          <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+            <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
+              {t("assignments.studentTitle")}
+            </h1>
+            <p className="m-0 mt-1 text-sm text-slate-500">
+              {t("assignments.studentSubtitle")}
+            </p>
+          </div>
+
+          <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
               {TAB_OPTIONS.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-1 pb-2 text-2xl font-semibold border-b-2 transition-colors ${
+                  className={`px-1 pb-2 text-sm font-semibold border-b-2 transition-colors ${
                     activeTab === tab.key
                       ? "text-slate-900 dark:text-white border-primary"
                       : "text-slate-500 dark:text-slate-400 border-transparent"
@@ -115,16 +222,20 @@ export default function StudentAssignmentsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-              <Input
+              <AutoComplete
                 value={searchKeyword}
-                onChange={(event) => setSearchKeyword(event.target.value)}
-                prefix={<SearchOutlined />}
-                placeholder={t("assignments.searchPlaceholder")}
-                className="md:col-span-7"
-              />
+                onChange={setSearchKeyword}
+                options={searchOptions}
+                className="w-full md:col-span-7"
+                allowClear
+              >
+                <Input prefix={<SearchOutlined />} placeholder={t("assignments.searchPlaceholder")} />
+              </AutoComplete>
               <Select
                 loading={loadingClasses}
                 allowClear
+                showSearch
+                optionFilterProp="label"
                 value={classSectionId}
                 onChange={setClassSectionId}
                 placeholder={t("assignments.classFilterPlaceholder")}
@@ -134,60 +245,44 @@ export default function StudentAssignmentsPage() {
             </div>
           </div>
 
-          <div className="p-5">
+          <div className="px-5 py-4 sm:px-6">
             {loading ? (
               <div className="flex justify-center py-12">
                 <Spin size="large" />
               </div>
-            ) : groupedItems.length === 0 ? (
-              <Empty description={t("assignments.empty")} />
-            ) : (
-              <div className="space-y-6">
-                {groupedItems.map(([dateKey, assignments]) => (
-                  <section key={dateKey}>
-                    <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">{dateKey}</h3>
-                    <div className="space-y-3">
-                      {assignments.map((item) => (
-                        <button
-                          key={`${item.assignmentId}-${item.classSectionId}`}
-                          onClick={() =>
-                            navigate(`/class-sections/${item.classSectionId}/assignments/${item.assignmentId}`)
-                          }
-                          className="w-full text-left border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 hover:border-primary/60 transition-colors"
-                        >
-                          <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <div>
-                              <p className="text-2xl font-semibold text-slate-900 dark:text-white">
-                                {item.assignmentTitle}
-                              </p>
-                              <p className="text-xl text-slate-600 dark:text-slate-300">{item.classSectionTitle}</p>
-                              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                {t("assignments.dueLabel")}: {formatDue(item.dueAt)}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {item.completed ? (
-                                <Tag color="success">{t("assignments.status.turnedIn")}</Tag>
-                              ) : item.pastDue ? (
-                                <Tag color="error">{t("assignments.status.missing")}</Tag>
-                              ) : (
-                                <Tag color="processing">{t("assignments.status.pending")}</Tag>
-                              )}
-                              {item.grade !== null && item.grade !== undefined && (
-                                <Tag color="blue">
-                                  {item.grade}/{item.maxScore || 100}
-                                </Tag>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                ))}
+            ) : items.length === 0 ? (
+              <div className="py-16">
+                <Empty description={t("assignments.empty")} />
               </div>
+            ) : (
+              <Table
+                rowKey={(record) => `${record.assignmentId}-${record.classSectionId}`}
+                columns={columns}
+                dataSource={pageItems}
+                pagination={false}
+                scroll={{ x: 820 }}
+              />
             )}
           </div>
+
+          {!loading && items.length > 0 && (
+            <DataPaginationFooter
+              currentPage={page}
+              pageSize={pageSize}
+              total={items.length}
+              totalLabel={t("assignments.pagination.total", { count: items.length })}
+              pageSizeLabel={t("assignments.pagination.pageSize")}
+              rangeLabel={t("assignments.pagination.range", {
+                start: items.length === 0 ? 0 : (page - 1) * pageSize + 1,
+                end: Math.min(page * pageSize, items.length),
+              })}
+              onPageChange={setPage}
+              onPageSizeChange={(nextSize) => {
+                setPageSize(nextSize);
+                setPage(1);
+              }}
+            />
+          )}
         </div>
       </main>
     </div>

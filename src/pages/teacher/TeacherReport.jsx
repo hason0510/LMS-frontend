@@ -440,6 +440,8 @@ export default function TeacherReport({ isAdmin = false }) {
                     value={selectedCourseId}
                     onChange={setSelectedCourseId}
                     style={{ width: "100%", minWidth: 300 }}
+                    showSearch
+                    optionFilterProp="label"
                     options={courses.map((course) => ({
                       value: course.id,
                       label: course.title,

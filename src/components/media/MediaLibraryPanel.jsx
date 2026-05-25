@@ -11,29 +11,13 @@ import {
   updateResource,
   uploadStandaloneResource,
 } from "../../api/resource";
+import { useAuth } from "../../contexts/AuthContext";
 import ResourceRenderer from "./ResourceRenderer";
 
 const PAGE_SIZE = 24;
 
 const RESOURCE_TYPES = ["IMAGE", "VIDEO", "AUDIO", "PDF", "FILE", "LINK"];
 const RESOURCE_SCOPES = ["QUESTION_BANK", "CLASS_SECTION", "PRIVATE_USER", "INSTITUTION_SHARED"];
-
-const getItems = (response) => {
-  const payload = response?.data ?? response;
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.pageList)) return payload.pageList;
-  if (Array.isArray(payload?.content)) return payload.content;
-  return [];
-};
-
-const getMeta = (response, fallbackPage) => {
-  const payload = response?.data ?? response;
-  return {
-    currentPage: payload?.currentPage || fallbackPage,
-    totalPage: payload?.totalPage || fallbackPage,
-    totalElements: payload?.totalElements || 0,
-  };
-};
 
 const formatBytes = (value) => {
   if (!value) return "-";
@@ -48,12 +32,15 @@ export default function MediaLibraryPanel({
   scopeId,
   fixedScope = true,
   createdByMe = false,
+  ownerLibrary = false,
+  includeCurrentScope = false,
   allowUpload = true,
   allowLinkCreate = false,
   governance = false,
 }) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -63,6 +50,7 @@ export default function MediaLibraryPanel({
   const [sortBy, setSortBy] = useState("date");
   const [status, setStatus] = useState("ACTIVE");
   const [scopeFilter, setScopeFilter] = useState(scopeType);
+  const [ownerFilter, setOwnerFilter] = useState("");
   const [selected, setSelected] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -79,6 +67,11 @@ export default function MediaLibraryPanel({
   const scopeOptions = RESOURCE_SCOPES.map((value) => ({ value, label: t(`mediaManager.scopes.${value}`) }));
   const typeLabels = Object.fromEntries(typeOptions.map((item) => [item.value, item.label]));
   const scopeLabels = Object.fromEntries(scopeOptions.map((item) => [item.value, item.label]));
+  const currentUsername = user?.username || user?.userName || "";
+  const isAdmin = user?.role === "ADMIN";
+  const canManageSelected = Boolean(selected && (isAdmin || (selected.createdBy && selected.createdBy === currentUsername)));
+  const isSelectedInUse = Boolean((selected?.usageCount || 0) > 0 || references.length > 0);
+  const canDeleteSelected = canManageSelected && !isSelectedInUse;
 
   const uploadParams = useMemo(() => {
     const params = {};
@@ -98,17 +91,37 @@ export default function MediaLibraryPanel({
     if (type) params.type = type;
     if (status) params.status = status;
     if (createdByMe) params.createdByMe = true;
+    if (ownerLibrary) params.ownerLibrary = true;
+    if (includeCurrentScope) params.includeCurrentScope = true;
+    if (governance && ownerFilter.trim()) params.owner = ownerFilter.trim();
     if (search.trim()) params.search = search.trim();
     return params;
-  }, [createdByMe, fixedScope, scopeFilter, scopeId, scopeType, search, sortBy, status, type]);
+  }, [
+    createdByMe,
+    fixedScope,
+    governance,
+    includeCurrentScope,
+    ownerFilter,
+    ownerLibrary,
+    scopeFilter,
+    scopeId,
+    scopeType,
+    search,
+    sortBy,
+    status,
+    type,
+  ]);
 
   const loadResources = async (pageNumber = 1, append = false) => {
     setLoading(true);
     try {
-      const response = await getResourcePage({ ...queryParams, pageNumber });
-      const items = getItems(response);
-      setResources((prev) => (append ? [...prev, ...items] : items));
-      setPagination(getMeta(response, pageNumber));
+      const page = await getResourcePage({ ...queryParams, pageNumber });
+      setResources((prev) => (append ? [...prev, ...page.items] : page.items));
+      setPagination({
+        currentPage: page.currentPage || pageNumber,
+        totalPage: page.totalPage || pageNumber,
+        totalElements: page.totalElements || 0,
+      });
     } catch (error) {
       message.error(error?.response?.data?.message || t("mediaManager.messages.loadFailed"));
     } finally {
@@ -122,7 +135,7 @@ export default function MediaLibraryPanel({
 
   useEffect(() => {
     getResourceUploadPolicy()
-      .then((response) => setPolicy(response?.data ?? response))
+      .then((response) => setPolicy(response))
       .catch(() => setPolicy(null));
   }, []);
 
@@ -160,14 +173,13 @@ export default function MediaLibraryPanel({
 
     setCreatingLink(true);
     try {
-      const created = await createStandaloneResource({
+      const item = await createStandaloneResource({
         title: linkTitle.trim() || null,
         type: "LINK",
-        source: "EMBED",
-        embedUrl: trimmedUrl,
+        source: "LINK",
+        fileUrl: trimmedUrl,
         ...uploadParams,
       });
-      const item = created?.data ?? created;
       setResources((prev) => [item, ...prev]);
       setLinkTitle("");
       setLinkUrl("");
@@ -192,8 +204,8 @@ export default function MediaLibraryPanel({
         getResourceReferences(resource.id),
         getResourceAuditLogs(resource.id),
       ]);
-      setReferences(getItems(referenceResponse));
-      setAuditLogs(getItems(auditResponse));
+      setReferences(referenceResponse);
+      setAuditLogs(auditResponse);
     } catch (error) {
       message.warning(error?.response?.data?.message || t("mediaManager.messages.detailsFailed"));
     } finally {
@@ -202,13 +214,12 @@ export default function MediaLibraryPanel({
   };
 
   const handleSaveMetadata = async () => {
-    if (!selected?.id) return;
+    if (!selected?.id || !canManageSelected) return;
     try {
-      const updated = await updateResource(selected.id, {
+      const item = await updateResource(selected.id, {
         title: editTitle.trim() || selected.title,
         description: editDescription,
       });
-      const item = updated?.data ?? updated;
       setSelected(item);
       setResources((prev) => prev.map((resource) => (resource.id === item.id ? item : resource)));
       message.success(t("mediaManager.messages.updateSuccess"));
@@ -218,10 +229,9 @@ export default function MediaLibraryPanel({
   };
 
   const handleSetStatus = async (nextStatus) => {
-    if (!selected?.id) return;
+    if (!selected?.id || !canManageSelected) return;
     try {
-      const updated = await updateResource(selected.id, { status: nextStatus });
-      const item = updated?.data ?? updated;
+      const item = await updateResource(selected.id, { status: nextStatus });
       setSelected(item);
       setResources((prev) => prev.filter((resource) => resource.id !== item.id));
       message.success(nextStatus === "ARCHIVED" ? t("mediaManager.messages.archiveSuccess") : t("mediaManager.messages.restoreSuccess"));
@@ -231,19 +241,28 @@ export default function MediaLibraryPanel({
   };
 
   const handleDelete = async () => {
-    if (!selected?.id) return;
-    if (references.length > 0 || (selected.usageCount || 0) > 0) {
+    if (!selected?.id || !canManageSelected) return;
+    if (!canDeleteSelected) {
       message.warning(t("mediaManager.messages.deleteBlocked"));
       return;
     }
-    try {
-      await deleteResource(selected.id);
-      setResources((prev) => prev.filter((resource) => resource.id !== selected.id));
-      setSelected(null);
-      message.success(t("mediaManager.messages.deleteSuccess"));
-    } catch (error) {
-      message.error(error?.response?.data?.message || t("mediaManager.messages.deleteFailed"));
-    }
+    modal.confirm({
+      title: t("mediaManager.messages.deleteConfirm"),
+      okText: t("mediaManager.actions.delete"),
+      cancelText: t("common.huy"),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await deleteResource(selected.id);
+          setResources((prev) => prev.filter((resource) => resource.id !== selected.id));
+          setSelected(null);
+          message.success(t("mediaManager.messages.deleteSuccess"));
+        } catch (error) {
+          message.error(error?.response?.data?.message || t("mediaManager.messages.deleteFailed"));
+          throw error;
+        }
+      },
+    });
   };
 
   const totalSize = resources.reduce((sum, item) => sum + (item.fileSize || 0), 0);
@@ -322,6 +341,15 @@ export default function MediaLibraryPanel({
           allowClear
           className="md:max-w-xs"
         />
+        {governance ? (
+          <Input
+            value={ownerFilter}
+            onChange={(event) => setOwnerFilter(event.target.value)}
+            placeholder={t("mediaManager.filters.owner")}
+            allowClear
+            className="w-full md:w-48"
+          />
+        ) : null}
         {!fixedScope ? (
           <Select
             allowClear
@@ -330,12 +358,16 @@ export default function MediaLibraryPanel({
             onChange={setScopeFilter}
             options={scopeOptions}
             className="w-full md:w-48"
+            showSearch
+            optionFilterProp="label"
           />
         ) : null}
-        <Select allowClear placeholder={t("mediaManager.filters.type")} value={type} onChange={setType} options={typeOptions} className="w-full md:w-40" />
+        <Select allowClear placeholder={t("mediaManager.filters.type")} value={type} onChange={setType} options={typeOptions} className="w-full md:w-40" showSearch optionFilterProp="label" />
         <Select
           value={status}
           onChange={setStatus}
+          showSearch
+          optionFilterProp="label"
           options={[
             { value: "ACTIVE", label: t("mediaManager.status.ACTIVE") },
             { value: "ARCHIVED", label: t("mediaManager.status.ARCHIVED") },
@@ -345,6 +377,8 @@ export default function MediaLibraryPanel({
         <Select
           value={sortBy}
           onChange={setSortBy}
+          showSearch
+          optionFilterProp="label"
           options={[
             { value: "date", label: t("mediaManager.sort.newest") },
             { value: "name", label: t("mediaManager.sort.name") },
@@ -398,12 +432,13 @@ export default function MediaLibraryPanel({
             <div className="rounded-lg bg-slate-50 p-3">
               <ResourceRenderer resource={selected} />
             </div>
-            <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} placeholder={t("mediaManager.fields.title")} />
+            <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} placeholder={t("mediaManager.fields.title")} disabled={!canManageSelected} />
             <Input.TextArea
               value={editDescription}
               onChange={(event) => setEditDescription(event.target.value)}
               placeholder={t("mediaManager.fields.description")}
               rows={3}
+              disabled={!canManageSelected}
             />
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="text-slate-500">{t("mediaManager.fields.type")}</span><span>{typeLabels[selected.type] || selected.type || "-"}</span>
@@ -421,8 +456,13 @@ export default function MediaLibraryPanel({
               ) : references.length > 0 ? (
                 <div className="space-y-2">
                   {references.map((item, index) => (
-                    <div key={`${item.entityType}-${item.entityId}-${index}`} className="text-sm text-slate-600">
-                      {t(`mediaManager.referenceTypes.${item.entityType}`, { id: item.entityId })}
+                    <div key={`${item.entityType}-${item.entityId}-${index}`} className="rounded border border-slate-200 p-2 text-sm">
+                      <div className="font-medium text-slate-800">
+                        {item.label || t(`mediaManager.referenceTypes.${item.entityType}`, { id: item.entityId })}
+                      </div>
+                      {item.contextPath ? (
+                        <div className="mt-1 text-xs text-slate-500">{item.contextPath}</div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -449,13 +489,15 @@ export default function MediaLibraryPanel({
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="primary" onClick={handleSaveMetadata}>{t("mediaManager.actions.save")}</Button>
-              {selected.status === "ARCHIVED" ? (
-                <Button onClick={() => handleSetStatus("ACTIVE")}>{t("mediaManager.actions.restore")}</Button>
-              ) : (
-                <Button onClick={() => handleSetStatus("ARCHIVED")}>{t("mediaManager.actions.archive")}</Button>
-              )}
-              {governance ? <Button danger onClick={handleDelete}>{t("mediaManager.actions.delete")}</Button> : null}
+              {canManageSelected ? <Button type="primary" onClick={handleSaveMetadata}>{t("mediaManager.actions.save")}</Button> : null}
+              {canManageSelected ? (
+                selected.status === "ARCHIVED" ? (
+                  <Button onClick={() => handleSetStatus("ACTIVE")}>{t("mediaManager.actions.restore")}</Button>
+                ) : (
+                  <Button onClick={() => handleSetStatus("ARCHIVED")}>{t("mediaManager.actions.archive")}</Button>
+                )
+              ) : null}
+              {canManageSelected ? <Button danger onClick={handleDelete}>{t("mediaManager.actions.delete")}</Button> : null}
             </div>
           </div>
         ) : null}

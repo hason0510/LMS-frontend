@@ -177,7 +177,7 @@ export default function TeacherDashboard() {
                     />
                     <QuickActionCard
                       icon={<ClipboardDocumentCheckIcon className="h-8 w-8" />}
-                      label="Bài tập & Nộp bài"
+                      label="Quản lý bài tập"
                       to="/teacher/assignments"
                     />
                     <QuickActionCard

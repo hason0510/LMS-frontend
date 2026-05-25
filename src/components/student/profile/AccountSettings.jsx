@@ -52,10 +52,10 @@ export default function AccountSettings() {
     <>
       <div className="flex flex-wrap justify-between items-start gap-4 pb-6 border-b border-black/10 dark:border-white/10">
         <div className="flex min-w-72 flex-col gap-2">
-          <p className="text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
+          <p className="mb-1! text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
             {t("settings.caiDatHeThong")}
           </p>
-          <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-normal">
+          <p className="mb-1!text-[#617589] dark:text-gray-400 text-base font-normal leading-normal">
             {t("settings.quanLyCaiDat")}
           </p>
         </div>
@@ -71,6 +71,8 @@ export default function AccountSettings() {
               value={language}
               onChange={handleLanguageChange}
               className="w-full h-11"
+              showSearch
+              optionFilterProp="label"
               options={[
                 { value: "vi", label: t("settings.tiengViet") },
                 { value: "en", label: t("settings.english") },
@@ -107,27 +109,6 @@ export default function AccountSettings() {
           </div>
         </div>
 
-        {/* Notification Settings */}
-        {/* <div className="flex gap-4 items-center">
-          <h3 className="text-lg font-bold text-[#111418] dark:text-white">
-            Thông báo:
-          </h3>
-
-          <div className="flex items-center gap-4 justify-between max-w-md p-4 border border-black/10 dark:border-white/10 rounded-lg">
-            <div className="flex flex-col">
-              <span className="text-base font-medium text-[#111418] dark:text-white">
-                Thông báo qua Email
-              </span>
-              <span className="text-sm text-[#617589] dark:text-gray-400">
-                Nhận email về các khóa học mới và khuyến mãi.
-              </span>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" defaultChecked />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-            </label>
-          </div>
-        </div> */}
       </div>
       {isEditing && (
         <div className="flex justify-end gap-4 pt-6 border-t border-black/10 dark:border-white/10">

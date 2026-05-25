@@ -1,13 +1,52 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { App, Button, DatePicker, Empty, Select, Spin, Table } from "antd";
+import { App, AutoComplete, Button, DatePicker, Empty, Input, Select, Spin, Table, Tag } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
+import { BookOpenCheck, CheckCircle2, Clock3, Eye, FileCheck2 } from "lucide-react";
 import dayjs from "dayjs";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { getTeachingAssignments } from "../../api/assignment";
 import { getAllCourses, getTeacherCourses } from "../../api/classSection";
 import { useTranslation } from "react-i18next";
+
+const DEFAULT_PAGE_SIZE = 10;
+
+function formatDue(value, fallback) {
+  if (!value) return fallback;
+  return dayjs(value).format("DD/MM/YYYY HH:mm");
+}
+
+function getAssignmentState(record) {
+  if (record.completed) return { key: "completed", color: "success" };
+  if (record.pastDue) return { key: "pastDue", color: "error" };
+  return { key: "upcoming", color: "processing" };
+}
+
+function MetricCard({ icon: Icon, label, value, tone = "blue" }) {
+  const toneClass = {
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-emerald-50 text-emerald-600",
+    amber: "bg-amber-50 text-amber-600",
+    slate: "bg-slate-100 text-slate-600",
+  }[tone];
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-gray-800">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="m-0 text-xs font-semibold uppercase text-slate-500">{label}</p>
+          <p className="m-0 mt-1 text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+        </div>
+        <span className={`grid h-10 w-10 place-items-center rounded-lg ${toneClass}`}>
+          <Icon size={20} />
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function TeacherAssignmentsPage({ isAdmin = false }) {
   const navigate = useNavigate();
@@ -16,6 +55,8 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
   const basePath = isAdmin ? "/admin" : "/teacher";
 
   const [sortOrder, setSortOrder] = useState("DESC");
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [classSectionId, setClassSectionId] = useState(undefined);
   const [filterDate, setFilterDate] = useState(null);
   const [classOptions, setClassOptions] = useState([]);
@@ -23,6 +64,8 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
   const [loading, setLoading] = useState(true);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -51,11 +94,17 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
   }, [isAdmin]);
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedKeyword(searchKeyword.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchKeyword]);
+
+  useEffect(() => {
     const fetchAssignments = async () => {
       try {
         setLoading(true);
         const response = await getTeachingAssignments({
           tab: "ALL",
+          keyword: debouncedKeyword || undefined,
           classSectionId: classSectionId || undefined,
         });
         const payload = response?.data;
@@ -68,7 +117,11 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
       }
     };
     fetchAssignments();
-  }, [classSectionId, message, t]);
+  }, [classSectionId, debouncedKeyword, message, t]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [classSectionId, debouncedKeyword, filterDate, sortOrder, pageSize]);
 
   const processedItems = useMemo(() => {
     let result = [...items];
@@ -89,20 +142,55 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
     return result;
   }, [items, sortOrder, filterDate]);
 
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return processedItems.slice(start, start + pageSize);
+  }, [page, pageSize, processedItems]);
+
+  const metrics = useMemo(
+    () => ({
+      total: processedItems.length,
+      submitted: processedItems.reduce((sum, item) => sum + (item.turnedInCount || 0), 0),
+      pending: processedItems.reduce((sum, item) => sum + (item.pendingReviewCount || 0), 0),
+      graded: processedItems.reduce((sum, item) => sum + (item.gradedCount || 0), 0),
+    }),
+    [processedItems]
+  );
+
+  const searchOptions = useMemo(() => {
+    const values = new Set();
+    items.forEach((item) => {
+      if (item.assignmentTitle) values.add(item.assignmentTitle);
+      if (item.classSectionTitle) values.add(item.classSectionTitle);
+    });
+    return Array.from(values).slice(0, 12).map((value) => ({ value }));
+  }, [items]);
+
   const columns = useMemo(
     () => [
       {
         title: t("assignments.table.assignment"),
         key: "assignment",
         render: (_, record) => (
-          <div>
-            <p className="font-semibold text-slate-800 dark:text-white text-sm">
+          <div className="min-w-0">
+            <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
               {record.assignmentTitle}
             </p>
-            <p className="text-xs text-blue-500 mt-0.5">
-              Course: {record.classSectionTitle}
+            <p className="m-0 mt-1 text-xs text-slate-500">
+              {t("assignments.classLabel")}: {record.classSectionTitle}
             </p>
           </div>
+        ),
+      },
+      {
+        title: t("assignments.table.dueAt"),
+        dataIndex: "dueAt",
+        key: "dueAt",
+        width: 170,
+        render: (value) => (
+          <span className="text-sm text-slate-700 dark:text-slate-300">
+            {formatDue(value, t("assignments.noDeadline"))}
+          </span>
         ),
       },
       {
@@ -129,12 +217,35 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
         ),
       },
       {
+        title: t("assignments.table.pending"),
+        dataIndex: "pendingReviewCount",
+        key: "pendingReviewCount",
+        width: 130,
+        align: "center",
+        render: (value) => (
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {value ?? 0}
+          </span>
+        ),
+      },
+      {
+        title: t("assignments.table.status"),
+        key: "status",
+        width: 140,
+        align: "center",
+        render: (_, record) => {
+          const state = getAssignmentState(record);
+          return <Tag color={state.color}>{t(`assignments.status.${state.key}`)}</Tag>;
+        },
+      },
+      {
         title: "",
         key: "action",
-        width: 110,
+        width: 120,
         align: "right",
         render: (_, record) => (
           <Button
+            icon={<Eye size={16} />}
             onClick={() =>
               navigate(
                 `${basePath}/class-sections/${record.classSectionId}/assignments/${record.assignmentId}/submissions`
@@ -173,20 +284,40 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
             sidebarCollapsed ? "pl-20" : "pl-64"
           }`}
         >
-          <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-6xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-              {/* Header */}
-              <div className="px-6 pt-6 pb-5 border-b border-slate-100 dark:border-slate-700">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-5">
-                  {t("assignments.teacherTitle")}
-                </h1>
+          <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-[1440px] space-y-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                <MetricCard icon={BookOpenCheck} label={t("assignments.metrics.total")} value={metrics.total} />
+                <MetricCard icon={FileCheck2} label={t("assignments.metrics.submitted")} value={metrics.submitted} tone="green" />
+                <MetricCard icon={Clock3} label={t("assignments.metrics.pending")} value={metrics.pending} tone="amber" />
+                <MetricCard icon={CheckCircle2} label={t("assignments.metrics.graded")} value={metrics.graded} tone="slate" />
+              </div>
 
-                {/* Filters */}
-                <div className="flex flex-wrap gap-3">
-                  <div className="flex flex-col gap-1 min-w-45 flex-1 sm:flex-none">
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                      {t("assignments.classFilterPlaceholder")}
-                    </span>
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+                <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
+                        {t("assignments.teacherTitle")}
+                      </h1>
+                      <p className="m-0 mt-1 text-sm text-slate-500">
+                        {t("assignments.teacherSubtitle")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_240px_170px_180px]">
+                    <AutoComplete
+                      value={searchKeyword}
+                      onChange={setSearchKeyword}
+                      options={searchOptions}
+                      className="w-full"
+                      allowClear
+                    >
+                      <Input prefix={<SearchOutlined />} placeholder={t("assignments.searchPlaceholder")} />
+                    </AutoComplete>
                     <Select
                       loading={loadingClasses}
                       showSearch
@@ -194,39 +325,28 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
                       value={classSectionId}
                       onChange={(v) => setClassSectionId(v)}
                       options={courseSelectOptions}
-                      className="w-full sm:w-52"
+                      className="w-full"
                       popupMatchSelectWidth={false}
                     />
-                  </div>
-
-                  <div className="flex flex-col gap-1 min-w-35">
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                      {t("assignments.sortBy")}
-                    </span>
                     <Select
                       value={sortOrder}
                       onChange={setSortOrder}
                       options={sortOptions}
-                      className="w-full sm:w-36"
+                      className="w-full"
+                      showSearch
+                      optionFilterProp="label"
                     />
-                  </div>
-
-                  <div className="flex flex-col gap-1 min-w-40">
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                      {t("assignments.dueDateFilter")}
-                    </span>
                     <DatePicker
                       value={filterDate ? dayjs(filterDate) : null}
                       onChange={(date) => setFilterDate(date ? date.toISOString() : null)}
-                      className="w-full sm:w-44"
+                      placeholder={t("assignments.dueDateFilter")}
+                      className="w-full"
                       allowClear
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Table */}
-              <div className="px-6 py-4">
+                <div className="px-5 py-4 sm:px-6">
                 {loading ? (
                   <div className="flex justify-center py-16">
                     <Spin size="large" />
@@ -241,9 +361,30 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
                       `${record.assignmentId}-${record.classSectionId}`
                     }
                     columns={columns}
-                    dataSource={processedItems}
-                    pagination={{ pageSize: 10, showSizeChanger: false }}
+                    dataSource={pageItems}
+                    pagination={false}
+                    scroll={{ x: 980 }}
                     className="assignment-teacher-table"
+                  />
+                )}
+                </div>
+
+                {!loading && processedItems.length > 0 && (
+                  <DataPaginationFooter
+                    currentPage={page}
+                    pageSize={pageSize}
+                    total={processedItems.length}
+                    totalLabel={t("assignments.pagination.total", { count: processedItems.length })}
+                    pageSizeLabel={t("assignments.pagination.pageSize")}
+                    rangeLabel={t("assignments.pagination.range", {
+                      start: processedItems.length === 0 ? 0 : (page - 1) * pageSize + 1,
+                      end: Math.min(page * pageSize, processedItems.length),
+                    })}
+                    onPageChange={setPage}
+                    onPageSizeChange={(nextSize) => {
+                      setPageSize(nextSize);
+                      setPage(1);
+                    }}
                   />
                 )}
               </div>

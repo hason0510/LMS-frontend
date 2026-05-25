@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { CameraIcon, PencilIcon } from "@heroicons/react/24/solid";
-import { Input, InputNumber, Button, Space, DatePicker, message, Segmented } from "antd";
+import { Input, InputNumber, Button, Space, DatePicker, Segmented } from "antd";
 import dayjs from "dayjs";
 import { getUserById, updateUser, uploadUserAvatar } from "../../../api/user";
+import Avatar from "../../common/Avatar";
 import useUserStore from "../../../store/useUserStore";
 
 export default function MyInformation({
@@ -18,7 +19,9 @@ export default function MyInformation({
   const [initialData, setInitialData] = useState(null);
   const [formData, setFormData] = useState({
     fullName: "",
+    userName: "",
     gmail: "",
+    studentNumber: "",
     phoneNumber: "",
     birthday: "",
     address: "",
@@ -35,25 +38,36 @@ export default function MyInformation({
   const [avatarMode, setAvatarMode] = useState("upload");
   const [avatarUrl, setAvatarUrl] = useState("");
 
+  const normalizeUserProfile = (data) => {
+    if (!data) return data;
+    return {
+      ...data,
+      username: data.userName || data.username || "",
+      role: data.role || data.roleName || user?.role,
+    };
+  };
+
   // Initialize form data from userData prop
   useEffect(() => {
     if (userData) {
-      setInitialData(userData);
+      const normalizedUserData = normalizeUserProfile(userData);
+      setInitialData(normalizedUserData);
       setFormData({
-        fullName: userData.fullName || "",
-        gmail: userData.gmail || "",
-        phoneNumber: userData.phoneNumber || "",
-        birthday: userData.birthday || "",
-        address: userData.address || "",
-        workPlace: userData.workPlace || "",
-        yearsOfExperience: userData.yearsOfExperience || "",
-        fieldOfExpertise: userData.fieldOfExpertise || "",
-        bio: userData.bio || "",
+        fullName: normalizedUserData.fullName || "",
+        userName: normalizedUserData.userName || normalizedUserData.username || "",
+        gmail: normalizedUserData.gmail || "",
+        studentNumber: normalizedUserData.studentNumber || "",
+        phoneNumber: normalizedUserData.phoneNumber || "",
+        birthday: normalizedUserData.birthday || "",
+        address: normalizedUserData.address || "",
+        workPlace: normalizedUserData.workPlace || "",
+        yearsOfExperience: normalizedUserData.yearsOfExperience || "",
+        fieldOfExpertise: normalizedUserData.fieldOfExpertise || "",
+        bio: normalizedUserData.bio || "",
       });
-      console.log("User Data in MyInformation:", userData);
       // Map image_uri from backend to avatar for display
-      setAvatarPreview(userData.imageUrl);
-      setAvatarUrl(userData.imageUrl || "");
+      setAvatarPreview(normalizedUserData.imageUrl);
+      setAvatarUrl(normalizedUserData.imageUrl || "");
       setLoading(false);
     }
   }, [userData]);
@@ -62,11 +76,6 @@ export default function MyInformation({
   useEffect(() => {
     setLoading(parentLoading);
   }, [parentLoading]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
 
   const handleAntdChange = (fieldName, value) => {
     setFormData((prev) => ({ ...prev, [fieldName]: value }));
@@ -120,9 +129,14 @@ export default function MyInformation({
         }
       }
 
+      const nextUserName = (formData.userName || "").trim();
+      if (!nextUserName) {
+        throw new Error("Tên đăng nhập không được để trống");
+      }
+
       await updateUser(user.id, {
         ...formData,
-        userName: initialData?.userName, // Keep username as is
+        userName: nextUserName,
         imageUrl: nextAvatarUrl || undefined,
       });
 
@@ -131,7 +145,9 @@ export default function MyInformation({
       }
 
       const refreshedUserResponse = await getUserById(user.id);
-      const fullUserData = refreshedUserResponse?.data || refreshedUserResponse;
+      const fullUserData = normalizeUserProfile(
+        refreshedUserResponse?.data || refreshedUserResponse
+      );
 
       if (avatarMode === "link" && nextAvatarUrl && fullUserData?.imageUrl !== nextAvatarUrl) {
         throw new Error("Backend chua luu duoc link avatar. Hay kiem tra backend da chay code moi va thu lai.");
@@ -147,13 +163,13 @@ export default function MyInformation({
       // Update Zustand store with new user data
       updateUserStoreData(fullUserData);
 
-      setSuccess("Cập nhật thông tin thành công!");
+      setSuccess(t("profile.capNhatThanhCong"));
       setIsEditing(false);
       setAvatarFile(null);
       // Auto-hide success message after 3 seconds
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Cập nhật thất bại. Vui lòng thử lại.");
+      setError(err?.response?.data?.message || err?.message || t("profile.capNhatThatBai"));
       console.error(err);
     } finally {
       setLoading(false);
@@ -164,7 +180,9 @@ export default function MyInformation({
     if (initialData) {
       setFormData({
         fullName: initialData.fullName || "",
+        userName: initialData.userName || initialData.username || "",
         gmail: initialData.gmail || "",
+        studentNumber: initialData.studentNumber || "",
         phoneNumber: initialData.phoneNumber || "",
         birthday: initialData.birthday || "",
         address: initialData.address || "",
@@ -185,37 +203,64 @@ export default function MyInformation({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-          <p className="text-[#617589] dark:text-gray-400">
-            {t("profile.dangTaiThongTin")}
-          </p>
+      <div className="space-y-6 py-2">
+        <div className="h-20 animate-pulse rounded-lg bg-slate-100 dark:bg-white/5" />
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="h-24 animate-pulse rounded-lg bg-slate-100 dark:bg-white/5" />
+          <div className="h-24 animate-pulse rounded-lg bg-slate-100 dark:bg-white/5" />
+          <div className="h-24 animate-pulse rounded-lg bg-slate-100 dark:bg-white/5" />
+          <div className="h-24 animate-pulse rounded-lg bg-slate-100 dark:bg-white/5" />
         </div>
       </div>
     );
   }
 
+  const isStudent = user?.role === "STUDENT";
+  const persistedAvatar =
+    initialData?.imageUrl || initialData?.avatar || initialData?.image_url || null;
+  const displayName =
+    formData.fullName || initialData?.fullName || user?.fullName || user?.username || "User";
+  const sectionTitleClass =
+    "mb-2 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400";
+  const fieldLabelClass =
+    "mb-1 text-sm font-medium text-[#111418] dark:text-white";
+  const inputClass = "h-11 rounded-lg";
+  const textAreaClass = "rounded-lg";
+
   return (
     <>
-      <div className="flex flex-wrap justify-between items-start gap-4 pb-6 border-b border-black/10 dark:border-white/10">
-        <div className="flex min-w-72 flex-col gap-2">
-          <p className="text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5 dark:border-white/10">
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="!mb-1 text-2xl font-bold tracking-tight text-[#111418] dark:text-white sm:text-[2rem]">
             {t("profile.thongTinCaNhan")}
           </p>
-          <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-normal">
+          <p className="!mb-1 text-base font-normal leading-normal text-[#617589] dark:text-gray-400">
             {t("profile.capNhatThongTin")}
           </p>
         </div>
-        {!isEditing && (
-          <Button 
+{/*        {!isEditing && (
+          <Button
             type="primary"
             icon={<PencilIcon className="h-4 w-4" />}
             onClick={() => setIsEditing(true)}
-            className="h-10"
+            className="h-5 rounded-lg px-5 shadow-sm"
           >
             {t("profile.chinhSua")}
           </Button>
+        )}*/}
+        {!isEditing && (
+            <Button
+                type="primary"
+                onClick={() => setIsEditing(true)}
+                // 1. Thay h-5 thành h-10, thêm flex items-center justify-center gap-2
+                className="flex items-center justify-center gap-2 h-10 rounded-lg px-5 shadow-sm"
+            >
+              {/* 2. Đưa icon xuống làm con trực tiếp */}
+              <PencilIcon className="h-3 w-3" />
+
+              {/* 3. Bọc chữ bằng thẻ span kèm leading-none để triệt tiêu line-height thừa */}
+              <span className="leading-none">{t("profile.chinhSua")}</span>
+            </Button>
         )}
       </div>
 
@@ -242,62 +287,74 @@ export default function MyInformation({
         </div>
       )}
 
-      <div className={`py-6 flex flex-col gap-6 ${!isEditing ? "disabled-form" : ""}`}>
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="relative group">
-            <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-2 border-gray-100 dark:border-gray-600">
-              {avatarPreview ? (
-                <img
-                  src={avatarPreview}
-                  alt="Avatar"
-                  className="h-full w-full object-cover"
+      <div className={`py-6 ${!isEditing ? "disabled-form" : ""}`}>
+        <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.04] sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="relative group shrink-0">
+                <Avatar
+                  src={avatarPreview || persistedAvatar}
+                  alt={displayName}
+                  sizeClass="size-20"
+                  initialsClass="text-3xl"
+                  className="border-4 border-white shadow-sm dark:border-slate-800"
                 />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center bg-primary text-white text-3xl font-bold uppercase">
-                  {formData.fullName ? formData.fullName.charAt(0) : "U"}
-                </div>
-              )}
+                {isEditing && (
+                  <label className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+                    <CameraIcon className="h-7 w-7 text-white" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarChange}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="!mb-0 text-sm font-semibold text-slate-900 dark:text-white">
+                  {t("profile.anhDaiDien")}
+                </p>
+                <p className="!mb-0 mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  {t("profile.capNhatAnhDaiDien")}
+                </p>
+              </div>
             </div>
+
             {isEditing && (
-              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <CameraIcon className="h-8 w-8 text-white" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
+              <div className="w-full space-y-5 sm:max-w-md">
+                <Segmented
+                  value={avatarMode}
+                  onChange={setAvatarMode}
+                  options={[
+                    { label: t("profile.taiAnhLen"), value: "upload" },
+                    { label: t("profile.danLinkAnh"), value: "link" },
+                  ]}
+                  className="w-full sm:w-auto"
                 />
-              </label>
+                {avatarMode === "link" && (
+                  <Input
+                    value={avatarUrl}
+                    onChange={handleAvatarUrlChange}
+                    placeholder={t("profile.danLinkAnhDaiDien")}
+                    size="large"
+                    allowClear
+                    className="mt-4 rounded-lg"
+                  />
+                )}
+              </div>
             )}
           </div>
+        </section>
 
-          <div className="flex-grow w-full space-y-3">
-            {isEditing && (
-              <Segmented
-                value={avatarMode}
-                onChange={setAvatarMode}
-                options={[
-                  { label: "Tải ảnh", value: "upload" },
-                  { label: "Link ảnh", value: "link" },
-                ]}
-                className="w-full sm:w-auto"
-              />
-            )}
-
-            {isEditing && avatarMode === "link" && (
-              <Input
-                value={avatarUrl}
-                onChange={handleAvatarUrlChange}
-                placeholder="Dán link ảnh đại diện"
-                size="large"
-                allowClear
-              />
-            )}
-
-            <label className="flex flex-col min-w-40">
-              <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-                {t("profile.hoVaTen")}
-              </p>
+        <div className="mt-6">
+          <div className={sectionTitleClass}>
+            <span>{t("profile.thongTinCoBan")}</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <label className="flex min-w-0 flex-col">
+              <p className={fieldLabelClass}>{t("profile.hoVaTen")}</p>
               <Input
                 name="fullName"
                 value={formData.fullName}
@@ -305,79 +362,119 @@ export default function MyInformation({
                 disabled={!isEditing}
                 placeholder={t("profile.nhapHoVaTen")}
                 size="large"
+                className={inputClass}
+              />
+            </label>
+
+            <label className="flex min-w-0 flex-col">
+              <p className={fieldLabelClass}>{t("profile.email")}</p>
+              <Input
+                name="gmail"
+                value={formData.gmail}
+                onChange={(e) => handleAntdChange("gmail", e.target.value)}
+                disabled={!isEditing}
+                placeholder={t("profile.nhapEmail")}
+                type="email"
+                size="large"
+                className={inputClass}
+              />
+            </label>
+
+            <label className="flex min-w-0 flex-col">
+              <p className={fieldLabelClass}>{t("profile.soDienThoai")}</p>
+              <Input
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={(e) => handleAntdChange("phoneNumber", e.target.value)}
+                disabled={!isEditing}
+                placeholder={t("profile.nhapSoDienThoai")}
+                type="tel"
+                size="large"
+                className={inputClass}
+              />
+            </label>
+
+            <label className="flex min-w-0 flex-col">
+              <p className={fieldLabelClass}>{t("profile.ngaySinh")}</p>
+              <DatePicker
+                value={formData.birthday ? dayjs(formData.birthday) : null}
+                onChange={(date) => handleAntdChange("birthday", date ? date.format("YYYY-MM-DD") : "")}
+                disabled={!isEditing}
+                format="DD/MM/YYYY"
+                className="h-11 w-full rounded-lg"
+                placeholder={t("profile.chonNgaySinh")}
+                size="large"
               />
             </label>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <label className="flex flex-col min-w-40">
-            <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-              {t("profile.email")}
-            </p>
-            <Input
-              name="gmail"
-              value={formData.gmail}
-              onChange={(e) => handleAntdChange("gmail", e.target.value)}
-              disabled={!isEditing}
-              placeholder={t("profile.nhapEmail")}
-              type="email"
-              size="large"
-            />
-          </label>
-          <label className="flex flex-col min-w-40">
-            <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-              {t("profile.soDienThoai")}
-            </p>
-            <Input
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={(e) => handleAntdChange("phoneNumber", e.target.value)}
-              disabled={!isEditing}
-              placeholder={t("profile.nhapSoDienThoai")}
-              type="tel"
-              size="large"
-            />
-          </label>
-          <label className="flex flex-col min-w-40">
-            <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-              {t("profile.ngaySinh")}
-            </p>
-            <DatePicker
-              value={formData.birthday ? dayjs(formData.birthday) : null}
-              onChange={(date) => handleAntdChange("birthday", date ? date.format("YYYY-MM-DD") : "")}
-              disabled={!isEditing}
-              format="DD/MM/YYYY"
-              className="w-full"
-              placeholder={t("profile.chonNgaySinh")}
-              size="large"
-            />
-          </label>
-          <label className="flex flex-col min-w-40">
-            <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-              {t("profile.diaChi")}
-            </p>
-            <Input
-              name="address"
-              value={formData.address}
-              onChange={(e) => handleAntdChange("address", e.target.value)}
-              disabled={!isEditing}
-              placeholder={t("profile.nhapDiaChi")}
-              size="large"
-            />
-          </label>
+
+        {isStudent && (
+        <div className="mt-6">
+          <div className={sectionTitleClass}>
+            <span>{t("profile.thongTinHocTap")}</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+          </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <label className="flex min-w-0 flex-col">
+                <p className={fieldLabelClass}>MSSV</p>
+                <Input
+                  name="studentNumber"
+                  value={formData.studentNumber}
+                  onChange={(e) => handleAntdChange("studentNumber", e.target.value)}
+                  disabled
+                  placeholder={t("profile.nhapMaSinhVien")}
+                  size="large"
+                  className={inputClass}
+                />
+              </label>
+
+              <label className="flex min-w-0 flex-col">
+                <p className={fieldLabelClass}>{t("profile.tenDangNhap")}</p>
+                <Input
+                  name="userName"
+                  value={formData.userName}
+                  onChange={(e) => handleAntdChange("userName", e.target.value)}
+                  disabled={!isEditing}
+                  placeholder={t("profile.tenDangNhap")}
+                  size="large"
+                  className={inputClass}
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6">
+          <div className={sectionTitleClass}>
+            <span>{t("profile.thongTinLienHe")}</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+          </div>
+          <div className="grid grid-cols-1 gap-5">
+            <label className="flex min-w-0 flex-col">
+              <p className={fieldLabelClass}>{t("profile.diaChi")}</p>
+              <Input
+                name="address"
+                value={formData.address}
+                onChange={(e) => handleAntdChange("address", e.target.value)}
+                disabled={!isEditing}
+                placeholder={t("profile.nhapDiaChi")}
+                size="large"
+                className={inputClass}
+              />
+            </label>
+          </div>
         </div>
 
-        {/* Teacher-specific fields - Only show for teachers */}
         {user?.role === "TEACHER" && (
-        <div className="mt-6 pt-6 border-t border-black/10 dark:border-white/10">
-          <h3 className="text-lg font-semibold text-[#111418] dark:text-white mb-4">
-            {t("profile.thongTinGiaoVien")}
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <label className="flex flex-col min-w-40">
-              <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-                {t("profile.noiCongTac")}
-              </p>
+        <div className="mt-6">
+          <div className={sectionTitleClass}>
+            <span>{t("profile.thongTinGiaoVien")}</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <label className="flex min-w-0 flex-col">
+              <p className={fieldLabelClass}>{t("profile.noiCongTac")}</p>
               <Input
                 name="workPlace"
                 value={formData.workPlace}
@@ -385,27 +482,26 @@ export default function MyInformation({
                 disabled={!isEditing}
                 placeholder={t("profile.viDuTruong")}
                 size="large"
+                className={inputClass}
               />
             </label>
-            <label className="flex flex-col min-w-40">
-              <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-                {t("profile.soNamKinhNghiem")}
-              </p>
+
+            <label className="flex min-w-0 flex-col">
+              <p className={fieldLabelClass}>{t("profile.soNamKinhNghiem")}</p>
               <InputNumber
                 name="yearsOfExperience"
-                value={formData.yearsOfExperience ? parseInt(formData.yearsOfExperience) : undefined}
+                value={formData.yearsOfExperience ? parseInt(formData.yearsOfExperience, 10) : undefined}
                 onChange={(value) => handleAntdChange("yearsOfExperience", value || "")}
                 disabled={!isEditing}
                 min={0}
                 placeholder={t("profile.viDuNam")}
-                className="w-full"
+                className="h-11 w-full rounded-lg"
                 size="large"
               />
             </label>
-            <label className="flex flex-col min-w-40">
-              <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-                {t("profile.linhVucChuyenMon")}
-              </p>
+
+            <label className="flex min-w-0 flex-col md:col-span-2">
+              <p className={fieldLabelClass}>{t("profile.linhVucChuyenMon")}</p>
               <Input
                 name="fieldOfExpertise"
                 value={formData.fieldOfExpertise}
@@ -413,13 +509,13 @@ export default function MyInformation({
                 disabled={!isEditing}
                 placeholder={t("profile.viDuChuyenMon")}
                 size="large"
+                className={inputClass}
               />
             </label>
           </div>
-          <label className="flex flex-col min-w-40 mt-6">
-            <p className="text-[#111418] dark:text-white text-sm font-medium leading-normal pb-2">
-              {t("profile.gioiThieuVeBanThan")}
-            </p>
+
+          <label className="mt-5 flex min-w-0 flex-col">
+            <p className={fieldLabelClass}>{t("profile.gioiThieuVeBanThan")}</p>
             <Input.TextArea
               name="bio"
               value={formData.bio}
@@ -428,24 +524,27 @@ export default function MyInformation({
               rows={4}
               placeholder={t("profile.chiaSe")}
               size="large"
+              className={textAreaClass}
             />
           </label>
         </div>
         )}
       </div>
       {isEditing && (
-        <div className="flex justify-end gap-4 pt-6 border-t border-black/10 dark:border-white/10">
+        <div className="flex justify-end gap-4 border-t border-slate-200 pt-6 dark:border-white/10">
           <Space>
-            <Button 
+            <Button
               onClick={handleCancel}
               disabled={loading}
+              className="h-10 rounded-lg px-5"
             >
               {t("profile.huy")}
             </Button>
-            <Button 
+            <Button
               type="primary"
               onClick={handleSave}
               loading={loading}
+              className="h-10 rounded-lg px-5"
             >
               {loading ? t("profile.dangLuu") : t("profile.luuThayDoi")}
             </Button>

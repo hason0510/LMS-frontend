@@ -82,11 +82,18 @@ export default function Header({ menuItems }) {
     loadTeachingContext();
   }, [isLoggedIn, user?.role]);
 
+  const isTeachingRoute = location.pathname.startsWith("/teaching");
+
+  const handleWorkspaceToggle = (workspace) => {
+    if (workspace === "teaching") {
+      navigate("/teaching/classes");
+      return;
+    }
+    navigate("/classes");
+  };
+
   const defaultMenuItems = [
     { label: t("header.classes"), path: "/classes", icon: BookOpenIcon },
-    ...(isLoggedIn && hasTeachingWorkspace
-      ? [{ label: t("header.teachingWorkspace"), path: "/teaching", icon: ClipboardDocumentListIcon }]
-      : []),
     ...(user?.role === "STUDENT"
       ? [{ label: t("assignments.studentTitle"), path: "/student/assignments", icon: ClipboardDocumentListIcon }]
       : []),
@@ -180,6 +187,32 @@ export default function Header({ menuItems }) {
                 LearnOnline
               </h2>
             </div>
+            {isLoggedIn && hasTeachingWorkspace && (
+              <div className="flex h-10 items-center rounded-full border border-slate-200 bg-slate-100 p-1 text-xs font-bold dark:border-slate-700 dark:bg-slate-800">
+                <button
+                  type="button"
+                  onClick={() => handleWorkspaceToggle("learning")}
+                  className={`h-8 rounded-full px-3 transition-colors sm:px-4 ${
+                    !isTeachingRoute
+                      ? "bg-white text-primary shadow-sm dark:bg-slate-950"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                  }`}
+                >
+                  Học viên
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleWorkspaceToggle("teaching")}
+                  className={`h-8 rounded-full px-3 transition-colors sm:px-4 ${
+                    isTeachingRoute
+                      ? "bg-white text-primary shadow-sm dark:bg-slate-950"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                  }`}
+                >
+                  Trợ giảng
+                </button>
+              </div>
+            )}
             <nav className="hidden lg:flex items-center gap-8">
               {itemsToRender.map((item, index) => (
                 <Link

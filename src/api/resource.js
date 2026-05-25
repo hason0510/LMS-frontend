@@ -1,4 +1,5 @@
 import axiosClient from "./axiosClient";
+import { unwrapListPayload, unwrapPagePayload, unwrapPayload } from "./responseAdapter";
 
 /**
  * Tạo resource cho bài học
@@ -7,7 +8,7 @@ import axiosClient from "./axiosClient";
  */
 export async function createResource(lessonId, resourceData) {
   const response = await axiosClient.post(`lessons/${lessonId}/resources`, resourceData);
-  return response.data;
+  return unwrapPayload(response);
 }
 
 /**
@@ -29,7 +30,7 @@ export async function uploadVideoResource(resourceId, file, onProgress) {
       : undefined,
   });
 
-  return response.data;
+  return unwrapPayload(response);
 }
 
 /**
@@ -51,7 +52,7 @@ export async function uploadSlideResource(resourceId, file, onProgress) {
       : undefined,
   });
 
-  return response.data;
+  return unwrapPayload(response);
 }
 
 /**
@@ -60,7 +61,23 @@ export async function uploadSlideResource(resourceId, file, onProgress) {
  */
 export async function getResourcesByLessonId(lessonId) {
   const response = await axiosClient.get(`lessons/${lessonId}/resources`);
-  return response.data;
+  return unwrapListPayload(response);
+}
+
+export async function attachResourceToLesson(lessonId, resourceId) {
+  await axiosClient.post(`lessons/${lessonId}/resources/${resourceId}/attach`);
+}
+
+export async function attachResourceToAssignment(assignmentId, resourceId) {
+  await axiosClient.post(`assignments/${assignmentId}/resources/${resourceId}/attach`);
+}
+
+export async function detachResourceFromLesson(lessonId, resourceId) {
+  await axiosClient.delete(`lessons/${lessonId}/resources/${resourceId}/detach`);
+}
+
+export async function detachResourceFromAssignment(assignmentId, resourceId) {
+  await axiosClient.delete(`assignments/${assignmentId}/resources/${resourceId}/detach`);
 }
 
 /**
@@ -69,32 +86,32 @@ export async function getResourcesByLessonId(lessonId) {
  */
 export async function getResourceById(resourceId) {
   const response = await axiosClient.get(`resources/${resourceId}`);
-  return response.data;
+  return unwrapPayload(response);
 }
 
 export async function getResourcePage(params = {}) {
   const response = await axiosClient.get("resources", { params });
-  return response.data;
+  return unwrapPagePayload(response);
 }
 
 export async function getResourceUploadPolicy() {
   const response = await axiosClient.get("resources/upload-policy");
-  return response.data;
+  return unwrapPayload(response);
 }
 
 export async function getResourceReferences(resourceId) {
   const response = await axiosClient.get(`resources/${resourceId}/references`);
-  return response.data;
+  return unwrapListPayload(response);
 }
 
 export async function getResourceAuditLogs(resourceId) {
   const response = await axiosClient.get(`resources/${resourceId}/audit-log`);
-  return response.data;
+  return unwrapListPayload(response);
 }
 
 export async function createStandaloneResource(resourceData) {
   const response = await axiosClient.post("resources/standalone", resourceData);
-  return response.data;
+  return unwrapPayload(response);
 }
 
 /**
@@ -104,7 +121,7 @@ export async function createStandaloneResource(resourceData) {
  */
 export async function updateResource(resourceId, resourceData) {
   const response = await axiosClient.put(`resources/${resourceId}`, resourceData);
-  return response.data;
+  return unwrapPayload(response);
 }
 
 /**
@@ -112,8 +129,7 @@ export async function updateResource(resourceId, resourceData) {
  * @param {number} resourceId - ID của resource
  */
 export async function deleteResource(resourceId) {
-  const response = await axiosClient.delete(`resources/${resourceId}`);
-  return response.data;
+  await axiosClient.delete(`resources/${resourceId}`);
 }
 
 export async function uploadStandaloneResource(file, params = {}) {
@@ -125,5 +141,5 @@ export async function uploadStandaloneResource(file, params = {}) {
       "Content-Type": "multipart/form-data",
     },
   });
-  return response.data;
+  return unwrapPayload(response);
 }

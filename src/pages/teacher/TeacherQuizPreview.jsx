@@ -37,7 +37,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
       try {
         setLoading(true);
         const res = isTemplate ? await getQuizTemplateById(quizId) : await getQuizById(quizId);
-        setQuiz(res?.data);
+        setQuiz(isTemplate ? res : res?.data);
       } catch (err) {
         setError(err.message || "Không thể tải thông tin bài kiểm tra");
       } finally {

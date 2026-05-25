@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import useUserStore from "../../store/useUserStore";
@@ -7,6 +7,8 @@ import Avatar from "../common/Avatar";
 import ConfirmModal from "../common/ConfirmModal";
 import {
   BellIcon,
+  Cog6ToothIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   getMyNotifications,
@@ -19,6 +21,7 @@ import useNotificationStore from "../../store/useNotificationStore";
 export default function TeacherHeader({ toggleSidebar }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, isLoggedIn } = useAuth();
   const user = useUserStore((state) => state.user);
   
@@ -37,6 +40,10 @@ export default function TeacherHeader({ toggleSidebar }) {
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
+  const profilePath = user?.role === "ADMIN" ? "/admin/profile" : "/teacher/profile";
+  const settingsPath = user?.role === "ADMIN" ? "/admin/settings" : "/teacher/settings";
+  const isProfileActive = location.pathname === profilePath;
+  const isSettingsActive = location.pathname === settingsPath;
 
   // Initial fetch and WebSocket connection
   useEffect(() => {
@@ -138,12 +145,16 @@ export default function TeacherHeader({ toggleSidebar }) {
           </div>
         </div>
 
+        {/*
+        Gốc:
         <div className="flex flex-1 items-center justify-end gap-3 sm:gap-6 ml-8">
+        */}
+        <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 ml-4">
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-              className="relative flex items-center justify-center size-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 focus:outline-none"
+              className="relative flex items-center justify-center size-11 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-black focus:outline-none"
             >
               <BellIcon className="h-6 w-6" />
               {unreadCount > 0 && (
@@ -211,6 +222,32 @@ export default function TeacherHeader({ toggleSidebar }) {
               </div>
             )}
           </div>
+
+          <Link
+            to={settingsPath}
+            title={t("teacher.caiDatHeThong")}
+            aria-label={t("teacher.caiDatHeThong")}
+            className={`flex items-center justify-center size-11 rounded-full transition-colors ${
+              isSettingsActive
+                ? "bg-slate-100 text-black dark:bg-slate-100 dark:text-black"
+                : "text-black dark:text-black hover:bg-slate-100 dark:hover:bg-slate-800/70"
+            }`}
+          >
+            <Cog6ToothIcon className="h-6 w-6" />
+          </Link>
+
+          <Link
+            to={profilePath}
+            title={t("teacher.hoSo")}
+            aria-label={t("teacher.hoSo")}
+            className={`flex items-center justify-center size-11 rounded-full transition-colors ${
+              isProfileActive
+                ? "bg-slate-100 text-black dark:bg-slate-100 dark:text-black"
+                : "text-black dark:text-black hover:bg-slate-100 dark:hover:bg-slate-800/70"
+            }`}
+          >
+            <UserCircleIcon className="h-6 w-6" />
+          </Link>
 
           {/* User Profile */}
           <div className="relative" ref={dropdownRef}>

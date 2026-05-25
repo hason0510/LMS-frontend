@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../components/layout/Header";
 import MyCertificate from "../../components/student/profile/MyCertificate";
 import MyInformation from "../../components/student/profile/MyInformation";
-import MyCourses from "../../components/student/profile/MyCourses";
 import AccountSettings from "../../components/student/profile/AccountSettings";
 import ChangePassword from "../../components/student/profile/ChangePassword";
 import NotificationsPage from "../common/NotificationsPage";
@@ -14,11 +13,8 @@ import { getUserById } from "../../api/user";
 import useUserStore from "../../store/useUserStore";
 import {
   UserIcon,
-  BookOpenIcon,
-  AcademicCapIcon,
   Cog6ToothIcon,
   LockClosedIcon,
-  ReceiptPercentIcon,
   CameraIcon,
   BellIcon,
 } from "@heroicons/react/24/outline";
@@ -33,6 +29,15 @@ export default function ProfilePage() {
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const normalizeUserProfile = (data) => {
+    if (!data) return data;
+    return {
+      ...data,
+      username: data.userName || data.username || "",
+      role: data.role || data.roleName || user?.role,
+    };
+  };
+
   // Fetch user data when component mounts
   useEffect(() => {
     const fetchUserData = async () => {
@@ -40,11 +45,12 @@ export default function ProfilePage() {
         try {
           setIsLoading(true);
           const fullData = await getUserById(user.id);
-          setUserData(fullData);
-          setProfileData(fullData);
+          const normalizedFullData = normalizeUserProfile(fullData);
+          setUserData(normalizedFullData);
+          setProfileData(normalizedFullData);
 
-          if (fullData) {
-            useUserStore.getState().updateUser(fullData);
+          if (normalizedFullData) {
+            useUserStore.getState().updateUser(normalizedFullData);
           }
         } catch (err) {
           console.error("Failed to fetch user data:", err);
@@ -77,9 +83,10 @@ export default function ProfilePage() {
   }, [location.pathname]);
 
   const handleProfileUpdate = (updatedData) => {
-    setProfileData(updatedData);
-    setUserData(updatedData);
-    useUserStore.getState().updateUser(updatedData);
+    const normalizedUpdatedData = normalizeUserProfile(updatedData);
+    setProfileData(normalizedUpdatedData);
+    setUserData(normalizedUpdatedData);
+    useUserStore.getState().updateUser(normalizedUpdatedData);
   };
 
   const handleTabClick = (tabId) => {
@@ -94,16 +101,36 @@ export default function ProfilePage() {
     navigate(tabRoutes[tabId] || "/student/profile/information");
   };
 
+  const roleValue =
+    profileData?.roleName || userData?.roleName || user?.role || "STUDENT";
+  const roleLabel =
+    roleValue === "ADMIN"
+      ? t("header.roles.admin")
+      : roleValue === "TEACHER"
+        ? t("header.roles.teacher")
+        : t("header.roles.student");
+  const displayName =
+    profileData?.fullName ||
+    userData?.fullName ||
+    user?.fullName ||
+    user?.username ||
+    user?.userName ||
+    "User";
+  const displayEmail =
+    profileData?.gmail || userData?.gmail || user?.gmail || "No email";
+  const displayStudentNumber =
+    profileData?.studentNumber || userData?.studentNumber || user?.studentNumber;
+  const avatarSrc =
+    userData?.imageUrl ||
+    userData?.avatar ||
+    userData?.profilePicture ||
+    user?.imageUrl ||
+    user?.avatar ||
+    user?.profilePicture;
+
   const tabs = [
     { id: "profile", label: t("profile.thongTinCaNhan"), icon: UserIcon },
- //   { id: "courses", label: t("profile.khoaHocCuaToi"), icon: BookOpenIcon },
-    // { id: "certificate", label: t("profile.chungChiCuaToi"), icon: AcademicCapIcon },
     { id: "notifications", label: t("profile.thongBao"), icon: BellIcon },
-    // {
-    //   id: "transactions",
-    //   label: t("profile.lichSuGiaoDich"),
-    //   icon: ReceiptPercentIcon,
-    // },
     { id: "password", label: t("profile.doiMatKhau"), icon: LockClosedIcon },
     { id: "settings", label: t("common.caiDat"), icon: Cog6ToothIcon },
   ];
@@ -111,12 +138,10 @@ export default function ProfilePage() {
     switch (activeTab) {
       case "profile":
         return <MyInformation userData={userData} isLoading={isLoading} onUpdate={handleProfileUpdate} />;
-/*      case "courses":
-        return <MyCourses />;*/
       case "certificate":
         return <MyCertificate />;
       case "notifications":
-        return <NotificationsPage />;
+        return <NotificationsPage embedded />;
       case "transactions":
         return (
           <div className="text-center py-10 text-gray-500">
@@ -133,51 +158,63 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
+    <div className="min-h-screen bg-[#f5f7fa] dark:bg-background-dark font-display text-[#111418] dark:text-white">
       <Header />
-      <main className="flex flex-1 justify-center py-5 md:py-10 px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row gap-8 w-full max-w-7xl">
-          {/* Sidebar Tabs */}
-          <aside className="w-full md:w-64 lg:w-72 flex-shrink-0">
-            <div className="flex h-full flex-col justify-between bg-white dark:bg-background-dark/50 p-4 rounded-xl border border-black/10 dark:border-white/10">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative group">
+      <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <div className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <aside className="min-w-0">
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-background-dark/50">
+              <div className="h-20 bg-gradient-to-r from-[#137fec] via-[#3b82f6] to-[#6366f1]" />
+              <div className="px-5 pb-5 text-center">
+                <div className="-mt-10 flex flex-col items-center">
+                  <div className="relative group shrink-0">
                     <Avatar
-                      src={userData?.imageUrl || userData?.avatar || userData?.profilePicture}
-                      alt={userData?.fullName || userData?.username}
-                      className="w-12 h-12"
+                      src={avatarSrc}
+                      alt={displayName}
+                      sizeClass="size-20"
+                      initialsClass="text-3xl"
+                      className="border-4 border-white shadow-sm"
                     />
-                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <CameraIcon className="text-white h-5 w-5" />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+                      <CameraIcon className="h-5 w-5 text-white" />
                     </div>
                   </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-[#111418] dark:text-white text-base font-medium leading-normal break-all">
-                      {profileData?.fullName || user?.username || "User"}
+                  <div className="mt-4 min-w-0">
+                    <h1 className="truncate text-lg font-semibold text-slate-900 dark:text-white">
+                      {displayName}
                     </h1>
-                    <p className="text-[#617589] dark:text-gray-400 text-sm font-normal leading-normal break-all">
-                      {profileData?.gmail || profileData?.email || "No email"}
+                    <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">
+                      {displayEmail}
                     </p>
                   </div>
                 </div>
-                <nav className="flex flex-col gap-2 pt-4">
+
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                    {roleLabel}
+                  </span>
+                  {displayStudentNumber && (
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-200">
+                      MSSV: {displayStudentNumber}
+                    </span>
+                  )}
+                </div>
+
+                <nav className="mt-5 flex flex-col gap-1 text-left">
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => handleTabClick(tab.id)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                        className={`flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium transition-colors ${
                           activeTab === tab.id
-                            ? "bg-primary/10 text-primary dark:bg-primary/20"
-                            : "hover:bg-black/5 dark:hover:bg-white/5 text-[#111418] dark:text-white"
+                            ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300"
+                            : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
                         }`}
                       >
-                        <Icon className="h-5 w-5" />
-                        <p className="text-sm font-medium leading-normal">
-                          {tab.label}
-                        </p>
+                        <Icon className="h-5 w-5 shrink-0" />
+                        <span className="truncate">{tab.label}</span>
                       </button>
                     );
                   })}
@@ -186,10 +223,9 @@ export default function ProfilePage() {
             </div>
           </aside>
 
-          {/* Content Area */}
-          <div className="flex-1 bg-white dark:bg-background-dark/50 p-4 sm:p-6 lg:p-8 rounded-xl border border-black/10 dark:border-white/10">
-            {renderContent()}
-          </div>
+          <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-background-dark/50">
+            <div className="p-5 sm:p-6 lg:p-8">{renderContent()}</div>
+          </section>
         </div>
       </main>
     </div>

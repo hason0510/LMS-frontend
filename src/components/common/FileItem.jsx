@@ -61,7 +61,7 @@ export default function FileItem({
     const iconClass = "h-5 w-5";
     
     // Check source first for links
-    if (source === "EMBED" || source === "LINK" || embedUrl) {
+    if (source === "EMBED" || source === "LINK" || type === "LINK" || embedUrl) {
       return <LinkIcon className={`${iconClass} text-blue-500`} />;
     }
     
@@ -83,7 +83,7 @@ export default function FileItem({
   
   // Get file type label
   const getTypeLabel = () => {
-    if (source === "EMBED" || source === "LINK" || embedUrl) {
+    if (source === "EMBED" || source === "LINK" || type === "LINK" || embedUrl) {
       return "Link";
     }
     if (type) return type;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Header from '../../components/layout/Header'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom';
-import { getClassSections } from '../../api/classSection';
+import { searchClassSections } from '../../api/classSection';
 import { getAllCategories } from '../../api/category';
 import { Spin } from 'antd';
 import { FolderIcon } from '@heroicons/react/24/outline';
@@ -21,10 +21,10 @@ export default function Home() {
     try {
       setLoading(true);
       const [coursesList, categoriesResponse] = await Promise.all([
-        getClassSections({ status: 'PUBLIC', pageNumber: 1, pageSize: 8 }),
+        searchClassSections({ scope: 'PUBLIC', pageNumber: 1, pageSize: 8, sortBy: 'createdDate', sortDirection: 'ASC' }),
         getAllCategories(1, 10),
       ]);
-      setFeaturedCourses(Array.isArray(coursesList) ? coursesList : []);
+      setFeaturedCourses(coursesList?.items || []);
       setCategories(categoriesResponse.data?.pageList || []);
     } catch (err) {
       console.error('Error fetching data:', err);

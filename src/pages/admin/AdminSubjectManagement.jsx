@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Button, message, Table, Popconfirm, Select, Tag } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
+import { Button, Empty, Form, Input, Modal, Popconfirm, Select, Table, message } from "antd";
+import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
-import {
-  MagnifyingGlassIcon,
-  PlusCircleIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline";
-import { getAllSubjects, createSubject, updateSubject, deleteSubject } from "../../api/subject";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { getAllCategories } from "../../api/category";
+import { createSubject, deleteSubject, getAllSubjects, updateSubject } from "../../api/subject";
 
 const { TextArea } = Input;
+const DEFAULT_PAGE_SIZE = 10;
 
 export default function AdminSubjectManagement() {
+  const { t } = useTranslation();
   const [subjects, setSubjects] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +20,8 @@ export default function AdminSubjectManagement() {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [form] = Form.useForm();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -36,22 +36,46 @@ export default function AdminSubjectManagement() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, categoryFilter, pageSize]);
+
+  const categoryOptions = useMemo(
+    () => categories.map((category) => ({ value: category.id, label: category.title })),
+    [categories]
+  );
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [subRes, catRes] = await Promise.all([
-        getAllSubjects(),
-        getAllCategories(1, 100)
-      ]);
-      setSubjects(subRes.data || []);
-      setCategories(catRes.data?.pageList || []);
+      const [subjectResponse, categoryResponse] = await Promise.all([getAllSubjects(), getAllCategories(1, 1000)]);
+      setSubjects(subjectResponse.data || subjectResponse || []);
+      setCategories(categoryResponse.data?.pageList || []);
     } catch (err) {
       console.error(err);
-      message.error("Lỗi khi tải dữ liệu");
+      message.error(t("adminCatalog.messages.loadSubjectsFailed"));
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredSubjects = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    return subjects.filter((subject) => {
+      const matchesSearch =
+        !keyword ||
+        [subject.title, subject.description, subject.categoryTitle]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(keyword));
+      const matchesCategory = !categoryFilter || subject.categoryId === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [subjects, searchQuery, categoryFilter]);
+
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredSubjects.slice(start, start + pageSize);
+  }, [filteredSubjects, page, pageSize]);
 
   const handleOpenCreateModal = () => {
     setModalMode("create");
@@ -75,78 +99,87 @@ export default function AdminSubjectManagement() {
     try {
       if (modalMode === "create") {
         await createSubject(values);
-        message.success("Tạo môn học thành công");
+        message.success(t("adminCatalog.messages.subjectCreated"));
       } else {
         await updateSubject(selectedSubject.id, values);
-        message.success("Cập nhật môn học thành công");
+        message.success(t("adminCatalog.messages.subjectUpdated"));
       }
       setModalOpen(false);
       fetchData();
     } catch (err) {
-      message.error(err.message || "Lỗi khi lưu môn học");
+      message.error(err?.response?.data?.message || err.message || t("adminCatalog.messages.saveSubjectFailed"));
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await deleteSubject(id);
-      message.success("Xóa môn học thành công");
+      message.success(t("adminCatalog.messages.subjectDeleted"));
       fetchData();
     } catch (err) {
-      message.error("Lỗi khi xóa môn học");
+      message.error(err?.response?.data?.message || t("adminCatalog.messages.deleteSubjectFailed"));
     }
   };
 
-  const filteredSubjects = subjects.filter(s => {
-    const matchesSearch = s.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !categoryFilter || s.categoryId === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
-
   const columns = [
     {
-      title: "STT",
+      title: t("adminCatalog.columns.index"),
       key: "index",
-      width: 60,
-      render: (_, __, index) => index + 1,
+      width: 80,
+      render: (_, __, index) => (page - 1) * pageSize + index + 1,
     },
     {
-      title: "Tên môn học",
+      title: t("adminCatalog.columns.subjectTitle"),
       dataIndex: "title",
       key: "title",
-      render: (text) => <span className="font-semibold text-primary">{text}</span>,
-    },
-    {
-      title: "Danh mục",
-      dataIndex: "categoryTitle",
-      key: "categoryTitle",
-      render: (text) => <Tag color="blue">{text || "Không có"}</Tag>,
-    },
-    {
-      title: "Mô tả",
-      dataIndex: "description",
-      key: "description",
-      ellipsis: true,
-    },
-    {
-      title: "Hành động",
-      key: "action",
-      width: 120,
       render: (_, record) => (
-        <div className="flex gap-2">
-          <button onClick={() => handleOpenEditModal(record)} className="p-1 text-slate-500 hover:text-primary transition-colors">
-            <PencilIcon className="h-4 w-4" />
-          </button>
-          <Popconfirm
-            title="Xóa môn học?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
-            okButtonProps={{ danger: true }}
+        <div className="min-w-0">
+          <div className="truncate font-semibold text-slate-900 dark:text-white" title={record.title}>
+            {record.title}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+            <span className="shrink-0">{t("adminCatalog.columns.category")}:</span>
+            {record.categoryTitle ? (
+              <span className="truncate" title={record.categoryTitle}>
+                {record.categoryTitle}
+              </span>
+            ) : (
+              <span>{t("adminCatalog.empty.noCategory")}</span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: t("adminCatalog.columns.action"),
+      key: "action",
+      width: 150,
+      align: "right",
+      render: (_, record) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            type="text"
+            size="small"
+            className="!inline-flex !h-8 !items-center !justify-center !rounded-md !border !border-slate-300 !bg-white !px-3 !text-slate-700 hover:!border-slate-400 hover:!bg-slate-50 hover:!text-slate-900 dark:!border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!border-slate-500 dark:hover:!bg-slate-700 dark:hover:!text-white"
+            onClick={() => handleOpenEditModal(record)}
           >
-            <button className="p-1 text-red-500 hover:text-red-700 transition-colors">
-              <TrashIcon className="h-4 w-4" />
-            </button>
+            {t("adminCatalog.actions.edit")}
+          </Button>
+          <Popconfirm
+            title={t("adminCatalog.confirm.deleteSubjectTitle")}
+            description={t("adminCatalog.confirm.deleteSubjectDescription")}
+            okText={t("adminCatalog.actions.delete")}
+            cancelText={t("adminCatalog.actions.cancel")}
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleDelete(record.id)}
+          >
+            <Button
+              type="text"
+              size="small"
+              className="!inline-flex !h-8 !items-center !justify-center !rounded-md !border !border-red-300 !bg-white !px-3 !text-red-600 hover:!border-red-400 hover:!bg-red-50 hover:!text-red-700 dark:!border-red-900/60 dark:!bg-slate-800 dark:!text-red-300 dark:hover:!border-red-700 dark:hover:!bg-red-950/40 dark:hover:!text-red-200"
+            >
+              {t("adminCatalog.actions.delete")}
+            </Button>
           </Popconfirm>
         </div>
       ),
@@ -154,62 +187,93 @@ export default function AdminSubjectManagement() {
   ];
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="min-h-screen bg-slate-50 dark:bg-background-dark">
       <TeacherHeader />
       <AdminSidebar />
-      <main className={`pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"}`}>
-        <div className="mx-auto max-w-7xl">
-          <div className="flex flex-wrap mt-3 items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Quản lý Môn học</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý các môn học và phân loại theo danh mục</p>
-            </div>
-            <button
-              onClick={handleOpenCreateModal}
-              className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-bold hover:bg-primary/90 transition-colors"
-            >
-              <PlusCircleIcon className="h-5 w-5" />
-              Tạo môn học mới
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="md:col-span-2 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-slate-400" />
+      <main
+        className={`px-4 pb-8 pt-16 transition-all duration-300 sm:px-6 lg:px-8 ${
+          sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+        }`}
+      >
+        <div className="mx-auto mt-3 max-w-7xl">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+              <div>
+                <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
+                  {t("adminCatalog.subjects.title")}
+                </h1>
+                <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {t("adminCatalog.subjects.subtitle")}
+                </p>
               </div>
-              <input
-                type="text"
-                placeholder="Tìm kiếm môn học..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary h-[40px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+              <Button type="primary" onClick={handleOpenCreateModal}>
+                {t("adminCatalog.subjects.create")}
+              </Button>
+            </div>
+
+            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+                <Input.Search
+                  allowClear
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder={t("adminCatalog.subjects.searchPlaceholder")}
+                  className="md:col-span-7"
+                />
+                <Select
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  placeholder={t("adminCatalog.subjects.categoryFilterPlaceholder")}
+                  options={categoryOptions}
+                  className="md:col-span-5"
+                />
+              </div>
+            </div>
+
+            <div className="px-5 py-4 sm:px-6">
+              <Table
+                columns={columns}
+                dataSource={pageItems}
+                rowKey="id"
+                loading={loading}
+                pagination={false}
+                tableLayout="fixed"
+                locale={{
+                  emptyText: <Empty description={t("adminCatalog.empty.subjects")} />,
+                }}
+                scroll={{ x: 840 }}
               />
             </div>
-            <Select
-              placeholder="Lọc theo danh mục"
-              allowClear
-              className="w-full h-[40px]"
-              onChange={setCategoryFilter}
-              options={categories.map(c => ({ value: c.id, label: c.title }))}
-            />
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-            <Table
-              columns={columns}
-              dataSource={filteredSubjects}
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-              className="dark:text-white"
-            />
+            {!loading && filteredSubjects.length > 0 && (
+              <DataPaginationFooter
+                currentPage={page}
+                pageSize={pageSize}
+                total={filteredSubjects.length}
+                totalLabel={t("adminCatalog.pagination.total", { count: filteredSubjects.length })}
+                pageSizeLabel={t("adminCatalog.pagination.pageSize")}
+                rangeLabel={t("adminCatalog.pagination.range", {
+                  start: (page - 1) * pageSize + 1,
+                  end: Math.min(page * pageSize, filteredSubjects.length),
+                })}
+                onPageChange={setPage}
+                onPageSizeChange={(nextSize) => {
+                  setPageSize(nextSize);
+                  setPage(1);
+                }}
+              />
+            )}
           </div>
         </div>
       </main>
 
       <Modal
-        title={modalMode === "create" ? "Tạo môn học mới" : "Chỉnh sửa môn học"}
+        title={
+          modalMode === "create" ? t("adminCatalog.subjects.createModalTitle") : t("adminCatalog.subjects.editModalTitle")
+        }
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         footer={null}
@@ -217,31 +281,31 @@ export default function AdminSubjectManagement() {
       >
         <Form form={form} layout="vertical" onFinish={handleSave} className="mt-4">
           <Form.Item
-            label="Tên môn học"
+            label={t("adminCatalog.fields.subjectTitle")}
             name="title"
-            rules={[{ required: true, message: "Vui lòng nhập tên môn học" }]}
+            rules={[{ required: true, message: t("adminCatalog.validation.subjectRequired") }]}
           >
-            <Input placeholder="Ví dụ: Java Web Development" />
+            <Input placeholder={t("adminCatalog.subjects.titlePlaceholder")} />
           </Form.Item>
           <Form.Item
-            label="Danh mục chủ quản"
+            label={t("adminCatalog.fields.category")}
             name="categoryId"
-            rules={[{ required: true, message: "Vui lòng chọn danh mục" }]}
+            rules={[{ required: true, message: t("adminCatalog.validation.categoryRequired") }]}
           >
             <Select
-              placeholder="Chọn danh mục"
+              placeholder={t("adminCatalog.subjects.categoryPlaceholder")}
               showSearch
               optionFilterProp="label"
-              options={categories.map(c => ({ value: c.id, label: c.title }))}
+              options={categoryOptions}
             />
           </Form.Item>
-          <Form.Item label="Mô tả" name="description">
-            <TextArea rows={4} placeholder="Nhập mô tả cho môn học" />
+          <Form.Item label={t("adminCatalog.fields.description")} name="description">
+            <TextArea rows={4} placeholder={t("adminCatalog.subjects.descriptionPlaceholder")} />
           </Form.Item>
-          <div className="flex justify-end gap-2 mt-6">
-            <Button onClick={() => setModalOpen(false)}>Hủy</Button>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button onClick={() => setModalOpen(false)}>{t("adminCatalog.actions.cancel")}</Button>
             <Button type="primary" htmlType="submit">
-              {modalMode === "create" ? "Tạo mới" : "Lưu thay đổi"}
+              {modalMode === "create" ? t("adminCatalog.actions.create") : t("adminCatalog.actions.save")}
             </Button>
           </div>
         </Form>

@@ -193,6 +193,8 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
             <Select
               placeholder="Chọn một khóa học"
               value={selectedCourse}
+              showSearch
+              optionFilterProp="label"
               onChange={(value) => {
                 setSelectedCourse(value);
                 setSelectedStudents([]);

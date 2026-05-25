@@ -12,10 +12,12 @@ import { getClassSections, deleteClassSection } from "../../api/classSection";
 import { Spin, Alert, message } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import classPlaceholder from "../../assets/class_placeholder.png";
+import { useTranslation } from "react-i18next";
 
 export default function TeacherClassSections({ isAdmin = false }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const userRole = user?.role.toLowerCase();
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +84,7 @@ export default function TeacherClassSections({ isAdmin = false }) {
     },
     {
       key: "draft",
-      label: "Bản nháp",
+      label: t("teaching.status.private"),
       count: classSections?.filter((s) => s.status === "PRIVATE").length ?? 0,
     },
     {

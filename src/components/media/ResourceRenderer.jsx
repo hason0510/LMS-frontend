@@ -6,12 +6,13 @@ export default function ResourceRenderer({ resource, className = "", compact = f
   const { fileUrl, embedUrl, hlsUrl, mimeType, type, title } = resource;
   const wrapperClass = className || "mt-2";
   const mediaUrl = hlsUrl || fileUrl || embedUrl;
+  const iframeSrc = normalizeEmbedUrl(embedUrl);
 
-  if ((type === "LINK" || resource.source === "EMBED") && embedUrl) {
+  if (resource.source === "EMBED" && iframeSrc) {
     return (
       <div className={`${wrapperClass} overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900`}>
         <iframe
-          src={embedUrl}
+          src={iframeSrc}
           className="aspect-video w-full"
           allowFullScreen
           title={title || "embed"}
@@ -58,4 +59,23 @@ export default function ResourceRenderer({ resource, className = "", compact = f
       {title || mediaUrl}
     </a>
   );
+}
+
+function normalizeEmbedUrl(url) {
+  if (!url) return null;
+
+  const trimmed = String(url).trim();
+  const youtubeMatch = trimmed.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i
+  );
+  if (youtubeMatch) {
+    return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+  }
+
+  const vimeoMatch = trimmed.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+  if (vimeoMatch) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  }
+
+  return trimmed;
 }

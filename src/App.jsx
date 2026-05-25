@@ -33,7 +33,6 @@ import LectureDetail from "./pages/teacher/LectureDetail";
 import AssignmentDetail from "./pages/teacher/AssignmentDetail";
 import AssignmentSubmissions from "./pages/teacher/AssignmentSubmissions";
 import TeacherAssignmentsPage from "./pages/teacher/TeacherAssignmentsPage";
-import TeachingDashboard from "./pages/teaching/TeachingDashboard";
 import TeachingClasses from "./pages/teaching/TeachingClasses";
 import TeachingClassDetail from "./pages/teaching/TeachingClassDetail";
 import TeachingClassMediaPage from "./pages/teaching/TeachingClassMediaPage";
@@ -210,7 +209,7 @@ function AppContent() {
       {/* Teaching workspace for teacher/TA memberships */}
       <Route
         path="/teaching"
-        element={<ProtectedRoute element={<TeachingDashboard />} allowedRoles={["STUDENT"]} />}
+        element={<ProtectedRoute element={<Navigate to="/teaching/classes" replace />} allowedRoles={["STUDENT"]} />}
       />
       <Route
         path="/teaching/classes"

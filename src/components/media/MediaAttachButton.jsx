@@ -72,6 +72,17 @@ export default function MediaAttachButton({
     setTypeOpen(true);
   };
 
+  const handleDetach = () => {
+    Modal.confirm({
+      title: t("quizMedia.detachConfirmTitle"),
+      content: t("quizMedia.detachConfirmMessage"),
+      okText: t("quizMedia.detach"),
+      cancelText: t("quizMedia.cancel"),
+      okButtonProps: { danger: true },
+      onOk: () => onChange?.({ resourceId: null, resource: null }),
+    });
+  };
+
   const renderTrigger = () => {
     if (variant === "answer-image-frame") {
       return (
@@ -110,7 +121,7 @@ export default function MediaAttachButton({
               aria-label={t("quizMedia.remove")}
               onClick={(event) => {
                 event.stopPropagation();
-                onChange?.({ resourceId: null, resource: null });
+                handleDetach();
               }}
               className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-lg bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity hover:bg-slate-900 group-hover:opacity-100"
             >
@@ -160,7 +171,7 @@ export default function MediaAttachButton({
               aria-label={t("quizMedia.remove")}
               onClick={(event) => {
                 event.stopPropagation();
-                onChange?.({ resourceId: null, resource: null });
+                handleDetach();
               }}
               className="absolute -right-1.5 -top-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white shadow-sm transition-colors hover:bg-rose-600"
             >

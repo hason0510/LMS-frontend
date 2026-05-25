@@ -13,7 +13,8 @@ module.exports = {
         'card-dark': '#111827',
       },
       fontFamily: {
-        display: ['Lexend', 'ui-sans-serif', 'system-ui'],
+        // display: ['Lexend', 'ui-sans-serif', 'system-ui'],
+        display: ['Inter', 'ui-sans-serif', 'system-ui'],
       },
     },
   },

@@ -14,7 +14,8 @@ createRoot(document.getElementById('root')).render(
     <ConfigProvider
       theme={{
         token: {
-          fontFamily: "Lexend, ui-sans-serif, system-ui",
+          // fontFamily: "Lexend, ui-sans-serif, system-ui",
+          fontFamily: "Inter, ui-sans-serif, system-ui",
         },
       }}
     >

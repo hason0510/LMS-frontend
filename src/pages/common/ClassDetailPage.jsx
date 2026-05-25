@@ -358,7 +358,7 @@ export default function ClassSectionDetailPage() {
               {course.description ? (
                 <>
                   <p
-                    className={`text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap transition-all ${
+                    className={`text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words transition-all ${
                       !descExpanded ? "line-clamp-4" : ""
                     }`}
                   >
@@ -776,7 +776,7 @@ export default function ClassSectionDetailPage() {
           {course.description && (
             <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
               <p
-                className={`text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap transition-all ${
+                className={`text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words transition-all ${
                   !descExpanded ? "line-clamp-2" : ""
                 }`}
               >

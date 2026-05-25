@@ -7,8 +7,6 @@ import {
   AcademicCapIcon,
   UserGroupIcon,
   ChartBarIcon,
-  Cog6ToothIcon,
-  BellIcon,
   BookOpenIcon,
   RectangleGroupIcon,
   MegaphoneIcon,
@@ -93,7 +91,7 @@ export default function TeacherSidebar() {
         />
         <SidebarLink
           icon={<MegaphoneIcon className="h-6 w-6" />}
-          label="Announcements"
+          label={t("teacher.announcements")}
           active={currentPath.startsWith("/teacher/announcements")}
           to="/teacher/announcements"
           isCollapsed={isCollapsed}
@@ -112,6 +110,8 @@ export default function TeacherSidebar() {
           to="/teacher/report"
           isCollapsed={isCollapsed}
         />
+        {/*
+        Gốc:
         <SidebarLink
           icon={<BellIcon className="h-6 w-6" />}
           label={t("common.thongBao")}
@@ -133,6 +133,7 @@ export default function TeacherSidebar() {
           to="/teacher/settings"
           isCollapsed={isCollapsed}
         />
+        */}
       </nav>
     </aside>
   );

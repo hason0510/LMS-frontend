@@ -79,6 +79,8 @@ export default function ClassPeopleTab({ classSectionId }) {
         <Select
           value={status}
           onChange={setStatus}
+          showSearch
+          optionFilterProp="label"
           options={[
             { value: "ALL", label: t("teaching.people.filters.all") },
             { value: "APPROVED", label: t("teaching.people.filters.approved") },

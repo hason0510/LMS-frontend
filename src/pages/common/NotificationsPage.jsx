@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spin, Empty, Pagination, Button } from "antd";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import Header from "../../components/layout/Header";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -30,12 +28,11 @@ const formatNotificationTime = (timestamp) => {
   }
 };
 
-export default function NotificationsPage() {
+export default function NotificationsPage({ embedded = false }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
   const isAdmin = user?.role === "ADMIN";
-  const isStudent = user?.role === "STUDENT";
   const isTeacherOrAdmin = isTeacher || isAdmin;
 
   const [notifications, setNotifications] = useState([]);
@@ -105,19 +102,18 @@ export default function NotificationsPage() {
   const unreadCount = notifications?.filter((n) => !n.isRead && !n.readStatus).length;
 
   return (
-    <div className={`${isTeacherOrAdmin && "min-h-screen"} bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white`}>
-      {isTeacherOrAdmin && <TeacherHeader />}
+    <div className={`${isTeacherOrAdmin && !embedded ? "min-h-screen" : ""} ${embedded ? "bg-transparent" : "bg-background-light dark:bg-background-dark"} font-display text-[#111418] dark:text-white`}>
+      {isTeacherOrAdmin && !embedded && <TeacherHeader />}
       <div className="flex">
-        {isTeacher && <TeacherSidebar />}
-        {isAdmin && <AdminSidebar />}
-        {/* {!isTeacherOrAdmin && <Header />} */}
-        <main className={`flex-1 w-full ${isTeacherOrAdmin ? "mt-16 ml-20 lg:ml-64" : ""}`}>
-          <div className="px-4 sm:px-6 lg:px-8 py-8">
-            <div className="max-w-7xl mx-auto">
+        {isTeacher && !embedded && <TeacherSidebar />}
+        {isAdmin && !embedded && <AdminSidebar />}
+        <main className={`flex-1 w-full ${isTeacherOrAdmin && !embedded ? "mt-16 ml-20 lg:ml-64" : ""}`}>
+          <div className={embedded ? "py-0" : "px-4 py-8 sm:px-6 lg:px-8"}>
+            <div className={`${embedded ? "max-w-none" : "mx-auto max-w-7xl"}`}>
             {/* Header */}
             <div className="mb-6 flex items-center gap-4">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-[#111418] dark:text-white mb-2">
+                <h1 className={`${embedded ? "text-2xl sm:text-[2rem]" : "text-3xl"} mb-2 font-bold text-[#111418] dark:text-white`}>
                   Thông báo
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -171,7 +167,7 @@ export default function NotificationsPage() {
             {/* Notifications List */}
             {!loading && notifications.length > 0 && (
               <>
-                <div className="space-y-4 mb-6">
+                <div className="mb-6 space-y-4">
                   {paginatedNotifications.map((notification) => (
                     <div
                       key={notification.id}

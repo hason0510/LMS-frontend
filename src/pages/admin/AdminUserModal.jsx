@@ -171,6 +171,8 @@ export default function AdminUserModal({
               value={formData.role}
               onChange={(value) => handleChange("role", value)}
               disabled={mode === "view"}
+              showSearch
+              optionFilterProp="label"
               options={[
                 { label: "Sinh viên", value: "STUDENT" },
                 { label: "Giáo viên", value: "TEACHER" },
@@ -248,11 +250,13 @@ export default function AdminUserModal({
               <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Trạng thái</label>
               <Select
                 size="large"
-                className="w-full"
-                value={formData.status}
-                onChange={(value) => handleChange("status", value)}
-                disabled={mode === "view"}
-                options={[
+              className="w-full"
+              value={formData.status}
+              onChange={(value) => handleChange("status", value)}
+              disabled={mode === "view"}
+              showSearch
+              optionFilterProp="label"
+              options={[
                   { label: "Hoạt động", value: "active" },
                   { label: "Khóa tài khoản", value: "inactive" },
                 ]}

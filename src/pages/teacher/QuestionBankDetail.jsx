@@ -727,6 +727,8 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                       <Select
                         value={selectedMemberRole}
                         onChange={setSelectedMemberRole}
+                        showSearch
+                        optionFilterProp="label"
                         options={[
                           { value: "EDITOR", label: "EDITOR" },
                           { value: "VIEWER", label: "VIEWER" },

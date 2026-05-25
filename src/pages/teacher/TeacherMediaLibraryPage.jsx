@@ -32,8 +32,9 @@ export default function TeacherMediaLibraryPage() {
             <MediaLibraryPanel
               title={t("mediaManager.pages.personal.title")}
               subtitle={t("mediaManager.pages.personal.subtitle")}
-              scopeType="PRIVATE_USER"
+              fixedScope={false}
               createdByMe
+              ownerLibrary
               allowLinkCreate
             />
           </div>

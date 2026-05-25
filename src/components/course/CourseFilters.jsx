@@ -65,6 +65,8 @@ export default function CourseFilters({ onFilterChange }) {
               onChange={handleCategoryChange}
               style={{ width: '100%' }}
               className="w-full"
+              showSearch
+              optionFilterProp="label"
             />
           )}
         </div>

@@ -1,29 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Form, Input, Select, Spin, Alert, message } from "antd";
-import { useAuth } from "../../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { createTemplate, updateTemplate, getTemplateById } from "../../api/curriculumTemplate";
 import { getAllCategories } from "../../api/category";
-import { getSubjectsByCategory } from "../../api/subject";
-import { LoadingOutlined } from "@ant-design/icons";
+import { getAllSubjects } from "../../api/subject";
 
 const { TextArea } = Input;
-const whiteSpinner = <LoadingOutlined style={{ fontSize: 16, color: "#fff" }} spin />;
 
 export default function CreateCurriculumTemplate({ isAdmin = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const userRole = user?.role.toLowerCase();
+  const { t } = useTranslation();
   const isExisting = !!id;
 
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [subjectsLoading, setSubjectsLoading] = useState(false);
+  const [referenceLoading, setReferenceLoading] = useState(false);
   const [error, setError] = useState(null);
   const [categories, setCategories] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -39,50 +36,41 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
   }, []);
 
   useEffect(() => {
-    fetchCategories();
+    fetchReferenceData();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchReferenceData = async () => {
     try {
-      const res = await getAllCategories(1, 100);
+      setReferenceLoading(true);
+      const [categoryResponse, subjectResponse] = await Promise.all([
+        getAllCategories(1, 1000),
+        getAllSubjects(),
+      ]);
       setCategories(
-        res.data.pageList.map((cat) => ({
+        (categoryResponse.data?.pageList || []).map((cat) => ({
           value: cat.id,
           label: cat.title,
         }))
       );
-    } catch (err) {
-      console.error(err);
-      message.error("Không thể tải danh mục");
-    }
-  };
-
-  const handleCategoryChange = async (categoryId) => {
-    form.setFieldsValue({ subjectId: undefined });
-    if (categoryId) {
-      await fetchSubjectsByCategory(categoryId);
-    } else {
-      setSubjects([]);
-    }
-  };
-
-  const fetchSubjectsByCategory = async (categoryId) => {
-    try {
-      setSubjectsLoading(true);
-      const res = await getSubjectsByCategory(categoryId);
-      const subjectList = res.data || [];
       setSubjects(
-        subjectList.map((s) => ({
+        (subjectResponse.data || subjectResponse || []).map((s) => ({
           value: s.id,
           label: s.title,
+          categoryId: s.categoryId,
+          categoryTitle: s.categoryTitle,
         }))
       );
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải môn học của danh mục này");
+      message.error(t("curriculumTemplate.messages.loadReferencesFailed"));
     } finally {
-      setSubjectsLoading(false);
+      setReferenceLoading(false);
     }
+  };
+
+  const handleSubjectChange = (subjectId) => {
+    const selectedSubject = subjects.find((subject) => subject.value === subjectId);
+    form.setFieldsValue({ categoryId: selectedSubject?.categoryId });
   };
 
   useEffect(() => {
@@ -98,13 +86,9 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
             categoryId: data.categoryId,
             subjectId: data.subjectId,
           });
-
-          if (data.categoryId) {
-            await fetchSubjectsByCategory(data.categoryId);
-          }
         } catch (err) {
           console.error(err);
-          message.error("Không thể tải thông tin curriculum template");
+          message.error(t("curriculumTemplate.messages.loadTemplateFailed"));
         } finally {
           setLoading(false);
         }
@@ -125,7 +109,7 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
           subjectId: values.subjectId,
           isDefault: true,
         });
-        message.success("Cập nhật template thành công");
+        message.success(t("curriculumTemplate.messages.updated"));
         navigate(`${basePath}/curriculums/${id}`);
       } else {
         const newTemplate = await createTemplate({
@@ -134,11 +118,11 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
           subjectId: values.subjectId,
           isDefault: true,
         });
-        message.success("Tạo template thành công! Hãy thêm chương học.");
+        message.success(t("curriculumTemplate.messages.created"));
         navigate(`${basePath}/curriculums/${newTemplate.id}`);
       }
     } catch (err) {
-      setError(err.message || "Có lỗi xảy ra");
+      setError(err.message || t("curriculumTemplate.messages.saveFailed"));
     } finally {
       setLoading(false);
     }
@@ -153,7 +137,7 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
           <div className="max-w-4xl mx-auto px-6 py-8">
             <header className="mb-8 flex justify-between items-center">
               <h1 className="text-3xl font-bold">
-                {isExisting ? "Chi tiết Curriculum Template" : "Tạo Curriculum Template mới"}
+                {isExisting ? t("curriculumTemplate.detailTitle") : t("curriculumTemplate.createTitle")}
               </h1>
               {isExisting && !isEditMode && (
                 <button
@@ -161,12 +145,12 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
                   className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg"
                 >
                   <PencilSquareIcon className="w-5 h-5" />
-                  Chỉnh sửa
+                  {t("curriculumTemplate.actions.edit")}
                 </button>
               )}
             </header>
 
-            {error && <Alert type="error" title="Lỗi" description={error} showIcon className="mb-6" />}
+            {error && <Alert type="error" title={t("curriculumTemplate.errorTitle")} description={error} showIcon className="mb-6" />}
 
             <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm">
               <Form
@@ -178,49 +162,49 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
               >
                 <div className="space-y-6">
                   <Form.Item
-                    label="Tên chương trình học (Template Name)"
+                    label={t("curriculumTemplate.fields.name")}
                     name="name"
-                    rules={[{ required: true, message: "Vui lòng nhập tên template" }]}
+                    rules={[{ required: true, message: t("curriculumTemplate.validation.nameRequired") }]}
                   >
-                    <Input placeholder="Ví dụ: Java Backend Development v1" className="h-[40px]" />
+                    <Input placeholder={t("curriculumTemplate.placeholders.name")} className="h-[40px]" />
                   </Form.Item>
 
                   <Form.Item
-                    label="Danh mục (Category)"
-                    name="categoryId"
-                    rules={[{ required: true, message: "Vui lòng chọn danh mục" }]}
-                  >
-                    <Select
-                      placeholder="Chọn danh mục"
-                      options={categories}
-                      onChange={handleCategoryChange}
-                      className="h-[40px]"
-                      showSearch
-                      optionFilterProp="label"
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    label="Môn học (Subject)"
+                    label={t("curriculumTemplate.fields.subject")}
                     name="subjectId"
-                    rules={[{ required: true, message: "Vui lòng chọn môn học" }]}
+                    rules={[{ required: true, message: t("curriculumTemplate.validation.subjectRequired") }]}
                   >
                     <Select
-                      placeholder={form.getFieldValue("categoryId") ? "Chọn môn học" : "Vui lòng chọn danh mục trước"}
+                      placeholder={t("curriculumTemplate.placeholders.subject")}
                       options={subjects}
                       className="h-[40px]"
-                      loading={subjectsLoading}
-                      disabled={!form.getFieldValue("categoryId")}
+                      loading={referenceLoading}
+                      onChange={handleSubjectChange}
                       showSearch
                       optionFilterProp="label"
                     />
                   </Form.Item>
 
                   <Form.Item
-                    label="Mô tả"
+                    label={t("curriculumTemplate.fields.category")}
+                    name="categoryId"
+                    rules={[{ required: true, message: t("curriculumTemplate.validation.categoryRequired") }]}
+                  >
+                    <Select
+                      placeholder={t("curriculumTemplate.placeholders.categoryAuto")}
+                      options={categories}
+                      className="h-[40px]"
+                      disabled
+                      showSearch
+                      optionFilterProp="label"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    label={t("curriculumTemplate.fields.description")}
                     name="description"
                   >
-                    <TextArea rows={6} placeholder="Nhập mô tả chi tiết..." />
+                    <TextArea rows={6} placeholder={t("curriculumTemplate.placeholders.description")} />
                   </Form.Item>
                 </div>
 
@@ -228,13 +212,13 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
                   <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
                     <button
                       type="button"
-                      onClick={() => navigate(`/${userRole}/curriculums`)}
+                      onClick={() => navigate(`${basePath}/curriculums`)}
                       className="px-6 py-2 rounded-lg bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-200"
                     >
-                      Hủy
+                      {t("curriculumTemplate.actions.cancel")}
                     </button>
                     <button type="submit" className="px-6 py-2 rounded-lg bg-primary text-white" disabled={loading}>
-                      {loading ? <Spin size="small" /> : isExisting ? "Cập nhật" : "Tạo mới"}
+                      {loading ? <Spin size="small" /> : isExisting ? t("curriculumTemplate.actions.update") : t("curriculumTemplate.actions.create")}
                     </button>
                   </div>
                 )}
@@ -245,14 +229,14 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
             {isExisting && (
               <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/40 flex items-center justify-between">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Quản lý chương và nội dung học tập của template này.
+                  {t("curriculumTemplate.contentHint")}
                 </p>
                 <button
                   type="button"
                   onClick={() => navigate(`${basePath}/curriculums/${id}`)}
                   className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Xem nội dung →
+                  {t("curriculumTemplate.actions.viewContent")}
                 </button>
               </div>
             )}

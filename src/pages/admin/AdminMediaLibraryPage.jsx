@@ -16,7 +16,6 @@ export default function AdminMediaLibraryPage() {
           <MediaLibraryPanel
             title={t("mediaManager.pages.admin.title")}
             subtitle={t("mediaManager.pages.admin.subtitle")}
-            scopeType="INSTITUTION_SHARED"
             fixedScope={false}
             allowLinkCreate
             governance

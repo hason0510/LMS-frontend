@@ -24,7 +24,7 @@ const POLICY_TYPE = {
 const PAGE_SIZE = 24;
 
 const normalizeUploadResponse = (response) => {
-  const payload = response?.data ?? response ?? {};
+  const payload = response ?? {};
   const id = payload.resourceId ?? payload.id;
   return {
     id,
@@ -36,22 +36,6 @@ const normalizeUploadResponse = (response) => {
     type: payload.type,
     source: "UPLOAD",
   };
-};
-
-const getResourceList = (response) => {
-  const payload = response?.data ?? response;
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.pageList)) return payload.pageList;
-  if (Array.isArray(payload?.content)) return payload.content;
-  return [];
-};
-
-const getPaginationMeta = (response) => {
-  const payload = response?.data ?? response;
-  if (payload && typeof payload.currentPage === "number" && typeof payload.totalPage === "number") {
-    return { currentPage: payload.currentPage, totalPage: payload.totalPage, totalElements: payload.totalElements };
-  }
-  return null;
 };
 
 const getExtension = (fileName = "") => {
@@ -160,6 +144,8 @@ export default function MediaPickerModal({
       pageNumber,
       pageSize: PAGE_SIZE,
       sortBy,
+      ownerLibrary: true,
+      includeCurrentScope: Boolean(scopedParams.scopeType && scopedParams.scopeId),
       ...scopedParams,
     };
     if (acceptedTypes.length === 1) {
@@ -169,15 +155,13 @@ export default function MediaPickerModal({
       params.search = deferredSearch.trim();
     }
 
-    const response = await getResourcePage(params);
-    const nextItems = getResourceList(response);
-    const meta = getPaginationMeta(response);
+    const page = await getResourcePage(params);
     setPagination({
-      currentPage: meta?.currentPage || pageNumber,
-      totalPage: meta?.totalPage || pageNumber,
-      totalElements: meta?.totalElements || nextItems.length,
+      currentPage: page.currentPage || pageNumber,
+      totalPage: page.totalPage || pageNumber,
+      totalElements: page.totalElements || 0,
     });
-    setResources((prev) => (append ? [...prev, ...nextItems] : nextItems));
+    setResources((prev) => (append ? [...prev, ...page.items] : page.items));
   };
 
   useEffect(() => {
@@ -192,7 +176,7 @@ export default function MediaPickerModal({
   useEffect(() => {
     if (!open) return;
     getResourceUploadPolicy()
-      .then((policy) => setUploadPolicy(policy?.data ?? policy))
+      .then((policy) => setUploadPolicy(policy))
       .catch(() => setUploadPolicy(null));
   }, [open]);
 
@@ -241,7 +225,7 @@ export default function MediaPickerModal({
     const payload = {
       title: customTitle?.trim() || null,
       type: mediaType,
-      source: "UPLOAD",
+      source: "LINK",
       fileUrl: trimmed,
       ...scopedParams,
     };
@@ -300,8 +284,7 @@ export default function MediaPickerModal({
 
     setCreatingLink(true);
     try {
-      const created = await createStandaloneResource(payload);
-      const item = created?.data ?? created;
+      const item = await createStandaloneResource(payload);
       setResources((prev) => [item, ...prev]);
       onSelect(item);
       message.success(t("quizMedia.attachSuccess"));
@@ -352,6 +335,8 @@ export default function MediaPickerModal({
             <Select
               value={videoSource}
               onChange={setVideoSource}
+              showSearch
+              optionFilterProp="label"
               options={[
                 { value: "MP4", label: t("quizMedia.videoSources.MP4") },
                 { value: "YOUTUBE", label: t("quizMedia.videoSources.YOUTUBE") },
@@ -392,6 +377,8 @@ export default function MediaPickerModal({
           value={sortBy}
           onChange={setSortBy}
           className="w-40"
+          showSearch
+          optionFilterProp="label"
           options={[
             { value: "date", label: t("quizMedia.byDate") },
             { value: "name", label: t("quizMedia.byName") },

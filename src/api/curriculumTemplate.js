@@ -1,14 +1,5 @@
 import axiosClient from "./axiosClient";
-
-const unwrapPayload = (response) => response?.data?.data ?? response?.data;
-
-const unwrapArrayPayload = (response) => {
-  const payload = unwrapPayload(response);
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.content)) return payload.content;
-  if (Array.isArray(payload?.pageList)) return payload.pageList;
-  return [];
-};
+import { unwrapListPayload, unwrapPayload } from "./responseAdapter";
 
 // ==========================================
 // Curriculum Template Endpoints
@@ -20,8 +11,7 @@ export const createTemplate = async (templateData) => {
 };
 
 export const deleteTemplate = async (id) => {
-  const response = await axiosClient.delete(`curriculum-templates/${id}`);
-  return response.data;
+  await axiosClient.delete(`curriculum-templates/${id}`);
 };
 
 export const updateTemplate = async (id, templateData) => {
@@ -38,7 +28,7 @@ export const getTemplates = async (params) => {
   const response = await axiosClient.get('curriculum-templates', {
     params,
   });
-  return unwrapArrayPayload(response);
+  return unwrapListPayload(response);
 };
 
 // ==========================================
@@ -47,17 +37,16 @@ export const getTemplates = async (params) => {
 
 export const createChapterTemplate = async (templateId, data) => {
   const response = await axiosClient.post(`curriculum-templates/${templateId}/chapters`, data);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const updateChapterTemplate = async (templateId, chapterId, data) => {
   const response = await axiosClient.put(`curriculum-templates/${templateId}/chapters/${chapterId}`, data);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const deleteChapterTemplate = async (templateId, chapterId) => {
-  const response = await axiosClient.delete(`curriculum-templates/${templateId}/chapters/${chapterId}`);
-  return response.data;
+  await axiosClient.delete(`curriculum-templates/${templateId}/chapters/${chapterId}`);
 };
 
 // ==========================================
@@ -66,17 +55,16 @@ export const deleteChapterTemplate = async (templateId, chapterId) => {
 
 export const createContentItemTemplate = async (templateId, chapterId, data) => {
   const response = await axiosClient.post(`curriculum-templates/${templateId}/chapters/${chapterId}/content-items`, data);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const updateContentItemTemplate = async (templateId, chapterId, contentItemId, data) => {
   const response = await axiosClient.put(`curriculum-templates/${templateId}/chapters/${chapterId}/content-items/${contentItemId}`, data);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const deleteContentItemTemplate = async (templateId, chapterId, contentItemId) => {
-  const response = await axiosClient.delete(`curriculum-templates/${templateId}/chapters/${chapterId}/content-items/${contentItemId}`);
-  return response.data;
+  await axiosClient.delete(`curriculum-templates/${templateId}/chapters/${chapterId}/content-items/${contentItemId}`);
 };
 
 // ==========================================
@@ -85,17 +73,17 @@ export const deleteContentItemTemplate = async (templateId, chapterId, contentIt
 
 export const createLessonTemplate = async (data) => {
   const response = await axiosClient.post('curriculum-templates/lesson-templates', data);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const getLessonTemplateById = async (id) => {
   const response = await axiosClient.get(`curriculum-templates/lesson-templates/${id}`);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const updateLessonTemplate = async (id, data) => {
   const response = await axiosClient.put(`curriculum-templates/lesson-templates/${id}`, data);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 // ==========================================
@@ -104,22 +92,22 @@ export const updateLessonTemplate = async (id, data) => {
 
 export const createQuizTemplate = async (data) => {
   const response = await axiosClient.post('curriculum-templates/quiz-templates', data);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const getQuizTemplateById = async (id) => {
   const response = await axiosClient.get(`curriculum-templates/quiz-templates/${id}`);
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const getQuizTemplatePreviewSample = async (id, seed) => {
   const response = await axiosClient.get(`curriculum-templates/quiz-templates/${id}/preview-sample`, {
     params: seed == null ? {} : { seed },
   });
-  return response.data;
+  return unwrapPayload(response);
 };
 
 export const updateQuizTemplate = async (id, data) => {
   const response = await axiosClient.put(`curriculum-templates/quiz-templates/${id}`, data);
-  return response.data;
+  return unwrapPayload(response);
 };

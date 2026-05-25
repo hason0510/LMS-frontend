@@ -290,7 +290,12 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
           ) : (
             <>
               <Button type="text" icon={<EyeOutlined />} className="dark:text-gray-400 hover:text-blue-500" onClick={() => handleViewDetail(record)} />
-              <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDeleteSingle(record)} />
+              <Button
+                type="text"
+                icon={<DeleteOutlined />}
+                className="!text-red-600 hover:!text-red-700"
+                onClick={() => handleDeleteSingle(record)}
+              />
             </>
           )}
         </Space>
@@ -313,6 +318,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
               <Space>
                 {selectedRows.length > 0 && (
                   <Button 
+                    type="primary"
                     danger
                     size="large" 
                     icon={<DeleteOutlined />}
@@ -349,12 +355,14 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Lớp học</p>
                   <Select
-                    placeholder="Tất cả lớp học"
-                    className="w-full h-11"
-                    status="primary"
-                    value={classFilter || undefined}
-                    onChange={setClassFilter}
-                    options={[
+                  placeholder="Tất cả lớp học"
+                  className="w-full h-11"
+                  status="primary"
+                  value={classFilter || undefined}
+                  onChange={setClassFilter}
+                  showSearch
+                  optionFilterProp="label"
+                  options={[
                       { label: "Tất cả lớp học", value: "" },
                       ...classes.map(c => ({ label: c.name, value: c.id }))
                     ]}
@@ -363,11 +371,13 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Trạng thái</p>
                   <Select
-                    placeholder="Tất cả trạng thái"
-                    className="w-full h-11"
-                    value={statusFilter || undefined}
-                    onChange={setStatusFilter}
-                    options={[
+                  placeholder="Tất cả trạng thái"
+                  className="w-full h-11"
+                  value={statusFilter || undefined}
+                  onChange={setStatusFilter}
+                  showSearch
+                  optionFilterProp="label"
+                  options={[
                       { label: "Tất cả trạng thái", value: "" },
                       { label: "Chờ duyệt", value: "PENDING" },
                       { label: "Đã duyệt", value: "APPROVED" },

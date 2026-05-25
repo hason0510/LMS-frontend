@@ -59,6 +59,96 @@
     "danhGia": "Rating",
     "apDungBoLoc": "Apply Filters"
   },
+  "classesPage": {
+    "title": "Classes",
+    "subtitle": "Separate your enrolled classes from public classes so search, progress tracking, and joining stay clear.",
+    "sectionCount": "{{count}} classes",
+    "teacher": {
+      "title": "Class List",
+      "subtitle": "Manage and review all class sections in the system."
+    },
+    "myClasses": {
+      "title": "My Classes",
+      "subtitle": "Track active classes, enrollment status, and your current progress."
+    },
+    "publicClasses": {
+      "title": "Public Classes",
+      "subtitle": "Explore public classes and join immediately without approval."
+    },
+    "joinBanner": {
+      "title": "Join a private class by code",
+      "subtitle": "Enter a class code to preview the class before you send a join request.",
+      "description": "For public classes, you can join directly from the list below or use a code if the teacher shares one.",
+      "placeholder": "Example: EGQ6EA"
+    },
+    "filters": {
+      "keywordPlaceholder": "Search by class name, subject, teacher...",
+      "category": "Category",
+      "teacher": "Teacher",
+      "subject": "Subject code",
+      "status": "Class status",
+      "showAdvanced": "Advanced search",
+      "hideAdvanced": "Hide filters",
+      "reset": "Reset",
+      "publicScopeHint": "Public classes always use Public status."
+    },
+    "sort": {
+      "createdAsc": "Oldest first",
+      "createdDesc": "Newest first",
+      "startAsc": "Earliest start date",
+      "titleAsc": "Class name A - Z"
+    },
+    "status": {
+      "public": "Public",
+      "private": "Private",
+      "archived": "Archived"
+    },
+    "enrollment": {
+      "approved": "Active",
+      "pending": "Pending"
+    },
+    "card": {
+      "classSection": "Class",
+      "noTeacher": "No teacher assigned",
+      "classCode": "Class code: {{code}}",
+      "students": "{{count}} students",
+      "progress": "Current progress",
+      "pendingApproval": "Pending approval",
+      "noSchedule": "No schedule yet",
+      "from": "From",
+      "until": "Until"
+    },
+    "actions": {
+      "openClass": "Open class",
+      "viewDetails": "Details",
+      "joinClass": "Join",
+      "joinNow": "Join now",
+      "previewJoin": "Join",
+      "sendJoinRequest": "Send request",
+      "alreadyJoined": "Already joined",
+      "pendingJoined": "Request pending"
+    },
+    "pagination": {
+      "total": "Total: {{count}}",
+      "pageSize": "Rows per page",
+      "range": "{{start}} - {{end}}"
+    },
+    "empty": {
+      "myClasses": "No classes match your current filters.",
+      "publicClasses": "No public classes match your current filters."
+    },
+    "messages": {
+      "loadMyFailed": "Could not load your classes.",
+      "loadPublicFailed": "Could not load public classes.",
+      "previewFailed": "Could not preview this class code.",
+      "joinFailed": "Could not join the class.",
+      "joinRequestSent": "Join request sent successfully.",
+      "joinedPublic": "Joined the public class successfully."
+    },
+    "modal": {
+      "students": "{{count}} members"
+    }
+  },
   "notifications": {
     "thongBao": "Notifications",
     "banCo": "You have",
@@ -75,16 +165,26 @@
   "profile": {
     "thongTinCaNhan": "Personal Information",
     "capNhatThongTin": "Update your personal information here.",
+    "thongTinCoBan": "Basic Information",
+    "thongTinHocTap": "Academic Information",
+    "thongTinLienHe": "Contact Information",
     "hoVaTen": "Full Name",
     "nhapHoVaTen": "Enter your full name",
     "email": "Email",
     "nhapEmail": "Enter your email",
+    "tenDangNhap": "Username",
     "soDienThoai": "Phone Number",
     "nhapSoDienThoai": "Enter your phone number",
     "ngaySinh": "Date of Birth",
     "chonNgaySinh": "Select your date of birth",
     "diaChi": "Address",
     "nhapDiaChi": "Enter your address",
+    "anhDaiDien": "Avatar",
+    "nhapMaSinhVien": "Enter student ID",
+    "taiAnhLen": "Upload",
+    "danLinkAnh": "Image link",
+    "danLinkAnhDaiDien": "Paste avatar image URL",
+    "capNhatAnhDaiDien": "Upload a new image or use a public image URL. The avatar will update right after you save.",
     "chinhSua": "Edit",
     "capNhatThanhCong": "Information updated successfully!",
     "capNhatThatBai": "Update failed. Please try again.",
@@ -186,7 +286,8 @@
     "tongQuan": "Dashboard",
     "chuongTrinhHoc": "Curriculum",
     "lopHoc": "Class Sections",
-    "assignments": "Assignments",
+    "assignments": "Assignment Management",
+    "announcements": "Announcements",
     "nganHangCauHoi": "Question Bank",
     "quanLyMedia": "Media Management",
     "quanLyKhoaHoc": "Manage Courses",
@@ -200,7 +301,10 @@
     "tongQuan": "Dashboard",
     "quanLyNguoiDung": "User Management",
     "quanLyLopHoc": "Class Sections",
-    "assignments": "Assignments",
+    "quanLyDanhMuc": "Category Management",
+    "quanLyMonHoc": "Subject Management",
+    "assignments": "Assignment Management",
+    "announcements": "Announcements",
     "quanLyKhoaHoc": "Course Management",
     "chuongTrinhHoc": "Curriculum",
     "nganHangCauHoi": "Question Bank",
@@ -210,15 +314,137 @@
     "hoSo": "Profile",
     "caiDat": "Settings"
   },
+  "adminCatalog": {
+    "categories": {
+      "title": "Category Management",
+      "subtitle": "Manage learning groups used to classify subjects and curriculum templates.",
+      "create": "Create category",
+      "searchPlaceholder": "Search by category name or description...",
+      "createModalTitle": "Create new category",
+      "editModalTitle": "Edit category",
+      "titlePlaceholder": "Example: Information Technology",
+      "descriptionPlaceholder": "Enter a category description"
+    },
+    "subjects": {
+      "title": "Subject Management",
+      "subtitle": "Manage subjects and link each subject to its owning category.",
+      "create": "Create subject",
+      "searchPlaceholder": "Search by name, description, or category...",
+      "categoryFilterPlaceholder": "Filter by category",
+      "createModalTitle": "Create new subject",
+      "editModalTitle": "Edit subject",
+      "titlePlaceholder": "Example: Java Web Development",
+      "categoryPlaceholder": "Select category",
+      "descriptionPlaceholder": "Enter a subject description"
+    },
+    "columns": {
+      "index": "No.",
+      "categoryTitle": "Category name",
+      "subjectTitle": "Subject name",
+      "category": "Category",
+      "description": "Description",
+      "action": "Actions"
+    },
+    "fields": {
+      "title": "Title",
+      "subjectTitle": "Subject name",
+      "category": "Owning category",
+      "description": "Description"
+    },
+    "actions": {
+      "create": "Create",
+      "save": "Save changes",
+      "edit": "Edit",
+      "delete": "Delete",
+      "more": "Actions",
+      "cancel": "Cancel"
+    },
+    "validation": {
+      "titleRequired": "Please enter a title",
+      "subjectRequired": "Please enter a subject name",
+      "categoryRequired": "Please select a category"
+    },
+    "confirm": {
+      "deleteCategoryTitle": "Delete category?",
+      "deleteCategoryDescription": "This action may affect subjects that belong to this category.",
+      "deleteSubjectTitle": "Delete subject?",
+      "deleteSubjectDescription": "This action will remove the subject from the system."
+    },
+    "empty": {
+      "categories": "No matching categories",
+      "subjects": "No matching subjects",
+      "noDescription": "No description",
+      "noCategory": "No category"
+    },
+    "pagination": {
+      "total": "Total: {{count}}",
+      "pageSize": "Rows per page",
+      "range": "{{start}} - {{end}}"
+    },
+    "messages": {
+      "loadCategoriesFailed": "Could not load categories",
+      "loadSubjectsFailed": "Could not load subjects",
+      "categoryCreated": "Category created successfully",
+      "categoryUpdated": "Category updated successfully",
+      "categoryDeleted": "Category deleted successfully",
+      "subjectCreated": "Subject created successfully",
+      "subjectUpdated": "Subject updated successfully",
+      "subjectDeleted": "Subject deleted successfully",
+      "saveCategoryFailed": "Could not save category",
+      "deleteCategoryFailed": "Could not delete category",
+      "saveSubjectFailed": "Could not save subject",
+      "deleteSubjectFailed": "Could not delete subject"
+    }
+  },
+  "curriculumTemplate": {
+    "createTitle": "Create new curriculum",
+    "detailTitle": "Curriculum details",
+    "errorTitle": "Error",
+    "contentHint": "Manage chapters and learning content for this curriculum.",
+    "fields": {
+      "name": "Curriculum name",
+      "subject": "Subject",
+      "category": "Category",
+      "description": "Description"
+    },
+    "placeholders": {
+      "name": "Example: Java Backend Development v1",
+      "subject": "Select subject",
+      "categoryAuto": "Category is filled from the selected subject",
+      "description": "Enter detailed description..."
+    },
+    "validation": {
+      "nameRequired": "Please enter a curriculum name",
+      "subjectRequired": "Please select a subject",
+      "categoryRequired": "This subject does not have a category"
+    },
+    "actions": {
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "viewContent": "View content"
+    },
+    "messages": {
+      "loadReferencesFailed": "Could not load categories and subjects",
+      "loadTemplateFailed": "Could not load curriculum information",
+      "created": "Curriculum created successfully. Add chapters next.",
+      "updated": "Curriculum updated successfully",
+      "saveFailed": "Something went wrong"
+    }
+  },
   "assignments": {
     "studentTitle": "Assignments",
-    "teacherTitle": "Assignment",
+    "studentSubtitle": "Track upcoming, overdue, and completed assignments.",
+    "teacherTitle": "Assignments",
+    "teacherSubtitle": "Manage assignments by class, due date, submission count, and grading status.",
     "searchPlaceholder": "Search by assignment title",
+    "classLabel": "Class",
     "classFilterPlaceholder": "Class",
     "allCourses": "All",
     "sortBy": "Sort By",
-    "sortDesc": "DESC",
-    "sortAsc": "ASC",
+    "sortDesc": "Newest",
+    "sortAsc": "Oldest",
     "dueDateFilter": "Due Date",
     "loadFailed": "Could not load assignments",
     "empty": "No matching assignments",
@@ -239,6 +465,19 @@
       "upcoming": "Upcoming",
       "pastDue": "Past due"
     },
+    "submissionStatus": {
+      "NOT_SUBMITTED": "Not submitted",
+      "SUBMITTED": "Submitted",
+      "LATE_SUBMITTED": "Submitted late",
+      "GRADED": "Graded",
+      "RETURNED": "Returned"
+    },
+    "metrics": {
+      "total": "Total assignments",
+      "submitted": "Submitted",
+      "pending": "Pending review",
+      "graded": "Graded"
+    },
     "table": {
       "assignment": "Assignment Name",
       "dueAt": "Due At",
@@ -248,6 +487,61 @@
       "submitted": "Submitted",
       "pending": "Pending Review",
       "status": "Status"
+    },
+    "pagination": {
+      "total": "Total: {{count}}",
+      "pageSize": "Rows per page",
+      "range": "{{start}} - {{end}}"
+    },
+    "submissions": {
+      "title": "Submissions: {{title}}",
+      "subtitle": "Track students, submission status, and grading or return actions.",
+      "backToContent": "Back to class content",
+      "backToAssignment": "Back to assignment",
+      "searchPlaceholder": "Search by student name, student number, or ID",
+      "empty": "No matching submissions",
+      "notSubmitted": "Not submitted",
+      "studentNumber": "Student ID",
+      "unknownStudent": "Student #{{id}}",
+      "filters": {
+        "allStatuses": "All statuses"
+      },
+      "metrics": {
+        "total": "Total students",
+        "submitted": "Submitted",
+        "pending": "Pending review",
+        "graded": "Graded"
+      },
+      "columns": {
+        "student": "Student",
+        "status": "Status",
+        "submittedAt": "Submitted at",
+        "grade": "Grade",
+        "action": "Action"
+      },
+      "actions": {
+        "gradeReturn": "Grade / Return",
+        "returnOnly": "Return without grade",
+        "saveGrade": "Save grade"
+      },
+      "modal": {
+        "title": "Grade / Return",
+        "content": "Submission content",
+        "attachments": "Attached files/links",
+        "grade": "Grade",
+        "feedback": "Feedback"
+      },
+      "errors": {
+        "inputGrade": "Please enter a score",
+        "inputFeedback": "Please provide feedback before returning",
+        "gradeFailed": "Unable to grade submission",
+        "returnFailed": "Unable to return submission"
+      },
+      "messages": {
+        "loadFailed": "Could not load submissions",
+        "graded": "Submission graded successfully",
+        "returned": "Submission returned to the student"
+      }
     }
   },
   "quizMedia": {
@@ -284,6 +578,12 @@
     "uploadImage": "Upload image",
     "changeImage": "Change image",
     "remove": "Remove",
+    "detach": "Detach media",
+    "cancel": "Cancel",
+    "detachConfirmTitle": "Detach this media?",
+    "detachConfirmMessage": "This only detaches media from the current question/answer. It is not deleted from the media library.",
+    "answerModeDetachTitle": "Switch to answers without images?",
+    "answerModeDetachMessage": "All current answer images will be detached from this question.",
     "types": {
       "IMAGE": "Image",
       "VIDEO": "Video",
@@ -304,14 +604,14 @@
   "mediaManager": {
     "uploadPolicy": "Upload limit: {{size}}. Allowed formats: {{extensions}}",
     "searchPlaceholder": "Search media",
-    "empty": "No media in this scope yet.",
+    "empty": "No media matches the current filters.",
     "untitled": "Untitled",
     "usedCount": "{{count}} uses",
     "pages": {
-      "personal": {
-        "title": "My media library",
-        "subtitle": "Your private media library for files you want to reuse in lessons, assignments, or quizzes."
-      },
+        "personal": {
+          "title": "My media library",
+          "subtitle": "A reusable library of media you created for lessons, assignments, quizzes, and question banks."
+        },
       "admin": {
         "title": "Media management",
         "subtitle": "Track media by scope, status, file type, and creator."
@@ -350,10 +650,11 @@
       "name": "Name",
       "size": "Size"
     },
-    "filters": {
-      "scope": "Scope",
-      "type": "Media type"
-    },
+      "filters": {
+        "scope": "Scope",
+        "type": "Media type",
+        "owner": "Creator"
+      },
     "stats": {
       "currentResult": "Current results",
       "visibleSize": "Visible size",
@@ -429,6 +730,7 @@
       "archiveSuccess": "Media archived",
       "restoreSuccess": "Media restored",
       "statusFailed": "Could not change media status",
+      "deleteConfirm": "Delete this media?",
       "deleteBlocked": "This media is still in use. Archive it instead of deleting it.",
       "deleteSuccess": "Media deleted",
       "deleteFailed": "Could not delete media"

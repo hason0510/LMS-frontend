@@ -233,6 +233,8 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
                     className="w-full"
                     value={filters.sort}
                     onChange={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
+                    showSearch
+                    optionFilterProp="label"
                     options={[
                       { value: "DESC", label: "DESC" },
                       { value: "ASC", label: "ASC" },

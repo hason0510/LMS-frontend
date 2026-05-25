@@ -24,6 +24,19 @@ const normalizeBasicUser = (loginData) => {
   };
 };
 
+const normalizeFullUser = (userData, fallbackUser = null) => {
+  if (!userData && !fallbackUser) return null;
+
+  return {
+    ...fallbackUser,
+    ...userData,
+    id: userData?.id || fallbackUser?.id,
+    userName: userData?.userName || fallbackUser?.userName || fallbackUser?.username,
+    username: userData?.userName || userData?.username || fallbackUser?.username || fallbackUser?.userName,
+    role: normalizeRole(userData?.roleName || userData?.role || fallbackUser?.role),
+  };
+};
+
 export function AuthProvider({ children }) {
   const { i18n } = useTranslation();
   const {
@@ -61,13 +74,7 @@ export function AuthProvider({ children }) {
       // Fetch full user data including imageUrl
       if (basicUser?.id) {
         const fullUserData = await getUserById(loginData.id);
-
-        const processedUser = {
-          ...fullUserData,
-          id: fullUserData.id || basicUser.id,
-          username: fullUserData.userName || basicUser.username,
-          role: normalizeRole(fullUserData.roleName || fullUserData.role || basicUser.role),
-        };
+        const processedUser = normalizeFullUser(fullUserData, basicUser);
 
         setUser(processedUser);
         return processedUser;

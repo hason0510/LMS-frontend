@@ -216,6 +216,8 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
               options={roleOptions}
               className="w-full sm:w-40 shrink-0"
               size="large"
+              showSearch
+              optionFilterProp="label"
             />
             <Button 
               type="primary" 
@@ -278,6 +280,8 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
                           className="w-36"
                           bordered={false}
                           style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
+                          showSearch
+                          optionFilterProp="label"
                         />
                         
                         {isTeacher ? (
