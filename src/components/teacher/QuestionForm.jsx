@@ -123,7 +123,7 @@ function OptionRow({
   const isSingle = isSingleSelectType(type);
 
   return (
-    <div className={`rounded-lg border transition-colors ${option.isCorrect ? "border-blue-300 bg-blue-50/40" : "border-gray-200 bg-white"}`}>
+    <div className={`rounded-lg border transition-colors ${option.isCorrect ? "border-blue-300 bg-blue-50/40 dark:border-blue-900/60 dark:bg-blue-950/20" : "border-gray-200 bg-white dark:border-gray-700 dark:bg-slate-900"}`}>
       <div className="flex items-center gap-2 px-3 py-2">
         <Input
           className="flex-1 border-none shadow-none bg-transparent text-sm"
@@ -156,7 +156,7 @@ function OptionRow({
         >
           <TrashIcon className="h-4 w-4" />
         </button>
-        <span className="text-xs text-gray-500 shrink-0">{t("quizBuilder.correct")}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{t("quizBuilder.correct")}</span>
         {isSingle ? (
           <Radio checked={option.isCorrect} onChange={() => onToggleCorrect(index)} />
         ) : (
@@ -164,7 +164,7 @@ function OptionRow({
         )}
       </div>
       {showExp && (
-        <div className="px-3 pb-2 border-t border-gray-100">
+        <div className="px-3 pb-2 border-t border-gray-100 dark:border-gray-700">
           <div className="flex items-start gap-2 mt-2">
             <TextArea
               autoSize={{ minRows: 1, maxRows: 3 }}
@@ -177,7 +177,7 @@ function OptionRow({
             />
             <button
               type="button"
-              className="text-gray-400 hover:text-gray-600 mt-1 shrink-0"
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 mt-1 shrink-0"
               onClick={() => { setShowExp(false); setExpVal(option.explanation || ""); }}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -189,7 +189,7 @@ function OptionRow({
       )}
       {isImageResource(option.resource) && (
         <div className="px-3 pb-3">
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
             <ResourceRenderer resource={option.resource} compact />
           </div>
         </div>
@@ -205,10 +205,10 @@ function SortableDragItem({ item, index, onChangeContent, onDelete, disableDelet
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white"
+      className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white dark:border-gray-700 dark:bg-slate-900"
     >
-      <span className="cursor-grab text-gray-300 select-none" {...attributes} {...listeners}>⋮⋮</span>
-      <span className="text-xs text-gray-400 w-5 shrink-0">{index + 1}.</span>
+      <span className="cursor-grab text-gray-300 dark:text-gray-500 select-none" {...attributes} {...listeners}>⋮⋮</span>
+      <span className="text-xs text-gray-400 dark:text-gray-500 w-5 shrink-0">{index + 1}.</span>
       <Input
         className="flex-1 border-none shadow-none bg-transparent text-sm"
         placeholder={`Mục ${index + 1}`}
@@ -529,16 +529,16 @@ export default function QuestionForm({
     <div className="space-y-3">
       {matchingPairs.map((pair, index) => (
         <div key={pair.id} className="grid grid-cols-2 gap-3">
-          <div className="border border-dashed border-gray-300 rounded-lg p-3">
-          <div className="text-xs text-gray-400 mb-1">{t("questionBank.veTrai", { index: index + 1 })}</div>
+          <div className="border border-dashed border-gray-300 rounded-lg p-3 dark:border-gray-700">
+          <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">{t("questionBank.veTrai", { index: index + 1 })}</div>
             <Input
               placeholder={t("questionBank.veTrai", { index: index + 1 })}
               value={pair.prompt}
               onChange={(e) => updateMatchingPair(pair.id, { prompt: e.target.value })}
             />
           </div>
-          <div className="border border-dashed border-gray-300 rounded-lg p-3 relative">
-            <div className="text-xs text-gray-400 mb-1">{t("questionBank.vePhai", { index: index + 1 })}</div>
+          <div className="border border-dashed border-gray-300 rounded-lg p-3 relative dark:border-gray-700">
+            <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">{t("questionBank.vePhai", { index: index + 1 })}</div>
             <Input
               placeholder={t("questionBank.vePhai", { index: index + 1 })}
               value={pair.match}
@@ -606,18 +606,18 @@ export default function QuestionForm({
         onChange={(e) => setClozeContent(e.target.value)}
         placeholder={t("questionBank.clozePlaceholder")}
       />
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p className="text-sm font-semibold text-blue-700 mb-1">{t("questionBank.clozeSyntax")}</p>
-        <ul className="text-sm text-blue-600 space-y-1 list-disc list-inside">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 dark:bg-blue-950/20 dark:border-blue-900/60">
+        <p className="text-sm font-semibold text-blue-700 dark:text-blue-200 mb-1">{t("questionBank.clozeSyntax")}</p>
+        <ul className="text-sm text-blue-600 dark:text-blue-300 space-y-1 list-disc list-inside">
           <li><code className="bg-blue-100 px-1 rounded">{"[[đáp án]]"}</code> {t("questionBank.clozeManualBlank")}</li>
           <li><code className="bg-blue-100 px-1 rounded">{"[[đúng|lựa chọn 1|lựa chọn 2]]"}</code> {t("questionBank.clozeSelectBlank")}</li>
         </ul>
       </div>
       {clozeContent && (
         <div>
-          <div className="text-xs text-gray-500 mb-1">{t("questionBank.xemTruoc")}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("questionBank.xemTruoc")}</div>
           <div
-            className="p-3 bg-gray-50 rounded-lg text-sm leading-loose border border-gray-100"
+            className="p-3 bg-gray-50 rounded-lg text-sm leading-loose border border-gray-100 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-200"
             dangerouslySetInnerHTML={{ __html: buildClozePreview(clozeContent) }}
           />
         </div>
@@ -631,6 +631,7 @@ export default function QuestionForm({
       layout="vertical"
       onFinish={handleSubmit}
       initialValues={{ difficultyLevel: "MEDIUM", defaultPoints: 1 }}
+      className="question-form"
     >
       {/* Question content */}
       {type === "CLOZE" ? (
@@ -656,9 +657,9 @@ export default function QuestionForm({
       <Form.Item name="resourceId" hidden><Input /></Form.Item>
 
       {/* Question media */}
-      <div className="mb-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3">
+      <div className="mb-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-slate-700">{t("quizMedia.questionMedia")}</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{t("quizMedia.questionMedia")}</span>
           <MediaAttachButton
             resource={questionResource}
             allowedTypes={["IMAGE", "VIDEO", "AUDIO"]}
@@ -672,11 +673,11 @@ export default function QuestionForm({
           />
         </div>
         {isImageResource(questionResource) ? (
-          <div className="mb-2 overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
+          <div className="mb-2 overflow-hidden rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
             <ResourceRenderer resource={questionResource} compact />
           </div>
         ) : null}
-        <p className="text-xs text-slate-500">{t("quizMedia.questionMediaHint")}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{t("quizMedia.questionMediaHint")}</p>
       </div>
 
       {/* Type / Difficulty / Points */}
@@ -706,13 +707,13 @@ export default function QuestionForm({
       </div>
 
       {/* Answers section */}
-      <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 mt-2">
+      <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 mt-2">
         {t("quizBuilder.answers")}
       </div>
 
       {type === "SHORT_ANSWER" ? (
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-600 mb-2">
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/60">
+          <p className="text-sm text-blue-600 dark:text-blue-300 mb-2">
             {t("questionBank.shortAnswerAutoGradeHint")}
           </p>
           <TextArea
@@ -728,8 +729,8 @@ export default function QuestionForm({
           />
         </div>
       ) : type === "ESSAY" ? (
-        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-          <p className="text-sm text-amber-700">
+        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/60">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
             {t("questionBank.essayHint")}
           </p>
         </div>
@@ -754,7 +755,7 @@ export default function QuestionForm({
             />
           ))}
           {type !== "TRUE_FALSE" && (
-            <div className="flex items-center gap-2 mt-2 border border-dashed border-gray-300 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 mt-2 border border-dashed border-gray-300 rounded-lg px-3 py-2 dark:border-gray-700">
               <Input
                 className="flex-1 border-none shadow-none bg-transparent text-sm"
                 placeholder={t("questionBank.themLuaChonMoi")}

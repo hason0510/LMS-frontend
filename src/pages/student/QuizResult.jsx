@@ -14,6 +14,7 @@ import Header from "../../components/layout/Header";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
 import { splitClozeContent } from "../../utils/cloze";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
 const sortByOrder = (items = []) =>
   [...items].sort((left, right) => (left.orderIndex || 0) - (right.orderIndex || 0));
@@ -240,6 +241,13 @@ export default function QuizResult() {
       <div className="layout-container flex h-full grow flex-col">
         <div className="flex flex-1 justify-center px-4 py-5 md:px-10 lg:px-40">
           <div className="layout-content-container flex max-w-[960px] flex-1 flex-col gap-6">
+            <AppBreadcrumb
+              className="mb-1"
+              context={{
+                classTitle: resultData?.classSectionTitle || resultData?.classTitle,
+                quizTitle: resultData?.quizTitle,
+              }}
+            />
             {/* Main Result Card (Hero) */}
             <div className="flex flex-col gap-6 rounded-xl bg-white p-6 shadow-sm dark:bg-[#1A2633] dark:shadow-gray-900 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-col gap-4 md:flex-row md:items-center">

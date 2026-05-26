@@ -3,6 +3,10 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { getMyNotifications, countUnreadNotifications, markNotificationAsRead as apiMarkAsRead } from '../api/notification';
 import { notification as antdNotification } from 'antd';
+import {
+  getNotificationPreview,
+  normalizeNotificationItem,
+} from '../utils/notificationText';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8081";
 
@@ -17,7 +21,11 @@ const useNotificationStore = create((set, get) => ({
       const res = await getMyNotifications();
       // res is ApiResponse { code, message, data: [...] }
       const data = res.data || [];
-      set({ notifications: Array.isArray(data) ? data : [] });
+      set({
+        notifications: Array.isArray(data)
+          ? data.map(normalizeNotificationItem)
+          : [],
+      });
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     }
@@ -67,7 +75,7 @@ const useNotificationStore = create((set, get) => ({
       // console.log('Connected to WebSocket');
 
       client.subscribe(`/topic/notifications/${userId}`, (message) => {
-        const newNotification = JSON.parse(message.body);
+        const newNotification = normalizeNotificationItem(JSON.parse(message.body));
         
         // Add to list and play sound or show toast
         set((state) => ({
@@ -78,7 +86,7 @@ const useNotificationStore = create((set, get) => ({
         // Show Real-time Toast
         antdNotification.info({
           message: newNotification.title || 'Thông báo mới',
-          description: newNotification.summary || newNotification.description || newNotification.message,
+          description: getNotificationPreview(newNotification),
           placement: 'topRight',
           duration: 4.5,
         });

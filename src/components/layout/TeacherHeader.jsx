@@ -154,7 +154,7 @@ export default function TeacherHeader({ toggleSidebar }) {
           <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-              className="relative flex items-center justify-center size-11 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-black focus:outline-none"
+              className="relative flex items-center justify-center size-11 rounded-full text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 focus:outline-none"
             >
               <BellIcon className="h-6 w-6" />
               {unreadCount > 0 && (
@@ -229,8 +229,8 @@ export default function TeacherHeader({ toggleSidebar }) {
             aria-label={t("teacher.caiDatHeThong")}
             className={`flex items-center justify-center size-11 rounded-full transition-colors ${
               isSettingsActive
-                ? "bg-slate-100 text-black dark:bg-slate-100 dark:text-black"
-                : "text-black dark:text-black hover:bg-slate-100 dark:hover:bg-slate-800/70"
+                ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
+                : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70"
             }`}
           >
             <Cog6ToothIcon className="h-6 w-6" />
@@ -242,8 +242,8 @@ export default function TeacherHeader({ toggleSidebar }) {
             aria-label={t("teacher.hoSo")}
             className={`flex items-center justify-center size-11 rounded-full transition-colors ${
               isProfileActive
-                ? "bg-slate-100 text-black dark:bg-slate-100 dark:text-black"
-                : "text-black dark:text-black hover:bg-slate-100 dark:hover:bg-slate-800/70"
+                ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
+                : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70"
             }`}
           >
             <UserCircleIcon className="h-6 w-6" />

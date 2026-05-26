@@ -9,6 +9,7 @@ import {
   ArrowLeftIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
 import { splitClozeContent } from "../../utils/cloze";
@@ -267,6 +268,14 @@ export default function TeacherQuizResultPreview({ isAdmin = false }) {
       <div className="layout-container flex h-full grow flex-col">
         <div className="flex flex-1 justify-center px-4 py-5 md:px-10 lg:px-40">
           <div className="layout-content-container flex max-w-[960px] flex-1 flex-col gap-6">
+            <AppBreadcrumb
+              className="mb-1"
+              context={{
+                classTitle: quizData?.classSectionTitle || quizData?.classTitle,
+                templateName: quizData?.templateName,
+                quizTitle: quizData?.title,
+              }}
+            />
             {/* Main Result Card */}
             <div className="flex flex-col gap-6 rounded-xl bg-white p-6 shadow-sm dark:bg-[#1A2633] dark:shadow-gray-900 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-col gap-4 md:flex-row md:items-center">

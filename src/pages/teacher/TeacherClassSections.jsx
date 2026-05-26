@@ -13,6 +13,7 @@ import { Spin, Alert, message } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import classPlaceholder from "../../assets/class_placeholder.png";
 import { useTranslation } from "react-i18next";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
 export default function TeacherClassSections({ isAdmin = false }) {
   const navigate = useNavigate();
@@ -95,7 +96,7 @@ export default function TeacherClassSections({ isAdmin = false }) {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background-dark font-display text-[#111418] dark:text-white">
+    <div className="teacher-class-sections-page min-h-screen bg-slate-50 dark:bg-background-dark font-display text-[#111418] dark:text-white">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
@@ -105,6 +106,7 @@ export default function TeacherClassSections({ isAdmin = false }) {
           }`}
         >
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
+            <AppBreadcrumb className="mb-6" />
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>

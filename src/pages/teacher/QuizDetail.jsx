@@ -19,6 +19,7 @@ import { Image as ImageIcon, List } from "lucide-react";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { createQuiz, getQuizById, updateQuiz } from "../../api/quiz";
 import { createStandaloneResource, deleteResource, uploadStandaloneResource } from "../../api/resource";
 import { getQuestionBankById, getQuestionBanks, getTags } from "../../api/questionBank";
@@ -1834,53 +1835,70 @@ export default function QuizDetail() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="quiz-detail-page flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
         <Spin size="large" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="quiz-detail-page flex h-screen bg-slate-50 dark:bg-slate-900">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TeacherHeader />
 
         {/* Top bar */}
-        <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-gray-200 shadow-sm shrink-0 mt-16 ml-64">
-          <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-1.5 text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full shrink-0">
-            <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-            {t("quizEditor.quizBadge")}
+        <div className={`bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 shadow-sm shrink-0 mt-16 transition-all duration-300 ${
+          sidebarCollapsed ? "ml-20" : "ml-64"
+        }`}>
+          <div className="px-6 pt-4">
+            <AppBreadcrumb
+              className="mb-3"
+              context={{
+                classTitle: course?.title,
+                templateName: course?.name,
+                quizTitle: title || quiz?.title,
+                chapterTitle: activeChapter?.title,
+              }}
+            />
           </div>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="flex-1 text-base font-semibold border-none shadow-none bg-transparent"
-            placeholder={t("quizEditor.placeholders.quizTitle")}
-          />
+          <div className="flex items-center gap-3 px-6 py-3">
+            <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full shrink-0">
+              <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+              {t("quizEditor.quizBadge")}
+            </div>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="flex-1 text-base font-semibold border-none shadow-none bg-transparent"
+              placeholder={t("quizEditor.placeholders.quizTitle")}
+            />
 
-          <Button
-            icon={<EyeIcon className="w-4 h-4" />}
-            onClick={() => handleSave(true)}
-            loading={saving}
-            className="flex items-center gap-1.5 border-amber-400 text-amber-600 hover:bg-amber-50 shrink-0"
-          >
-            {t("quizEditor.actions.preview")}
-          </Button>
-          <Button type="primary" onClick={handleSave} loading={saving} className="bg-blue-600 hover:bg-blue-700 border-0 px-6 shrink-0">
-            {t("quizEditor.actions.save")}
-          </Button>
+            <Button
+              icon={<EyeIcon className="w-4 h-4" />}
+              onClick={() => handleSave(true)}
+              loading={saving}
+              className="flex items-center gap-1.5 border-amber-400 text-amber-600 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/30 shrink-0"
+            >
+              {t("quizEditor.actions.preview")}
+            </Button>
+            <Button type="primary" onClick={handleSave} loading={saving} className="bg-blue-600 hover:bg-blue-700 border-0 px-6 shrink-0">
+              {t("quizEditor.actions.save")}
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center px-6 bg-white border-b border-gray-200 shrink-0 ml-64">
+        <div className={`flex items-center px-6 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 shrink-0 transition-all duration-300 ${
+          sidebarCollapsed ? "ml-20" : "ml-64"
+        }`}>
           {[
             {
               key: "questions",
@@ -1916,8 +1934,8 @@ export default function QuizDetail() {
         <div className="flex-1 overflow-y-auto">
           {activeTab === "questions" && (
             <div className="max-w-4xl mx-auto px-4 py-6">
-              <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-sm font-semibold text-slate-700 mb-2">Nguồn câu hỏi</div>
+            <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Nguồn câu hỏi</div>
                 <Radio.Group
                   value={questionSourceMode}
                   onChange={(event) => handleSourceModeChange(event.target.value)}
@@ -1961,7 +1979,7 @@ export default function QuizDetail() {
               ))}
 
               {questionSourceMode === "MANUAL" && questions.length === 0 && (
-                <div className="border border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 mb-4 bg-white shadow-sm shadow-slate-200/50">
+                <div className="border border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 dark:border-slate-700 dark:text-slate-500 mb-4 bg-white dark:bg-slate-900 shadow-sm shadow-slate-200/50 dark:shadow-none">
                   <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
@@ -1971,7 +1989,7 @@ export default function QuizDetail() {
               )}
 
               {questionSourceMode === "BANK_RULE" && bankSources.length === 0 && (
-                <div className="border border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 mb-4 bg-white shadow-sm shadow-slate-200/50">
+                <div className="border border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400 dark:border-slate-700 dark:text-slate-500 mb-4 bg-white dark:bg-slate-900 shadow-sm shadow-slate-200/50 dark:shadow-none">
                   <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
@@ -1982,14 +2000,14 @@ export default function QuizDetail() {
 
               <div className="flex items-center justify-center gap-3 mt-4">
                 <Dropdown menu={{ items: addQuestionMenuItems }} trigger={["click"]} disabled={questionSourceMode !== "MANUAL"}>
-                  <Button type="primary" className="rounded-full px-5 bg-blue-600 hover:bg-blue-700 border-0">
+                  <Button type="primary" className="rounded-full px-5 bg-blue-600 hover:bg-blue-700 border-0 dark:bg-blue-600 dark:hover:bg-blue-500">
                     {t("quizEditor.actions.addQuestion")} ▾
                   </Button>
                 </Dropdown>
                 <Button
                   onClick={addBankSource}
                   disabled={questionSourceMode !== "BANK_RULE"}
-                  className="rounded-full px-5 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                  className="rounded-full px-5 border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
                 >
                   {t("quizEditor.actions.addQuestionBank")}
                 </Button>
@@ -1998,9 +2016,9 @@ export default function QuizDetail() {
               {((questionSourceMode === "MANUAL" && questions.length > 0)
                 || (questionSourceMode === "BANK_RULE" && bankSources.length > 0)) && (
                 <div className="flex justify-end mt-6">
-                  <Button type="primary" onClick={handleSave} loading={saving} size="large" className="bg-blue-600 hover:bg-blue-700 border-0 px-8">
-                    {t("quizEditor.actions.save")}
-                  </Button>
+                <Button type="primary" onClick={handleSave} loading={saving} size="large" className="bg-blue-600 hover:bg-blue-700 border-0 px-8 dark:bg-blue-600 dark:hover:bg-blue-500">
+                  {t("quizEditor.actions.save")}
+                </Button>
                 </div>
               )}
             </div>

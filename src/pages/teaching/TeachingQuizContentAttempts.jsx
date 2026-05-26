@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { App, Button, Empty, Spin, Table, Tag } from "antd";
 import TeachingLayout from "../../components/teaching/TeachingLayout";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getQuizById, getQuizAttemptsByClassContentItem } from "../../api/quiz";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-");
@@ -104,12 +105,19 @@ export default function TeachingQuizContentAttempts() {
   return (
     <TeachingLayout>
       <div className="max-w-6xl mx-auto p-6 space-y-4">
-        <button
+        <AppBreadcrumb
+          className="mb-1"
+          context={{
+            classSectionId,
+            quizTitle: quiz?.title || location.state?.itemTitle,
+          }}
+        />
+{/*        <button
           onClick={() => navigate(`/teaching/class-sections/${classSectionId}/content`)}
           className="text-primary text-sm font-medium hover:underline"
         >
           Quay lại nội dung lớp
-        </button>
+        </button>*/}
 
         {loading ? (
           <div className="flex min-h-80 items-center justify-center">

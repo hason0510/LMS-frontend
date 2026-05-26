@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import QuickActionCard from "../../components/teacher/dashboard/QuickActionCard";
 import DashboardCourseCard from "../../components/teacher/dashboard/DashboardCourseCard";
 import StatItem from "../../components/teacher/dashboard/StatItem";
@@ -140,6 +141,7 @@ export default function TeacherDashboard() {
           }`}
         >
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
+            <AppBreadcrumb className="mb-5" />
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
                 <h1 className="text-2xl md:text-3xl text-[#111418] dark:text-white font-bold leading-tight tracking-[-0.015em]">

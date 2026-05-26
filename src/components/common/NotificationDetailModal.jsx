@@ -2,11 +2,19 @@ import React from 'react';
 import { Modal } from 'antd';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { normalizeNotificationItem, stripNotificationHtml } from '../../utils/notificationText';
 
 export default function NotificationDetailModal({ open, notification, onClose }) {
   const navigate = useNavigate();
-  const primaryText = notification?.summary || notification?.message || notification?.description || "";
-  const detailText = notification?.description || "";
+  const normalizedNotification = normalizeNotificationItem(notification);
+  const primaryText =
+    stripNotificationHtml(
+      normalizedNotification?.summary ||
+        normalizedNotification?.message ||
+        normalizedNotification?.description ||
+        ""
+    );
+  const detailText = stripNotificationHtml(normalizedNotification?.description || "");
   const showDetail = detailText && detailText.trim() && detailText.trim() !== primaryText.trim();
 
   return (
@@ -22,14 +30,14 @@ export default function NotificationDetailModal({ open, notification, onClose })
         <div className="flex flex-col gap-4">
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-              {notification.title}
+              {normalizedNotification.title}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Thời gian gửi: {notification.time}
+              Thời gian gửi: {normalizedNotification.time}
             </p>
-            {notification.classSectionTitle && (
+            {normalizedNotification.classSectionTitle && (
               <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-                Lớp: {notification.classSectionTitle}
+                Lớp: {normalizedNotification.classSectionTitle}
               </p>
             )}
           </div>
@@ -51,13 +59,13 @@ export default function NotificationDetailModal({ open, notification, onClose })
             </div>
           )}
 
-          {notification.actionUrl && (
+          {normalizedNotification.actionUrl && (
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <button
                 type="button"
                 onClick={() => {
                   onClose?.();
-                  navigate(notification.actionUrl);
+                  navigate(normalizedNotification.actionUrl);
                 }}
                 className="inline-flex items-center justify-center w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
               >

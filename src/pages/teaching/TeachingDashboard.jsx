@@ -11,6 +11,7 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import TeachingLayout from "../../components/teaching/TeachingLayout";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getMyTeachingClasses, getTeachingReviewQueue, getTeachingWorkbenchSummary } from "../../api/teaching";
 
 function StatBlock({ icon, label, value, tone }) {
@@ -79,6 +80,7 @@ export default function TeachingDashboard() {
   return (
     <TeachingLayout>
       <div className="space-y-6">
+        <AppBreadcrumb className="mb-1" />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="m-0 text-xs font-bold uppercase tracking-[0.2em] text-primary">{t("teaching.layout.title")}</p>

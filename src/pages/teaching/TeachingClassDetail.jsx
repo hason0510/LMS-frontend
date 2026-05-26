@@ -10,6 +10,7 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import CourseContent from "../../components/course/CourseContent";
 import AnnouncementsTab from "../../components/course/AnnouncementsTab";
 import ClassPeopleTab from "../../components/teaching/ClassPeopleTab";
@@ -221,10 +222,11 @@ export default function TeachingClassDetail() {
           </section>
         ) : (
           <div className="space-y-5">
-            <button onClick={() => navigate("/teaching/classes")} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
+            <AppBreadcrumb className="mb-1" context={{ classTitle: course?.title || course?.classCode }} />
+{/*            <button onClick={() => navigate("/teaching/classes")} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
               <ArrowLeftIcon className="h-4 w-4" />
               Quay lại danh sách lớp
-            </button>
+            </button>*/}
 
             <ClassHero
               course={course}

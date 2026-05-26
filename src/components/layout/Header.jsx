@@ -194,7 +194,7 @@ export default function Header({ menuItems }) {
                   onClick={() => handleWorkspaceToggle("learning")}
                   className={`h-8 rounded-full px-3 transition-colors sm:px-4 ${
                     !isTeachingRoute
-                      ? "bg-white text-primary shadow-sm dark:bg-slate-950"
+                      ? "bg-white text-primary shadow-sm dark:bg-slate-950 dark:text-white"
                       : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                   }`}
                 >
@@ -205,7 +205,7 @@ export default function Header({ menuItems }) {
                   onClick={() => handleWorkspaceToggle("teaching")}
                   className={`h-8 rounded-full px-3 transition-colors sm:px-4 ${
                     isTeachingRoute
-                      ? "bg-white text-primary shadow-sm dark:bg-slate-950"
+                      ? "bg-white text-primary shadow-sm dark:bg-slate-950 dark:text-white"
                       : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                   }`}
                 >

@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { App as AntdApp } from "antd";
 import useNotificationStore from "./store/useNotificationStore";
 
 import AuthPage from "./pages/auth/AuthPage";
@@ -606,11 +605,9 @@ function AppContent() {
 function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AntdApp>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </AntdApp>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </GoogleOAuthProvider>
   );
 }

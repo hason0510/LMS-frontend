@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Header from '../../components/layout/Header'
+import AppBreadcrumb from '../../components/common/AppBreadcrumb';
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom';
 import { searchClassSections } from '../../api/classSection';
@@ -39,6 +40,9 @@ export default function Home() {
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
       <Header />
       <main className="flex-1">
+        <div className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          <AppBreadcrumb />
+        </div>
 
         {/* ── Hero ── */}
         <section className="flex justify-center py-14 sm:py-20 px-4 sm:px-6 lg:px-8">

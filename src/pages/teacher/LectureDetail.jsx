@@ -4,6 +4,8 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import {
   TrashIcon,
   PlayCircleIcon,
@@ -674,10 +676,10 @@ export default function LectureDetail({ isAdmin = false }) {
   };
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
+    <div className="lecture-detail-page min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
       <TeacherHeader />
       <div className="flex">
-        <TeacherSidebar />
+        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 bg-slate-50 dark:bg-slate-900 pt-16 flex flex-col h-screen ${!isViewMode && "pb-[4.5rem]"} transition-all duration-300 ${
           sidebarCollapsed ? "pl-20" : "pl-64"
         }`}>
@@ -696,6 +698,14 @@ export default function LectureDetail({ isAdmin = false }) {
               />
             ) : (
               <>
+              <AppBreadcrumb
+                className="mb-5"
+                context={{
+                  classTitle: course?.title,
+                  templateName: course?.name,
+                  lectureTitle: title || lesson?.title,
+                }}
+              />
               <button
                 onClick={() => {
                   const base = isAdmin ? "/admin" : "/teacher";

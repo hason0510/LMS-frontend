@@ -4,6 +4,7 @@ import { useLocation, useParams } from "react-router-dom";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import MediaLibraryPanel from "../../components/media/MediaLibraryPanel";
 
 export default function ClassSectionMediaPage({ isAdmin = false }) {
@@ -20,6 +21,7 @@ export default function ClassSectionMediaPage({ isAdmin = false }) {
       <div className="flex-1 min-w-0">
         <TeacherHeader />
         <main className="ml-64 mt-16 p-6">
+          <AppBreadcrumb className="mb-5" />
           <MediaLibraryPanel
             title={t("mediaManager.pages.classSection.title")}
             subtitle={t("mediaManager.pages.classSection.subtitle", { id: scopeId })}

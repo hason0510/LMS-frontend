@@ -4,6 +4,7 @@ import { Spin, message, Modal } from "antd";
 import Header from "../../components/layout/Header";
 import { getQuizById, getStudentAttemptsHistory } from "../../api/quiz";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
 export default function QuizDetail() {
   const { id, classSectionId } = useParams();
@@ -109,6 +110,13 @@ export default function QuizDetail() {
 
       <main className="flex-1 flex justify-center py-8">
         <div className="layout-content-container flex flex-col max-w-[1024px] w-full px-4 md:px-10">
+          <AppBreadcrumb
+            className="mb-3"
+            context={{
+              classTitle: quiz?.classSectionTitle || quiz?.classTitle,
+              quizTitle: quiz?.title,
+            }}
+          />
           <button
               onClick={() => navigate(`/class-sections/${classSectionId}`)}
               className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"

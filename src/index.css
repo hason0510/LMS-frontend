@@ -20,6 +20,10 @@ body {
   @apply bg-background-light text-[#111418] font-display;
 }
 
+.dark body {
+  @apply bg-background-dark text-white;
+}
+
 /* Material Symbols styles (match original file) */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -307,6 +311,420 @@ button:hover {
 
 .dark .view-mode-inputs .ant-select-disabled .ant-select-selection-item {
   color: rgb(243, 244, 246) !important;
+}
+
+/* Scoped dark-mode harmonization for legacy pages with many light utilities */
+.dark .classes-page .bg-white,
+.dark .class-section-detail-page .bg-white,
+.dark .admin-media-page .bg-white,
+.dark .question-banks-page .bg-white,
+.dark .media-library-panel .bg-white,
+.dark .media-library-drawer .bg-white,
+.dark .quiz-detail-page .bg-white,
+.dark .student-assignment-detail .bg-white {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark .classes-page .bg-slate-50,
+.dark .classes-page .bg-slate-100,
+.dark .classes-page .bg-gray-50,
+.dark .classes-page .bg-gray-100,
+.dark .class-section-detail-page .bg-slate-50,
+.dark .class-section-detail-page .bg-gray-50,
+.dark .class-section-detail-page .bg-gray-100,
+.dark .admin-media-page .bg-slate-50,
+.dark .admin-media-page .bg-slate-100,
+.dark .admin-media-page .bg-gray-50,
+.dark .admin-media-page .bg-gray-100,
+.dark .question-banks-page .bg-slate-50,
+.dark .question-banks-page .bg-slate-100,
+.dark .question-banks-page .bg-gray-50,
+.dark .question-banks-page .bg-gray-100,
+.dark .media-library-panel .bg-slate-50,
+.dark .media-library-panel .bg-gray-50,
+.dark .media-library-drawer .bg-slate-50,
+.dark .media-library-drawer .bg-gray-50,
+.dark .quiz-detail-page .bg-slate-50,
+.dark .quiz-detail-page .bg-gray-50,
+.dark .quiz-detail-page .bg-gray-100,
+.dark .student-assignment-detail .bg-slate-50,
+.dark .student-assignment-detail .bg-gray-50,
+.dark .student-assignment-detail .bg-gray-100 {
+  background-color: rgb(15 23 42 / 0.72) !important;
+}
+
+.dark .classes-page .border-slate-100,
+.dark .classes-page .border-slate-200,
+.dark .classes-page .border-slate-300,
+.dark .classes-page .border-gray-100,
+.dark .classes-page .border-gray-200,
+.dark .classes-page .border-gray-300,
+.dark .class-section-detail-page .border-slate-100,
+.dark .class-section-detail-page .border-slate-200,
+.dark .class-section-detail-page .border-slate-300,
+.dark .class-section-detail-page .border-gray-100,
+.dark .class-section-detail-page .border-gray-200,
+.dark .class-section-detail-page .border-gray-300,
+.dark .admin-media-page .border-slate-100,
+.dark .admin-media-page .border-slate-200,
+.dark .admin-media-page .border-slate-300,
+.dark .admin-media-page .border-gray-100,
+.dark .admin-media-page .border-gray-200,
+.dark .admin-media-page .border-gray-300,
+.dark .question-banks-page .border-slate-100,
+.dark .question-banks-page .border-slate-200,
+.dark .question-banks-page .border-slate-300,
+.dark .question-banks-page .border-gray-100,
+.dark .question-banks-page .border-gray-200,
+.dark .question-banks-page .border-gray-300,
+.dark .media-library-panel .border-slate-100,
+.dark .media-library-panel .border-slate-200,
+.dark .media-library-panel .border-slate-300,
+.dark .media-library-panel .border-gray-100,
+.dark .media-library-panel .border-gray-200,
+.dark .media-library-panel .border-gray-300,
+.dark .media-library-drawer .border-slate-100,
+.dark .media-library-drawer .border-slate-200,
+.dark .media-library-drawer .border-slate-300,
+.dark .media-library-drawer .border-gray-100,
+.dark .media-library-drawer .border-gray-200,
+.dark .media-library-drawer .border-gray-300,
+.dark .quiz-detail-page .border-slate-100,
+.dark .quiz-detail-page .border-slate-200,
+.dark .quiz-detail-page .border-slate-300,
+.dark .quiz-detail-page .border-gray-100,
+.dark .quiz-detail-page .border-gray-200,
+.dark .quiz-detail-page .border-gray-300,
+.dark .student-assignment-detail .border-slate-100,
+.dark .student-assignment-detail .border-slate-200,
+.dark .student-assignment-detail .border-slate-300,
+.dark .student-assignment-detail .border-gray-100,
+.dark .student-assignment-detail .border-gray-200,
+.dark .student-assignment-detail .border-gray-300 {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .classes-page .text-slate-950,
+.dark .classes-page .text-slate-900,
+.dark .classes-page .text-gray-900,
+.dark .classes-page .text-gray-800,
+.dark .class-section-detail-page .text-slate-950,
+.dark .class-section-detail-page .text-slate-900,
+.dark .class-section-detail-page .text-gray-900,
+.dark .class-section-detail-page .text-gray-800,
+.dark .admin-media-page .text-slate-950,
+.dark .admin-media-page .text-slate-900,
+.dark .admin-media-page .text-gray-900,
+.dark .admin-media-page .text-gray-800,
+.dark .question-banks-page .text-slate-950,
+.dark .question-banks-page .text-slate-900,
+.dark .question-banks-page .text-gray-900,
+.dark .question-banks-page .text-gray-800,
+.dark .media-library-panel .text-slate-900,
+.dark .media-library-panel .text-gray-900,
+.dark .media-library-panel .text-slate-800,
+.dark .media-library-panel .text-gray-800,
+.dark .media-library-drawer .text-slate-900,
+.dark .media-library-drawer .text-gray-900,
+.dark .media-library-drawer .text-slate-800,
+.dark .media-library-drawer .text-gray-800,
+.dark .quiz-detail-page .text-slate-950,
+.dark .quiz-detail-page .text-slate-900,
+.dark .quiz-detail-page .text-gray-900,
+.dark .quiz-detail-page .text-gray-800,
+.dark .student-assignment-detail .text-slate-950,
+.dark .student-assignment-detail .text-slate-900,
+.dark .student-assignment-detail .text-gray-900,
+.dark .student-assignment-detail .text-gray-800 {
+  color: rgb(248 250 252) !important;
+}
+
+.dark .classes-page .text-slate-700,
+.dark .classes-page .text-slate-600,
+.dark .classes-page .text-gray-700,
+.dark .classes-page .text-gray-600,
+.dark .class-section-detail-page .text-slate-700,
+.dark .class-section-detail-page .text-slate-600,
+.dark .class-section-detail-page .text-gray-700,
+.dark .class-section-detail-page .text-gray-600,
+.dark .admin-media-page .text-slate-700,
+.dark .admin-media-page .text-slate-600,
+.dark .admin-media-page .text-gray-700,
+.dark .admin-media-page .text-gray-600,
+.dark .question-banks-page .text-slate-700,
+.dark .question-banks-page .text-slate-600,
+.dark .question-banks-page .text-gray-700,
+.dark .question-banks-page .text-gray-600,
+.dark .media-library-panel .text-slate-700,
+.dark .media-library-panel .text-slate-600,
+.dark .media-library-panel .text-gray-700,
+.dark .media-library-panel .text-gray-600,
+.dark .media-library-drawer .text-slate-700,
+.dark .media-library-drawer .text-slate-600,
+.dark .media-library-drawer .text-gray-700,
+.dark .media-library-drawer .text-gray-600,
+.dark .quiz-detail-page .text-slate-700,
+.dark .quiz-detail-page .text-slate-600,
+.dark .quiz-detail-page .text-gray-700,
+.dark .quiz-detail-page .text-gray-600,
+.dark .student-assignment-detail .text-slate-700,
+.dark .student-assignment-detail .text-slate-600,
+.dark .student-assignment-detail .text-gray-700,
+.dark .student-assignment-detail .text-gray-600 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .classes-page .text-slate-500,
+.dark .classes-page .text-slate-400,
+.dark .classes-page .text-gray-500,
+.dark .classes-page .text-gray-400,
+.dark .class-section-detail-page .text-slate-500,
+.dark .class-section-detail-page .text-slate-400,
+.dark .class-section-detail-page .text-gray-500,
+.dark .class-section-detail-page .text-gray-400,
+.dark .admin-media-page .text-slate-500,
+.dark .admin-media-page .text-slate-400,
+.dark .admin-media-page .text-gray-500,
+.dark .admin-media-page .text-gray-400,
+.dark .question-banks-page .text-slate-500,
+.dark .question-banks-page .text-slate-400,
+.dark .question-banks-page .text-gray-500,
+.dark .question-banks-page .text-gray-400,
+.dark .media-library-panel .text-slate-500,
+.dark .media-library-panel .text-slate-400,
+.dark .media-library-panel .text-gray-500,
+.dark .media-library-panel .text-gray-400,
+.dark .media-library-drawer .text-slate-500,
+.dark .media-library-drawer .text-slate-400,
+.dark .media-library-drawer .text-gray-500,
+.dark .media-library-drawer .text-gray-400,
+.dark .quiz-detail-page .text-slate-500,
+.dark .quiz-detail-page .text-slate-400,
+.dark .quiz-detail-page .text-gray-500,
+.dark .quiz-detail-page .text-gray-400,
+.dark .student-assignment-detail .text-slate-500,
+.dark .student-assignment-detail .text-slate-400,
+.dark .student-assignment-detail .text-gray-500,
+.dark .student-assignment-detail .text-gray-400 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .quiz-detail-page .shadow-slate-200\/50,
+.dark .student-assignment-detail .shadow-slate-200\/50,
+.dark .classes-page .shadow-slate-200\/50,
+.dark .question-banks-page .shadow-slate-200\/50,
+.dark .admin-media-page .shadow-slate-200\/50 {
+  --tw-shadow-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+.dark .question-banks-table .ant-table,
+.dark .question-banks-table .ant-table-container,
+.dark .question-banks-table .ant-table-content,
+.dark .question-banks-table .ant-table-thead > tr > th,
+.dark .question-banks-table .ant-table-tbody > tr > td {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(226 232 240) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .question-banks-table .ant-table-thead > tr > th {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .question-banks-table .ant-table-row:hover > td {
+  background-color: rgb(30 41 59) !important;
+}
+
+/* Additional legacy scopes still using light-first utility classes */
+.dark :is(
+  .question-bank-detail-page,
+  .template-detail-page,
+  .quiz-attempt-page,
+  .teacher-quiz-attempt-preview-page,
+  .lecture-detail-page,
+  .admin-user-management-page,
+  .teacher-class-sections-page,
+  .question-form,
+  .media-picker-modal,
+  .resource-library-select-modal,
+  .media-attach-type-modal
+) .bg-white {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark :is(.profile-page, .auth-page, .account-settings, .confirm-modal, .admin-subject-page, .admin-category-page, .my-information) .bg-white {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark :is(
+  .question-bank-detail-page,
+  .template-detail-page,
+  .quiz-attempt-page,
+  .teacher-quiz-attempt-preview-page,
+  .lecture-detail-page,
+  .admin-user-management-page,
+  .teacher-class-sections-page,
+  .question-form,
+  .media-picker-modal,
+  .resource-library-select-modal,
+  .media-attach-type-modal
+) :is(.bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100) {
+  background-color: rgb(15 23 42 / 0.72) !important;
+}
+
+.dark :is(.profile-page, .auth-page, .account-settings, .confirm-modal, .admin-subject-page, .admin-category-page, .my-information) :is(.bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100) {
+  background-color: rgb(15 23 42 / 0.72) !important;
+}
+
+.dark :is(
+  .question-bank-detail-page,
+  .template-detail-page,
+  .quiz-attempt-page,
+  .teacher-quiz-attempt-preview-page,
+  .lecture-detail-page,
+  .admin-user-management-page,
+  .teacher-class-sections-page,
+  .question-form,
+  .media-picker-modal,
+  .resource-library-select-modal,
+  .media-attach-type-modal
+) :is(
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300,
+  .border-gray-100,
+  .border-gray-200,
+  .border-gray-300
+) {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark :is(.profile-page, .auth-page, .account-settings, .confirm-modal, .admin-subject-page, .admin-category-page, .my-information) :is(.border-slate-100, .border-slate-200, .border-slate-300, .border-gray-100, .border-gray-200, .border-gray-300) {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark :is(
+  .question-bank-detail-page,
+  .template-detail-page,
+  .quiz-attempt-page,
+  .teacher-quiz-attempt-preview-page,
+  .lecture-detail-page,
+  .admin-user-management-page,
+  .teacher-class-sections-page,
+  .question-form,
+  .media-picker-modal,
+  .resource-library-select-modal,
+  .media-attach-type-modal
+) :is(.text-slate-950, .text-slate-900, .text-gray-900, .text-gray-800) {
+  color: rgb(248 250 252) !important;
+}
+
+.dark :is(.profile-page, .auth-page, .account-settings, .confirm-modal, .admin-subject-page, .admin-category-page, .my-information) :is(.text-slate-950, .text-slate-900, .text-gray-900, .text-gray-800) {
+  color: rgb(248 250 252) !important;
+}
+
+.dark :is(
+  .question-bank-detail-page,
+  .template-detail-page,
+  .quiz-attempt-page,
+  .teacher-quiz-attempt-preview-page,
+  .lecture-detail-page,
+  .admin-user-management-page,
+  .teacher-class-sections-page,
+  .question-form,
+  .media-picker-modal,
+  .resource-library-select-modal,
+  .media-attach-type-modal
+) :is(.text-slate-700, .text-slate-600, .text-gray-700, .text-gray-600) {
+  color: rgb(203 213 225) !important;
+}
+
+.dark :is(.profile-page, .auth-page, .account-settings, .confirm-modal, .admin-subject-page, .admin-category-page, .my-information) :is(.text-slate-700, .text-slate-600, .text-gray-700, .text-gray-600) {
+  color: rgb(203 213 225) !important;
+}
+
+.dark :is(
+  .question-bank-detail-page,
+  .template-detail-page,
+  .quiz-attempt-page,
+  .teacher-quiz-attempt-preview-page,
+  .lecture-detail-page,
+  .admin-user-management-page,
+  .teacher-class-sections-page,
+  .question-form,
+  .media-picker-modal,
+  .resource-library-select-modal,
+  .media-attach-type-modal
+) :is(.text-slate-500, .text-slate-400, .text-gray-500, .text-gray-400) {
+  color: rgb(148 163 184) !important;
+}
+
+.dark :is(.profile-page, .auth-page, .account-settings, .confirm-modal, .admin-subject-page, .admin-category-page, .my-information) :is(.text-slate-500, .text-slate-400, .text-gray-500, .text-gray-400) {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .my-information :is(.ant-input, .ant-input-affix-wrapper, .ant-input-number, .ant-picker, .ant-select-selector, .ant-segmented) {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(226 232 240) !important;
+  border-color: rgb(71 85 105) !important;
+}
+
+.dark .my-information :is(.ant-input:hover, .ant-input-affix-wrapper:hover, .ant-input-number:hover, .ant-picker:hover, .ant-select-selector:hover) {
+  border-color: rgb(100 116 139) !important;
+}
+
+.dark .my-information :is(.ant-input::placeholder, .ant-input-affix-wrapper input::placeholder, .ant-input-number-input::placeholder, .ant-picker-input input::placeholder) {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .my-information .ant-segmented {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .my-information .ant-segmented .ant-segmented-item {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .my-information .ant-segmented .ant-segmented-item-selected {
+  background-color: rgb(37 99 235) !important;
+  color: rgb(255 255 255) !important;
+}
+
+.dark .admin-subject-table .ant-table,
+.dark .admin-subject-table .ant-table-container,
+.dark .admin-subject-table .ant-table-content,
+.dark .admin-subject-table .ant-table-thead > tr > th,
+.dark .admin-subject-table .ant-table-tbody > tr > td,
+.dark .admin-category-table .ant-table,
+.dark .admin-category-table .ant-table-container,
+.dark .admin-category-table .ant-table-content,
+.dark .admin-category-table .ant-table-thead > tr > th,
+.dark .admin-category-table .ant-table-tbody > tr > td {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(226 232 240) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .admin-subject-table .ant-table-thead > tr > th,
+.dark .admin-category-table .ant-table-thead > tr > th {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .admin-subject-table .ant-table-row:hover > td,
+.dark .admin-category-table .ant-table-row:hover > td {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark :is(
+  .question-bank-detail-page,
+  .template-detail-page,
+  .quiz-attempt-page,
+  .teacher-quiz-attempt-preview-page,
+  .lecture-detail-page,
+  .admin-user-management-page,
+  .teacher-class-sections-page
+) .shadow-slate-200\/50 {
+  --tw-shadow-color: rgba(15, 23, 42, 0.6) !important;
 }
 
 /* Disabled form styles for course/quiz creation pages */

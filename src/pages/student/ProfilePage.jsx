@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../components/layout/Header";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import MyCertificate from "../../components/student/profile/MyCertificate";
 import MyInformation from "../../components/student/profile/MyInformation";
 import AccountSettings from "../../components/student/profile/AccountSettings";
@@ -144,7 +145,7 @@ export default function ProfilePage() {
         return <NotificationsPage embedded />;
       case "transactions":
         return (
-          <div className="text-center py-10 text-gray-500">
+          <div className="text-center py-10 text-gray-500 dark:text-gray-400">
             {t("profile.noiDungDangCapNhat")}
           </div>
         );
@@ -158,10 +159,13 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] dark:bg-background-dark font-display text-[#111418] dark:text-white">
+    <div className="profile-page min-h-screen bg-[#f5f7fa] dark:bg-background-dark font-display text-[#111418] dark:text-white">
       <Header />
       <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="lg:col-span-2">
+            <AppBreadcrumb className="mb-1" />
+          </div>
           <aside className="min-w-0">
             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-background-dark/50">
               <div className="h-20 bg-gradient-to-r from-[#137fec] via-[#3b82f6] to-[#6366f1]" />

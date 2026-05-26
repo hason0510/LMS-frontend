@@ -13,6 +13,7 @@ import { FlagIcon as FlagIconSolid } from "@heroicons/react/24/solid";
 import { Modal, Select } from "antd";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { parseBlankOptions, parseClozeTokenOptions, splitClozeContent } from "../../utils/cloze";
 import { getQuizPreviewSample } from "../../api/quiz";
 import { getQuizTemplatePreviewSample } from "../../api/curriculumTemplate";
@@ -235,7 +236,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
 
   if (sampleLoading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 text-center p-8">
+      <div className="teacher-quiz-attempt-preview-page h-screen flex flex-col items-center justify-center gap-4 text-center p-8">
         <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 max-w-md">
           Đang sinh đề mẫu cho chế độ xem trước...
         </p>
@@ -245,7 +246,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
 
   if (questions.length === 0) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 text-center p-8">
+      <div className="teacher-quiz-attempt-preview-page h-screen flex flex-col items-center justify-center gap-4 text-center p-8">
         <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 max-w-md">
           {sampleError || "Không có câu hỏi phù hợp để sinh đề mẫu ở cấu hình hiện tại."}
         </p>
@@ -694,7 +695,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
   const answeredCount = questions.filter(isQuestionAnswered).length;
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display flex flex-col h-screen overflow-hidden antialiased">
+    <div className="teacher-quiz-attempt-preview-page bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display flex flex-col h-screen overflow-hidden antialiased">
       {/* Header */}
       <header className="flex-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-16 z-30">
         <div className="h-full px-4 md:px-6 flex items-center justify-between w-full max-w-[1920px] mx-auto">
@@ -734,6 +735,14 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
         <main className="flex-1 flex flex-col h-full overflow-hidden relative">
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-3xl mx-auto space-y-6">
+              <AppBreadcrumb
+                className="mb-2"
+                context={{
+                  classTitle: quizData?.classSectionTitle || quizData?.classTitle,
+                  templateName: quizData?.templateName,
+                  quizTitle: quizData?.title,
+                }}
+              />
               {isOnePageMode
                 ? questions.map((question, index) => renderQuestionCard(question, index))
                 : renderQuestionCard(currentQuestion, currentQuestionIndex)}

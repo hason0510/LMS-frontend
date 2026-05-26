@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
 import { getMyTeachingClasses } from "../../api/teaching";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
 const statusOptions = [
   { value: "ALL", label: "Tất cả trạng thái" },
@@ -96,6 +97,7 @@ export default function TeachingClasses() {
     <div className="min-h-screen bg-[#f5f7fb] text-slate-950 dark:bg-slate-950 dark:text-white">
       <Header />
       <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
+        <AppBreadcrumb className="mb-5" />
         <section className="mb-5 flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">

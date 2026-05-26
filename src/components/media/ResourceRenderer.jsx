@@ -46,7 +46,7 @@ export default function ResourceRenderer({ resource, className = "", compact = f
       <img
         src={fileUrl || mediaUrl}
         alt={title || ""}
-        className={`${wrapperClass} max-w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white object-contain`}
+        className={`${wrapperClass} max-w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 object-contain`}
         style={{ maxHeight: compact ? 160 : 360 }}
       />
     );

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getManagedQuizAttempts } from "../../api/quiz";
 
 const RESULT_TABS = [
@@ -134,6 +135,7 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-20 p-6 ${isAdmin ? "lg:pl-72" : "lg:pl-72"}`}>
           <div className="mx-auto max-w-7xl space-y-5">
+            <AppBreadcrumb className="mb-1" />
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("quizAttempts.title")}</h1>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import MyInformation from "../../components/student/profile/MyInformation";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserById } from "../../api/user";
@@ -76,6 +77,7 @@ export default function TeacherProfilePage() {
           sidebarCollapsed ? "pl-20" : "pl-64"
         }`}>
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full mx-auto">
+            <AppBreadcrumb className="mb-5" />
             <div className="mb-8">
               <h1 className="text-2xl md:text-3xl text-[#111418] dark:text-white font-bold leading-tight tracking-[-0.015em]">
                 {t("profile.hoSoCaNhan")}

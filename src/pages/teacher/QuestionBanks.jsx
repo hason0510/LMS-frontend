@@ -5,6 +5,7 @@ import { Modal, Form, Input, Select, Button, message, Table, Tag, Tooltip } from
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   createQuestionBank,
@@ -200,7 +201,7 @@ export default function QuestionBanks({ isAdmin = false }) {
       dataIndex: "name",
       key: "name",
       render: (text, record) => (
-        <Link to={`/${userRole}/question-banks/${record.id}`} className="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-base">
+        <Link to={`/${userRole}/question-banks/${record.id}`} className="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-base dark:text-blue-300 dark:hover:text-blue-200">
           {text}
         </Link>
       )
@@ -209,13 +210,13 @@ export default function QuestionBanks({ isAdmin = false }) {
       title: "Mô tả",
       dataIndex: "description",
       key: "description",
-      render: (text) => <span className="text-gray-500">{text || "-"}</span>
+      render: (text) => <span className="text-gray-500 dark:text-gray-400">{text || "-"}</span>
     },
     {
       title: "Môn học",
       key: "subject",
       render: (_, record) => (
-        <span className="font-medium text-gray-700">{[record.subjectCode, record.subjectTitle].filter(Boolean).join(" - ") || record.subjectId || "-"}</span>
+        <span className="font-medium text-gray-700 dark:text-gray-200">{[record.subjectCode, record.subjectTitle].filter(Boolean).join(" - ") || record.subjectId || "-"}</span>
       )
     },
     {
@@ -226,10 +227,10 @@ export default function QuestionBanks({ isAdmin = false }) {
         const name = ownerName || (record.ownerId ? `#${record.ownerId}` : "-");
         return (
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold uppercase">
+            <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold uppercase dark:bg-indigo-950/60 dark:text-indigo-200">
               {name !== "-" ? name.charAt(0) : "?"}
             </div>
-            <span className="text-sm font-medium text-slate-700">{name}</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{name}</span>
           </div>
         );
       }
@@ -254,16 +255,16 @@ export default function QuestionBanks({ isAdmin = false }) {
           <div className="flex items-center gap-2">
             <Tooltip title="Chi tiết">
               <Link to={`/${userRole}/question-banks/${record.id}`}>
-                <Button type="text" className="text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 flex items-center justify-center rounded-md" icon={<EyeIcon className="h-4 w-4" />} />
+                <Button type="text" className="text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 flex items-center justify-center rounded-md dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/50 dark:hover:text-blue-100" icon={<EyeIcon className="h-4 w-4" />} />
               </Link>
             </Tooltip>
             {canManage && (
               <>
                 <Tooltip title="Sửa">
-                  <Button type="text" className="text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center justify-center rounded-md" icon={<PencilSquareIcon className="h-4 w-4" />} onClick={() => handleOpenEdit(record)} />
+                  <Button type="text" className="text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center justify-center rounded-md dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/50 dark:hover:text-amber-100" icon={<PencilSquareIcon className="h-4 w-4" />} onClick={() => handleOpenEdit(record)} />
                 </Tooltip>
                 <Tooltip title="Xóa">
-                  <Button type="text" className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 flex items-center justify-center rounded-md" icon={<TrashIcon className="h-4 w-4" />} onClick={() => handleDelete(record)} />
+                  <Button type="text" className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 flex items-center justify-center rounded-md dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-900/50 dark:hover:text-red-100" icon={<TrashIcon className="h-4 w-4" />} onClick={() => handleDelete(record)} />
                 </Tooltip>
               </>
             )}
@@ -274,18 +275,19 @@ export default function QuestionBanks({ isAdmin = false }) {
   ];
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
+    <div className="question-banks-page min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 bg-slate-50 dark:bg-slate-900 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
+            <AppBreadcrumb className="mb-6" />
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div className="flex items-start gap-4">
 
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Ngân hàng câu hỏi</h1>
-                  <p className="text-slate-500 mt-1">Quản lý kho câu hỏi dùng cho bài Quizz/Assignment.</p>
+                  <p className="text-slate-500 mt-1 dark:text-slate-400">Quản lý kho câu hỏi dùng cho bài Quizz/Assignment.</p>
                 </div>
               </div>
               {/*<Button
@@ -310,10 +312,10 @@ export default function QuestionBanks({ isAdmin = false }) {
               </Button>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="w-full sm:max-w-md">
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">Môn học / mã học phần</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">Môn học / mã học phần</label>
                   <Select
                     className="w-full h-10"
                     allowClear
@@ -329,7 +331,7 @@ export default function QuestionBanks({ isAdmin = false }) {
                   />
                 </div>
                 <Button
-                  className="h-10 px-4 rounded-lg flex items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  className="h-10 px-4 rounded-lg flex items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
                   icon={<ArrowPathIcon className="h-4 w-4" />}
                   onClick={() => setFilters({ subjectId: undefined })}
                 >
@@ -342,7 +344,7 @@ export default function QuestionBanks({ isAdmin = false }) {
                 rowKey="id" 
                 loading={loading}
                 pagination={{ pageSize: 10, className: "mt-6" }}
-                className="[&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:text-slate-600 [&_.ant-table-thead_th]:font-semibold"
+                className="question-banks-table [&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:text-slate-600 [&_.ant-table-thead_th]:font-semibold dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
               />
             </div>
           </div>
@@ -357,7 +359,7 @@ export default function QuestionBanks({ isAdmin = false }) {
         forceRender
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" onFinish={handleCreate}>
+        <Form form={form} layout="vertical" onFinish={handleCreate} className="question-banks-modal">
           <Form.Item label="Tên ngân hàng" name="name" rules={[{ required: true, message: "Bắt buộc nhập" }]}>
             <Input placeholder="Ví dụ: Ngân hàng câu hỏi Java" />
           </Form.Item>
@@ -392,7 +394,7 @@ export default function QuestionBanks({ isAdmin = false }) {
         forceRender
         destroyOnHidden
       >
-        <Form form={editForm} layout="vertical" onFinish={handleUpdate}>
+        <Form form={editForm} layout="vertical" onFinish={handleUpdate} className="question-banks-modal">
           <Form.Item label="Tên ngân hàng" name="name" rules={[{ required: true, message: "Bắt buộc nhập" }]}>
             <Input placeholder="Tên ngân hàng" />
           </Form.Item>

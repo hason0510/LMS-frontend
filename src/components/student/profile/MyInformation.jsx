@@ -228,7 +228,7 @@ export default function MyInformation({
   const textAreaClass = "rounded-lg";
 
   return (
-    <>
+    <div className="my-information">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5 dark:border-white/10">
         <div className="flex min-w-0 flex-col gap-1">
           <p className="!mb-1 text-2xl font-bold tracking-tight text-[#111418] dark:text-white sm:text-[2rem]">
@@ -265,13 +265,13 @@ export default function MyInformation({
       </div>
 
       {error && (
-        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
+        <div className="mt-4 rounded-lg bg-red-100 p-3 text-red-700 dark:bg-red-950/40 dark:text-red-200">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-lg flex items-center gap-2">
+        <div className="mt-4 flex items-center gap-2 rounded-lg bg-green-100 p-3 text-green-700 dark:bg-green-950/30 dark:text-green-200">
           <svg
             className="h-5 w-5 flex-shrink-0"
             fill="currentColor"
@@ -551,6 +551,6 @@ export default function MyInformation({
           </Space>
         </div>
       )}
-    </>
+    </div>
   );
 }

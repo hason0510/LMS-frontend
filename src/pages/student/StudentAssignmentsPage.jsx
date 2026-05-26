@@ -6,6 +6,7 @@ import { Eye } from "lucide-react";
 import dayjs from "dayjs";
 import Header from "../../components/layout/Header";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getStudentAssignmentFeed } from "../../api/assignment";
 import { getApprovedClassSections } from "../../api/classSection";
 import { useTranslation } from "react-i18next";
@@ -194,6 +195,7 @@ export default function StudentAssignmentsPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <Header />
       <main className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-16 sm:px-6 lg:px-8">
+        <AppBreadcrumb className="mb-6" />
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
           <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
             <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">

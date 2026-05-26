@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Select, message, Popconfirm } from "antd";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import AdminUserModal from "./AdminUserModal";
 import { getAllUsers, deleteUser, updateUser, createUser } from "../../api/user";
 import {
@@ -214,7 +215,7 @@ export default function AdminUserManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="admin-user-management-page min-h-screen bg-background-light dark:bg-background-dark">
       <TeacherHeader toggleSidebar={toggleSidebar} />
       <AdminSidebar />
 
@@ -222,6 +223,7 @@ export default function AdminUserManagement() {
         sidebarCollapsed ? "pl-20" : "pl-64"
       }`}>
         <div className="mx-auto max-w-7xl">
+          <AppBreadcrumb className="mb-5 mt-3" />
           {/* Page Header */}
           <div className="flex flex-wrap mt-3 items-center justify-between gap-4 mb-6">
             <div>

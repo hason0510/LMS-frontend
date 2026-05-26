@@ -1,21 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Select } from "antd";
-import { PencilIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 export default function AccountSettings() {
   const { t, i18n } = useTranslation();
-  
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return (
-        localStorage.getItem("theme") === "dark" ||
-        (!("theme" in localStorage) &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches)
-      );
-    }
-    return false;
-  });
+  const { isDarkMode, toggleTheme } = useTheme();
 
   const [language, setLanguage] = useState(() => {
     if (typeof window !== "undefined") {
@@ -28,20 +18,6 @@ export default function AccountSettings() {
 
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [isDarkMode]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
   const handleLanguageChange = (newLang) => {
     setLanguage(newLang);
     i18n.changeLanguage(newLang);
@@ -49,13 +25,13 @@ export default function AccountSettings() {
   };
 
   return (
-    <>
+    <div className="account-settings">
       <div className="flex flex-wrap justify-between items-start gap-4 pb-6 border-b border-black/10 dark:border-white/10">
         <div className="flex min-w-72 flex-col gap-2">
-          <p className="mb-1! text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
+          <p className="mb-1 text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
             {t("settings.caiDatHeThong")}
           </p>
-          <p className="mb-1!text-[#617589] dark:text-gray-400 text-base font-normal leading-normal">
+          <p className="mb-1 text-[#617589] dark:text-gray-400 text-base font-normal leading-normal">
             {t("settings.quanLyCaiDat")}
           </p>
         </div>
@@ -102,7 +78,7 @@ export default function AccountSettings() {
                 type="checkbox"
                 className="sr-only peer"
                 checked={isDarkMode}
-                onChange={toggleDarkMode}
+                onChange={toggleTheme}
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
             </label>
@@ -126,6 +102,6 @@ export default function AccountSettings() {
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { getTeachingAssignments } from "../../api/assignment";
 import { getAllCourses, getTeacherCourses } from "../../api/classSection";
@@ -286,6 +287,7 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
         >
           <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div className="mx-auto w-full max-w-[1440px] space-y-4">
+              <AppBreadcrumb className="mb-2" />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                 <MetricCard icon={BookOpenCheck} label={t("assignments.metrics.total")} value={metrics.total} />
                 <MetricCard icon={FileCheck2} label={t("assignments.metrics.submitted")} value={metrics.submitted} tone="green" />

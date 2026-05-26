@@ -6,6 +6,7 @@ import Header from "../../components/layout/Header";
 import LessonComments from "../../components/lesson/LessonComments";
 import FileItem from "../../components/common/FileItem";
 import VideoPlayer from "../../components/common/VideoPlayer";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getLessonById } from "../../api/lesson";
 import { getResourcesByLessonId } from "../../api/resource";
 
@@ -128,6 +129,7 @@ export default function StudentLectureDetail() {
 
       <div className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
+          <AppBreadcrumb className="mb-5" context={{ lectureTitle: lesson?.title }} />
           <button
             onClick={() => navigate(`/class-sections/${classSectionId}`)}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-6 font-medium transition-colors"

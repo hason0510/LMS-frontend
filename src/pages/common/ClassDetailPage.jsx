@@ -3,6 +3,7 @@ import Header from "../../components/layout/Header";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import ClassCoverField from "../../components/media/ClassCoverField";
 import CourseTabs from "../../components/course/CourseTabs";
 import CourseContent from "../../components/course/CourseContent";
@@ -452,7 +453,7 @@ export default function ClassSectionDetailPage() {
     ];
 
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-background-dark font-display text-gray-900 dark:text-gray-100">
+      <div className="class-section-detail-page min-h-screen bg-slate-50 dark:bg-background-dark font-display text-gray-900 dark:text-gray-100">
         <TeacherHeader />
         <div className="flex">
           {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
@@ -460,15 +461,16 @@ export default function ClassSectionDetailPage() {
             className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <AppBreadcrumb className="mb-5" context={{ classTitle: course?.title || course?.classCode }} />
 
               {/* Back */}
-              <button
+{/*              <button
                 onClick={() => navigate(-1)}
                 className="flex items-center gap-2 mb-5 text-sm text-primary hover:text-primary/80 transition-colors"
               >
                 <ArrowLeftIcon className="w-4 h-4" />
                 Quay lại danh sách lớp học
-              </button>
+              </button>*/}
 
               {/* Class Hero Card */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
@@ -722,18 +724,19 @@ export default function ClassSectionDetailPage() {
   const hasLinkedAnnouncement = new URLSearchParams(location.search).has("announcementId");
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-gray-100">
+    <div className="class-section-detail-page min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-gray-100">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
+        <AppBreadcrumb className="mb-5" context={{ classTitle: course?.title || course?.classCode }} />
 
-        {/* Back */}
+        {/* Back */}{/*
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 mb-5 text-sm text-primary hover:text-primary/80 transition-colors"
         >
           <ArrowLeftIcon className="w-4 h-4" />
           Quay lại danh sách lớp học
-        </button>
+        </button>*/}
 
         {/* Hero */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">

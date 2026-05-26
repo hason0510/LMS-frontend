@@ -83,6 +83,7 @@ export default function ResourceLibrarySelectModal({
       width={980}
       destroyOnHidden
       title={title || t("mediaManager.pages.personal.title")}
+      rootClassName="resource-library-select-modal"
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input.Search
@@ -130,15 +131,15 @@ export default function ResourceLibrarySelectModal({
                 key={resource.id}
                 type="button"
                 onClick={() => onSelect?.(resource)}
-                className="group rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm"
+                className="group rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm dark:border-gray-700 dark:bg-slate-900 dark:hover:border-blue-500"
               >
-                <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-gray-50">
+                <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-gray-50 dark:bg-slate-800">
                   <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
                 </div>
-                <div className="mt-2 truncate text-sm font-medium text-gray-800">
+                <div className="mt-2 truncate text-sm font-medium text-gray-800 dark:text-gray-100">
                   {resource.title || t("mediaManager.untitled")}
                 </div>
-                <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
                   <span>{t(`mediaManager.types.${resource.type || "FILE"}`)}</span>
                   {resource.fileSize ? <span>{formatBytes(resource.fileSize)}</span> : null}
                 </div>
@@ -154,7 +155,7 @@ export default function ResourceLibrarySelectModal({
           ) : null}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">
+        <div className="rounded-lg border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
           {t("mediaManager.empty")}
         </div>
       )}

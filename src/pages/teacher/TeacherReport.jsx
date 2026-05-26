@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getTeacherCourses, getAdminCourses } from "../../api/classSection";
 import { 
   approveEnrollment, 
@@ -406,6 +407,7 @@ export default function TeacherReport({ isAdmin = false }) {
           sidebarCollapsed ? "pl-20" : "pl-64"
         }`}>
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
+            <AppBreadcrumb className="mb-5" />
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
                 <h1 className="text-2xl md:text-3xl text-[#111418] dark:text-white font-bold leading-tight tracking-[-0.015em]">

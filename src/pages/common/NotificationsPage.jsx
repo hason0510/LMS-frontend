@@ -5,11 +5,13 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import NotificationDetailModal from "../../components/common/NotificationDetailModal";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getMyNotifications,
   markNotificationAsRead,
 } from "../../api/notification";
+import { normalizeNotificationItem } from "../../utils/notificationText";
 
 // Format timestamp to readable format (HH:mm:ss DD/MM/YYYY)
 const formatNotificationTime = (timestamp) => {
@@ -55,7 +57,7 @@ export default function NotificationsPage({ embedded = false }) {
       const notificationsData = res.data || [];
       // Format the time field for each notification
       const formattedNotifications = notificationsData.map((notification) => ({
-        ...notification,
+        ...normalizeNotificationItem(notification),
         time: formatNotificationTime(notification.time),
       }));
       setNotifications(formattedNotifications);
@@ -110,6 +112,7 @@ export default function NotificationsPage({ embedded = false }) {
         <main className={`flex-1 w-full ${isTeacherOrAdmin && !embedded ? "mt-16 ml-20 lg:ml-64" : ""}`}>
           <div className={embedded ? "py-0" : "px-4 py-8 sm:px-6 lg:px-8"}>
             <div className={`${embedded ? "max-w-none" : "mx-auto max-w-7xl"}`}>
+            {!embedded && <AppBreadcrumb className="mb-6" />}
             {/* Header */}
             <div className="mb-6 flex items-center gap-4">
               <div className="flex-1">

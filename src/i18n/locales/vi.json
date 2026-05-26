@@ -329,10 +329,11 @@
       "title": "Quản lý môn học",
       "subtitle": "Quản lý môn học và liên kết từng môn với danh mục chủ quản.",
       "create": "Tạo môn học",
-      "searchPlaceholder": "Tìm theo tên, mô tả hoặc danh mục...",
+      "searchPlaceholder": "Tìm theo mã, tên, mô tả hoặc danh mục...",
       "categoryFilterPlaceholder": "Lọc theo danh mục",
       "createModalTitle": "Tạo môn học mới",
       "editModalTitle": "Chỉnh sửa môn học",
+      "codePlaceholder": "Ví dụ: INT2204",
       "titlePlaceholder": "Ví dụ: Java Web Development",
       "categoryPlaceholder": "Chọn danh mục",
       "descriptionPlaceholder": "Nhập mô tả cho môn học"
@@ -340,6 +341,7 @@
     "columns": {
       "index": "STT",
       "categoryTitle": "Tên danh mục",
+      "subjectCode": "Mã học phần",
       "subjectTitle": "Tên môn học",
       "category": "Danh mục",
       "description": "Mô tả",
@@ -347,6 +349,7 @@
     },
     "fields": {
       "title": "Tiêu đề",
+      "subjectCode": "Mã học phần",
       "subjectTitle": "Tên môn học",
       "category": "Danh mục chủ quản",
       "description": "Mô tả"
@@ -361,6 +364,7 @@
     },
     "validation": {
       "titleRequired": "Vui lòng nhập tiêu đề",
+      "subjectCodeRequired": "Vui lòng nhập mã học phần",
       "subjectRequired": "Vui lòng nhập tên môn học",
       "categoryRequired": "Vui lòng chọn danh mục"
     },
@@ -1249,5 +1253,55 @@
         "NO_ENROLLMENT": "Bạn chưa được duyệt vào lớp học này"
       }
     }
+  },
+  "breadcrumbs": {
+    "ariaLabel": "Breadcrumb",
+    "home": "Trang chủ",
+    "dashboard": "Tổng quan",
+    "classes": "Lớp học",
+    "teachingClasses": "Lớp đang hỗ trợ",
+    "myAssignments": "Bài tập của tôi",
+    "assignments": "Bài tập",
+    "lectures": "Bài giảng",
+    "quizzes": "Bài kiểm tra",
+    "curriculums": "Chương trình học",
+    "questionBanks": "Ngân hàng câu hỏi",
+    "notifications": "Thông báo",
+    "profile": "Trang cá nhân",
+    "information": "Thông tin cá nhân",
+    "certificate": "Chứng chỉ",
+    "password": "Đổi mật khẩu",
+    "settings": "Cài đặt",
+    "media": "Media",
+    "students": "Học viên",
+    "announcements": "Thông báo lớp",
+    "quizAttempts": "Lượt làm quiz",
+    "reports": "Báo cáo",
+    "users": "Người dùng",
+    "categories": "Danh mục",
+    "subjects": "Môn học",
+    "overview": "Tổng quan",
+    "content": "Nội dung",
+    "people": "Học viên",
+    "review": "Chấm bài",
+    "progress": "Tiến độ",
+    "submissions": "Bài nộp",
+    "preview": "Xem trước",
+    "attempt": "Lần làm",
+    "result": "Kết quả",
+    "create": "Tạo mới",
+    "edit": "Chỉnh sửa",
+    "createChapter": "Tạo chương",
+    "createLecture": "Tạo bài giảng",
+    "createQuiz": "Tạo bài kiểm tra",
+    "createAssignment": "Tạo bài tập",
+    "classMedia": "Media lớp",
+    "currentClass": "Lớp hiện tại",
+    "currentAssignment": "Bài tập hiện tại",
+    "currentQuiz": "Bài kiểm tra hiện tại",
+    "currentLecture": "Bài giảng hiện tại",
+    "currentCurriculum": "Chương trình hiện tại",
+    "currentQuestionBank": "Ngân hàng câu hỏi hiện tại",
+    "currentAttempt": "Lần làm hiện tại"
   }
 }

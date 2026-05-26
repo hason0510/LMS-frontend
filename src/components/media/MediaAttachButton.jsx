@@ -14,20 +14,20 @@ const TYPE_OPTIONS = [
   {
     type: "IMAGE",
     Icon: ImageIcon,
-    accentClass: "text-sky-600",
-    badgeClass: "bg-sky-50 border-sky-100",
+    accentClass: "text-sky-600 dark:text-sky-200",
+    badgeClass: "bg-sky-50 border-sky-100 dark:bg-sky-950/40 dark:border-sky-900/60",
   },
   {
     type: "VIDEO",
     Icon: Clapperboard,
-    accentClass: "text-violet-600",
-    badgeClass: "bg-violet-50 border-violet-100",
+    accentClass: "text-violet-600 dark:text-violet-200",
+    badgeClass: "bg-violet-50 border-violet-100 dark:bg-violet-950/40 dark:border-violet-900/60",
   },
   {
     type: "AUDIO",
     Icon: AudioLines,
-    accentClass: "text-emerald-600",
-    badgeClass: "bg-emerald-50 border-emerald-100",
+    accentClass: "text-emerald-600 dark:text-emerald-200",
+    badgeClass: "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900/60",
   },
 ];
 
@@ -94,12 +94,12 @@ export default function MediaAttachButton({
               aria-label={triggerLabel}
               className={`w-full overflow-hidden rounded-2xl border transition-colors ${
                 isImageResource
-                  ? "border-slate-200 bg-white hover:border-blue-300"
-                  : "border-dashed border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50"
+                  ? "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500"
+                  : "border-dashed border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500 dark:hover:bg-slate-800"
               }`}
             >
               {previewImage && isImageResource ? (
-                <div className="aspect-[16/9] w-full bg-white">
+                <div className="aspect-[16/9] w-full bg-white dark:bg-slate-900">
                   <img
                     src={resource.fileUrl || resource.embedUrl || resource.hlsUrl}
                     alt={resource.title || triggerLabel}
@@ -107,8 +107,8 @@ export default function MediaAttachButton({
                   />
                 </div>
               ) : (
-                <div className="flex aspect-[16/9] w-full items-center justify-center bg-slate-50">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-400">
+                <div className="flex aspect-[16/9] w-full items-center justify-center bg-slate-50 dark:bg-slate-800">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
                     <ImageIcon className="h-8 w-8" strokeWidth={1.8} />
                   </div>
                 </div>
@@ -142,22 +142,22 @@ export default function MediaAttachButton({
               aria-label={triggerLabel}
               className={`group inline-flex h-14 w-14 items-center justify-center rounded-xl border transition-colors ${
                 resource
-                  ? "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50"
-                  : "border-slate-200 bg-slate-50 text-slate-400 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                  ? "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-800"
+                  : "border-slate-200 bg-slate-50 text-slate-400 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500 dark:hover:border-blue-500 dark:hover:bg-slate-800 dark:hover:text-blue-300"
               }`}
             >
               {previewImage && isImageResource ? (
                 <img
                   src={resource.fileUrl || resource.embedUrl || resource.hlsUrl}
                   alt={resource.title || triggerLabel}
-                  className="h-11 w-11 rounded-lg border border-slate-200 object-cover"
+                  className="h-11 w-11 rounded-lg border border-slate-200 dark:border-slate-700 object-cover"
                 />
               ) : (
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-lg border ${
                     resource
                       ? `${resourceOption?.badgeClass || "bg-slate-50 border-slate-100"} ${resourceOption?.accentClass || "text-slate-600"}`
-                      : "border-slate-200 bg-white text-slate-400 group-hover:border-blue-100 group-hover:text-blue-600"
+                      : "border-slate-200 bg-white text-slate-400 group-hover:border-blue-100 group-hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500 dark:group-hover:border-blue-900/60 dark:group-hover:text-blue-300"
                   }`}
                 >
                   <ResourceIcon className="h-5 w-5" strokeWidth={2} />
@@ -194,8 +194,8 @@ export default function MediaAttachButton({
             aria-label={triggerLabel}
             className={`inline-flex items-center justify-center rounded-xl border transition-colors ${
               resource
-                ? "border-blue-300 bg-blue-50 text-blue-600 hover:bg-blue-100"
-                : "border-slate-200 bg-white text-slate-500 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                ? "border-blue-300 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/50"
+                : "border-slate-200 bg-white text-slate-500 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-blue-500 dark:hover:bg-slate-800 dark:hover:text-blue-300"
             } ${compact ? "h-9 w-9" : "h-11 w-11"}`}
           >
             {iconNode}
@@ -219,7 +219,9 @@ export default function MediaAttachButton({
 
   return (
     <>
-      {renderTrigger()}
+      <div className="media-attach-button">
+        {renderTrigger()}
+      </div>
 
       <Modal
         open={typeOpen}
@@ -228,8 +230,9 @@ export default function MediaAttachButton({
         width={520}
         title={t("quizMedia.selectMediaType")}
         destroyOnHidden
+        rootClassName="media-attach-type-modal"
       >
-        <div className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+        <div className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
           {t("quizMedia.selectQuestionMediaType")}
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -238,14 +241,14 @@ export default function MediaAttachButton({
               key={option.type}
               type="button"
               onClick={() => openPicker(option.type)}
-              className="group flex min-h-28 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-blue-300 hover:shadow-sm"
+              className="group flex min-h-28 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-blue-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500"
             >
               <div
                 className={`flex h-12 w-12 items-center justify-center rounded-xl border transition-colors ${option.badgeClass} ${option.accentClass}`}
               >
                 <option.Icon className="h-6 w-6" strokeWidth={2} />
               </div>
-              <span className="mt-3 text-sm font-medium text-slate-700 group-hover:text-slate-900">
+              <span className="mt-3 text-sm font-medium text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-white">
                 {t(`quizMedia.types.${option.type}`)}
               </span>
             </button>

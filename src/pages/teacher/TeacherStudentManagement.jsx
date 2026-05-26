@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { Table, Input, Select, Button, Space, Tag, Modal, Breadcrumb, Spin, message } from "antd";
 import CustomAvatar from "../../components/common/Avatar";
 import {
@@ -310,6 +311,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           <div className="p-6 max-w-7xl mx-auto">
+            <AppBreadcrumb className="mb-5" />
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Quản lý Học viên</h1>

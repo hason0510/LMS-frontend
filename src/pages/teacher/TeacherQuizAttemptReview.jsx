@@ -10,6 +10,7 @@ import { getAttemptDetail, reviewQuizAttempt } from "../../api/quiz";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
 import { splitClozeContent } from "../../utils/cloze";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-");
 
@@ -242,6 +243,15 @@ export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode
     : `${base}/quiz-attempts`;
   const content = (
     <div className="mx-auto max-w-7xl space-y-5">
+      <AppBreadcrumb
+        className="mb-1"
+        context={{
+          classTitle: attempt?.classSectionTitle || attempt?.classTitle,
+          classSectionId: attempt?.classSectionId,
+          quizTitle: attempt?.quizTitle,
+          attemptTitle: `${t("breadcrumbs.attempt")} #${attemptId}`,
+        }}
+      />
       <Button onClick={() => navigate(backPath)}>{t("quizAttempts.back")}</Button>
 
       <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">

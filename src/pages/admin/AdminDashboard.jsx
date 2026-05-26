@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import {
   UserGroupIcon,
   AcademicCapIcon,
@@ -206,6 +207,7 @@ export default function AdminDashboard() {
         }`}
       >
         <div className="mx-auto max-w-7xl">
+          <AppBreadcrumb className="mb-5 mt-3" />
           {error && (
             <div className="mb-6 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4">
               <p className="text-sm text-red-800 dark:text-red-300">{error}</p>

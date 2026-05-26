@@ -329,10 +329,11 @@
       "title": "Subject Management",
       "subtitle": "Manage subjects and link each subject to its owning category.",
       "create": "Create subject",
-      "searchPlaceholder": "Search by name, description, or category...",
+      "searchPlaceholder": "Search by code, name, description, or category...",
       "categoryFilterPlaceholder": "Filter by category",
       "createModalTitle": "Create new subject",
       "editModalTitle": "Edit subject",
+      "codePlaceholder": "Example: INT2204",
       "titlePlaceholder": "Example: Java Web Development",
       "categoryPlaceholder": "Select category",
       "descriptionPlaceholder": "Enter a subject description"
@@ -340,6 +341,7 @@
     "columns": {
       "index": "No.",
       "categoryTitle": "Category name",
+      "subjectCode": "Subject code",
       "subjectTitle": "Subject name",
       "category": "Category",
       "description": "Description",
@@ -347,6 +349,7 @@
     },
     "fields": {
       "title": "Title",
+      "subjectCode": "Subject code",
       "subjectTitle": "Subject name",
       "category": "Owning category",
       "description": "Description"
@@ -361,6 +364,7 @@
     },
     "validation": {
       "titleRequired": "Please enter a title",
+      "subjectCodeRequired": "Please enter a subject code",
       "subjectRequired": "Please enter a subject name",
       "categoryRequired": "Please select a category"
     },
@@ -1249,5 +1253,55 @@
         "NO_ENROLLMENT": "Your enrollment in this class has not been approved yet"
       }
     }
+  },
+  "breadcrumbs": {
+    "ariaLabel": "Breadcrumb",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "classes": "Classes",
+    "teachingClasses": "Supported Classes",
+    "myAssignments": "My Assignments",
+    "assignments": "Assignments",
+    "lectures": "Lectures",
+    "quizzes": "Quizzes",
+    "curriculums": "Curriculum",
+    "questionBanks": "Question Banks",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "information": "Personal Information",
+    "certificate": "Certificates",
+    "password": "Password",
+    "settings": "Settings",
+    "media": "Media",
+    "students": "Students",
+    "announcements": "Announcements",
+    "quizAttempts": "Quiz Attempts",
+    "reports": "Reports",
+    "users": "Users",
+    "categories": "Categories",
+    "subjects": "Subjects",
+    "overview": "Overview",
+    "content": "Content",
+    "people": "People",
+    "review": "Review",
+    "progress": "Progress",
+    "submissions": "Submissions",
+    "preview": "Preview",
+    "attempt": "Attempt",
+    "result": "Result",
+    "create": "Create",
+    "edit": "Edit",
+    "createChapter": "Create Chapter",
+    "createLecture": "Create Lecture",
+    "createQuiz": "Create Quiz",
+    "createAssignment": "Create Assignment",
+    "classMedia": "Class Media",
+    "currentClass": "Current Class",
+    "currentAssignment": "Current Assignment",
+    "currentQuiz": "Current Quiz",
+    "currentLecture": "Current Lecture",
+    "currentCurriculum": "Current Curriculum",
+    "currentQuestionBank": "Current Question Bank",
+    "currentAttempt": "Current Attempt"
   }
 }

@@ -268,13 +268,13 @@ export default function MediaLibraryPanel({
   const totalSize = resources.reduce((sum, item) => sum + (item.fileSize || 0), 0);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+    <div className="media-library-panel space-y-5 text-slate-900 dark:text-slate-100">
+      <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 dark:border-slate-700 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-          {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h1>
+          {subtitle ? <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p> : null}
           {policy?.maxSizeBytes ? (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               {t("mediaManager.uploadPolicy", {
                 size: formatBytes(policy.maxSizeBytes),
                 extensions: (policy.allowedExtensions || []).slice(0, 12).join(", "),
@@ -293,8 +293,8 @@ export default function MediaLibraryPanel({
       </div>
 
       {allowLinkCreate ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <div className="mb-3 text-sm font-semibold text-slate-800">{t("mediaManager.link.title")}</div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+          <div className="mb-3 text-sm font-semibold text-slate-800 dark:text-white">{t("mediaManager.link.title")}</div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Input
               value={linkTitle}
@@ -307,7 +307,7 @@ export default function MediaLibraryPanel({
               placeholder={t("mediaManager.link.urlPlaceholder")}
             />
           </div>
-          <div className="mt-2 text-xs text-slate-500">{t("mediaManager.link.hint")}</div>
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("mediaManager.link.hint")}</div>
           <div className="mt-3 flex justify-end">
             <Button type="primary" loading={creatingLink} onClick={handleCreateLink}>
               {t("mediaManager.link.create")}
@@ -318,22 +318,22 @@ export default function MediaLibraryPanel({
 
       {governance ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="text-xs uppercase text-slate-500">{t("mediaManager.stats.currentResult")}</div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+            <div className="text-xs uppercase text-slate-500 dark:text-slate-400">{t("mediaManager.stats.currentResult")}</div>
             <div className="mt-1 text-2xl font-bold">{pagination.totalElements}</div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="text-xs uppercase text-slate-500">{t("mediaManager.stats.visibleSize")}</div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+            <div className="text-xs uppercase text-slate-500 dark:text-slate-400">{t("mediaManager.stats.visibleSize")}</div>
             <div className="mt-1 text-2xl font-bold">{formatBytes(totalSize)}</div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="text-xs uppercase text-slate-500">{t("mediaManager.stats.archivedInView")}</div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+            <div className="text-xs uppercase text-slate-500 dark:text-slate-400">{t("mediaManager.stats.archivedInView")}</div>
             <div className="mt-1 text-2xl font-bold">{resources.filter((item) => item.status === "ARCHIVED").length}</div>
           </div>
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 md:flex-row md:items-center">
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 md:flex-row md:items-center">
         <Input.Search
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -397,12 +397,12 @@ export default function MediaLibraryPanel({
               key={resource.id}
               type="button"
               onClick={() => openDetails(resource)}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm"
+              className="rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500"
             >
-              <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-slate-50">
+              <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-slate-50 dark:bg-slate-800">
                 <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
               </div>
-              <div className="mt-3 truncate text-sm font-semibold text-slate-800">{resource.title || t("mediaManager.untitled")}</div>
+              <div className="mt-3 truncate text-sm font-semibold text-slate-800 dark:text-white">{resource.title || t("mediaManager.untitled")}</div>
               <div className="mt-2 flex flex-wrap gap-1">
                 <Tag>{typeLabels[resource.type] || resource.mimeType || t("mediaManager.types.FILE")}</Tag>
                 <Tag>{formatBytes(resource.fileSize)}</Tag>
@@ -413,7 +413,7 @@ export default function MediaLibraryPanel({
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white py-16 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-slate-300 bg-white py-16 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           {t("mediaManager.empty")}
         </div>
       )}
@@ -426,10 +426,10 @@ export default function MediaLibraryPanel({
         </div>
       ) : null}
 
-      <Drawer open={!!selected} onClose={() => setSelected(null)} width={460} title={t("mediaManager.drawer.title")}>
+      <Drawer open={!!selected} onClose={() => setSelected(null)} width={460} title={t("mediaManager.drawer.title")} rootClassName="media-library-drawer">
         {selected ? (
           <div className="space-y-4">
-            <div className="rounded-lg bg-slate-50 p-3">
+            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
               <ResourceRenderer resource={selected} />
             </div>
             <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} placeholder={t("mediaManager.fields.title")} disabled={!canManageSelected} />
@@ -441,51 +441,51 @@ export default function MediaLibraryPanel({
               disabled={!canManageSelected}
             />
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-slate-500">{t("mediaManager.fields.type")}</span><span>{typeLabels[selected.type] || selected.type || "-"}</span>
-              <span className="text-slate-500">{t("mediaManager.fields.size")}</span><span>{formatBytes(selected.fileSize)}</span>
-              <span className="text-slate-500">{t("mediaManager.fields.scope")}</span><span>{scopeLabels[selected.scopeType] || t("mediaManager.scopes.LEGACY")}</span>
-              <span className="text-slate-500">{t("mediaManager.fields.owner")}</span><span>{selected.createdBy || "-"}</span>
-              <span className="text-slate-500">{t("mediaManager.fields.status")}</span><span>{t(`mediaManager.status.${selected.status || "ACTIVE"}`)}</span>
-              <span className="text-slate-500">{t("mediaManager.fields.usageCount")}</span><span>{selected.usageCount || references.length || 0}</span>
-              <span className="text-slate-500">{t("mediaManager.fields.lastUsedAt")}</span><span>{selected.lastUsedAt ? new Date(selected.lastUsedAt).toLocaleString(locale) : "-"}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.type")}</span><span>{typeLabels[selected.type] || selected.type || "-"}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.size")}</span><span>{formatBytes(selected.fileSize)}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.scope")}</span><span>{scopeLabels[selected.scopeType] || t("mediaManager.scopes.LEGACY")}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.owner")}</span><span>{selected.createdBy || "-"}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.status")}</span><span>{t(`mediaManager.status.${selected.status || "ACTIVE"}`)}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.usageCount")}</span><span>{selected.usageCount || references.length || 0}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.lastUsedAt")}</span><span>{selected.lastUsedAt ? new Date(selected.lastUsedAt).toLocaleString(locale) : "-"}</span>
             </div>
-            <div className="rounded-lg border border-slate-200 p-3">
-              <div className="mb-2 text-sm font-semibold text-slate-800">{t("mediaManager.references.title")}</div>
+            <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+              <div className="mb-2 text-sm font-semibold text-slate-800 dark:text-white">{t("mediaManager.references.title")}</div>
               {detailsLoading ? (
                 <Spin size="small" />
               ) : references.length > 0 ? (
                 <div className="space-y-2">
                   {references.map((item, index) => (
-                    <div key={`${item.entityType}-${item.entityId}-${index}`} className="rounded border border-slate-200 p-2 text-sm">
-                      <div className="font-medium text-slate-800">
+                    <div key={`${item.entityType}-${item.entityId}-${index}`} className="rounded border border-slate-200 p-2 text-sm dark:border-slate-700">
+                      <div className="font-medium text-slate-800 dark:text-white">
                         {item.label || t(`mediaManager.referenceTypes.${item.entityType}`, { id: item.entityId })}
                       </div>
                       {item.contextPath ? (
-                        <div className="mt-1 text-xs text-slate-500">{item.contextPath}</div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{item.contextPath}</div>
                       ) : null}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-sm text-slate-500">{t("mediaManager.references.empty")}</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">{t("mediaManager.references.empty")}</div>
               )}
             </div>
-            <div className="rounded-lg border border-slate-200 p-3">
-              <div className="mb-2 text-sm font-semibold text-slate-800">{t("mediaManager.audit.title")}</div>
+            <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+              <div className="mb-2 text-sm font-semibold text-slate-800 dark:text-white">{t("mediaManager.audit.title")}</div>
               {detailsLoading ? (
                 <Spin size="small" />
               ) : auditLogs.length > 0 ? (
                 <div className="space-y-2">
                   {auditLogs.map((item) => (
-                    <div key={item.id} className="text-sm text-slate-600">
-                      <span className="font-medium text-slate-800">{t(`mediaManager.auditActions.${item.actionType}`, item.actionType)}</span>
+                    <div key={item.id} className="text-sm text-slate-600 dark:text-slate-300">
+                      <span className="font-medium text-slate-800 dark:text-white">{t(`mediaManager.auditActions.${item.actionType}`, item.actionType)}</span>
                       {item.actorUsername ? t("mediaManager.audit.byActor", { actor: item.actorUsername }) : ""}
                       {item.createdDate ? ` · ${new Date(item.createdDate).toLocaleDateString(locale)}` : ""}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-sm text-slate-500">{t("mediaManager.audit.empty")}</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">{t("mediaManager.audit.empty")}</div>
               )}
             </div>
             <div className="flex flex-wrap gap-2">

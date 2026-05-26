@@ -4,15 +4,12 @@ import {
   getMyNotifications,
   markNotificationAsRead,
 } from "../api/notification";
+import {
+  getNotificationPreview,
+  normalizeNotificationItem,
+} from "../utils/notificationText";
 
 const POLLING_INTERVAL_MS = 15000;
-
-function normalizeNotification(item) {
-  return {
-    ...item,
-    readStatus: Boolean(item.readStatus || item.isRead),
-  };
-}
 
 export default function useRealtimeNotifications(enabled = true) {
   const [notifications, setNotifications] = useState([]);
@@ -33,7 +30,7 @@ export default function useRealtimeNotifications(enabled = true) {
 
       const listData = Array.isArray(list) ? list : list?.data || [];
       const unreadData = typeof unread === "number" ? unread : unread?.data;
-      const normalized = (listData || []).map(normalizeNotification);
+      const normalized = (listData || []).map(normalizeNotificationItem);
       setNotifications(normalized);
       setUnreadCount(Number(unreadData || 0));
 
@@ -49,7 +46,7 @@ export default function useRealtimeNotifications(enabled = true) {
               .map((item) => ({
                 id: `toast-${item.id}-${Date.now()}`,
                 title: item.title,
-                message: item.summary || item.description || item.message,
+                message: getNotificationPreview(item),
               })),
             ...prev,
           ]);

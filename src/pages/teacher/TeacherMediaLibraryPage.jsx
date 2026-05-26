@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import MediaLibraryPanel from "../../components/media/MediaLibraryPanel";
 
 export default function TeacherMediaLibraryPage() {
@@ -29,6 +30,7 @@ export default function TeacherMediaLibraryPage() {
           }`}
         >
           <div className="p-6">
+            <AppBreadcrumb className="mb-5" />
             <MediaLibraryPanel
               title={t("mediaManager.pages.personal.title")}
               subtitle={t("mediaManager.pages.personal.subtitle")}

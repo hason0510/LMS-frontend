@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -172,6 +173,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className="flex-1 pt-16 lg:pl-64">
           <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <AppBreadcrumb className="mb-6" />
             <h1 className="mb-5 text-2xl font-bold text-slate-900 dark:text-white">Announcements</h1>
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-gray-800">

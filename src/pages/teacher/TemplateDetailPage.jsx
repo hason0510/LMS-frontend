@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import ClassCoverField from "../../components/media/ClassCoverField";
 import {
   getTemplateById,
@@ -102,6 +103,10 @@ export default function TemplateDetailPage({ isAdmin = false }) {
   const [teacherOptions, setTeacherOptions] = useState([]);
   const [teacherLoading, setTeacherLoading] = useState(false);
   const classImageUrl = Form.useWatch("imageUrl", classForm);
+  const currentUserId = user?.id || user?.sub;
+
+  const buildOwnerLabel = (account, fallback = "Người dùng") =>
+    `${account?.fullName || account?.userName || account?.username || fallback}${account?.gmail ? ` - ${account.gmail}` : ""}`;
 
   const generateRandomCode = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -237,7 +242,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
         classCode: generatedCode || undefined,
         startDate: values.dates?.[0]?.format("YYYY-MM-DD"),
         endDate: values.dates?.[1]?.format("YYYY-MM-DD"),
-        teacherId: isAdmin ? values.teacherId : (user?.id || user?.sub),
+        teacherId: isAdmin ? (values.teacherId || currentUserId) : currentUserId,
       });
       message.success("Tạo lớp học thành công!");
       setClassModalOpen(false);
@@ -265,11 +270,22 @@ export default function TemplateDetailPage({ isAdmin = false }) {
         const role = item?.roleName || item?.role?.roleName || item?.role;
         return role === "TEACHER";
       });
+      const selfOption = currentUserId
+        ? [{
+            value: currentUserId,
+            label: `${buildOwnerLabel(user, "Admin")} (Chính bạn)`,
+          }]
+        : [];
       setTeacherOptions(
-        teachers.map((item) => ({
-          value: item.id,
-          label: `${item.fullName || item.userName || item.username || "Teacher"}${item.gmail ? ` - ${item.gmail}` : ""}`,
-        }))
+        [
+          ...selfOption,
+          ...teachers
+            .filter((item) => item.id !== currentUserId)
+            .map((item) => ({
+              value: item.id,
+              label: buildOwnerLabel(item, "Teacher"),
+            })),
+        ]
       );
     } catch (err) {
       console.error(err);
@@ -364,7 +380,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
+      <div className="template-detail-page min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
         <TeacherHeader />
         <div className="flex flex-1">
           {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
@@ -377,29 +393,14 @@ export default function TemplateDetailPage({ isAdmin = false }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="template-detail-page min-h-screen bg-slate-50 dark:bg-slate-900">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
 
         <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-          {/* ── Breadcrumb ── */}
-          <div className="bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-slate-700 px-6 py-3">
-            <div className="max-w-5xl mx-auto flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <button
-                onClick={() => navigate(`${basePath}/curriculums`)}
-                className="hover:text-primary transition-colors"
-              >
-                Chương trình học
-              </button>
-              <ChevronRightIcon className="w-4 h-4 shrink-0" />
-              <span className="text-slate-800 dark:text-slate-200 font-medium truncate">
-                {template?.name}
-              </span>
-            </div>
-          </div>
-
           <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+            <AppBreadcrumb className="mb-2" context={{ templateName: template?.name }} />
             {/* ── Header Card ── */}
             <div className="bg-linear-to-br from-primary/10 via-blue-50 to-indigo-50 dark:from-primary/20 dark:via-slate-800 dark:to-slate-800 rounded-2xl border border-primary/20 dark:border-primary/30 p-6">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -452,7 +453,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                         title: `${template?.name} - Lớp mới`,
                         description: template?.description || "",
                         imageUrl: null,
-                        teacherId: undefined,
+                        teacherId: isAdmin ? currentUserId : undefined,
                       });
                       setGeneratedCode(generateRandomCode());
                       setClassModalOpen(true);
@@ -680,9 +681,9 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                   })}
 
                   {/* Add chapter button at bottom */}
-                  <button
-                    onClick={() => openChapterModal()}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 text-sm font-medium transition-all"
+                    <button
+                      onClick={() => openChapterModal()}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-primary hover:text-primary hover:bg-primary/5 text-sm font-medium transition-all"
                   >
                     <PlusCircleIcon className="w-4 h-4" />
                     Thêm chương mới
@@ -785,13 +786,13 @@ export default function TemplateDetailPage({ isAdmin = false }) {
           </Form.Item>
           {isAdmin && (
             <Form.Item
-              label="Giáo viên chính"
+              label="Người đứng lớp"
               name="teacherId"
-              rules={[{ required: true, message: "Vui lòng chọn giáo viên chính" }]}
+              rules={[{ required: true, message: "Vui lòng chọn người đứng lớp" }]}
             >
               <Select
                 showSearch
-                placeholder="Chọn giáo viên đứng lớp"
+                placeholder="Chọn chính bạn hoặc một giáo viên"
                 loading={teacherLoading}
                 options={teacherOptions}
                 optionFilterProp="label"

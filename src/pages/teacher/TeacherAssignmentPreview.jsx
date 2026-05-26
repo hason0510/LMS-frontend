@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import { ArrowLeftIcon, EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getAssignmentById } from "../../api/assignment";
 import FileItem from "../../components/common/FileItem";
 
@@ -94,6 +95,13 @@ export default function TeacherAssignmentPreview() {
           </div>
 
           <div className="max-w-5xl mx-auto pt-8 px-4 pb-10 space-y-6">
+            <AppBreadcrumb
+              className="mb-2"
+              context={{
+                classTitle: assignment?.classSectionTitle || assignment?.classTitle,
+                assignmentTitle: assignment?.title,
+              }}
+            />
             {/* Assignment Info Card */}
             <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-4">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{assignment.title}</h1>

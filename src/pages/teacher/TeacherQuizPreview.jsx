@@ -5,6 +5,7 @@ import { ArrowLeftIcon, EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getQuizById } from "../../api/quiz";
 import { getQuizTemplateById } from "../../api/curriculumTemplate";
 
@@ -112,6 +113,14 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
           </div>
 
           <div className="max-w-[1024px] mx-auto px-4 md:px-10 py-8">
+            <AppBreadcrumb
+              className="mb-5"
+              context={{
+                classTitle: quiz?.classSectionTitle || quiz?.classTitle,
+                templateName: quiz?.templateName,
+                quizTitle: quiz?.title,
+              }}
+            />
             {/* Heading */}
             <div className="flex flex-col md:flex-row gap-4 mb-8 justify-between items-start md:items-end">
               <div className="flex flex-col gap-2 flex-1">

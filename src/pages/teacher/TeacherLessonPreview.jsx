@@ -4,6 +4,7 @@ import { Spin, Alert } from "antd";
 import { ArrowLeftIcon, EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import LessonComments from "../../components/lesson/LessonComments";
 import FileItem from "../../components/common/FileItem";
 import VideoPlayer from "../../components/common/VideoPlayer";
@@ -122,6 +123,13 @@ export default function TeacherLessonPreview() {
           )}
 
           <div className="max-w-7xl mx-auto px-6 py-8">
+            <AppBreadcrumb
+              className="mb-5"
+              context={{
+                classTitle: lesson?.classSectionTitle || lesson?.classTitle,
+                lectureTitle: lesson?.title,
+              }}
+            />
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-[#111418] dark:text-white mb-2">
                 {lesson?.title || "Bài giảng"}

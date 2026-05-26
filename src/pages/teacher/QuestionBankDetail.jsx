@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   addMember,
@@ -605,12 +606,13 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   ];
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark text-[#111418] dark:text-white">
+    <div className="question-bank-detail-page min-h-screen bg-background-light dark:bg-background-dark text-[#111418] dark:text-white">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 bg-slate-50 dark:bg-slate-900 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           <div className="px-6 py-8 mx-auto max-w-5xl">
+            <AppBreadcrumb className="mb-6" context={{ questionBankName: bank?.name }} />
             <div className="mb-4">
               <Button type="link" icon={<ArrowLeftIcon className="w-4 h-4" />} onClick={() => navigate(-1)} className="p-0 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                 {t("questionBank.quayLai") || "Quay lại"}
@@ -649,15 +651,15 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                     />
                     <Button
                       onClick={() => navigate(`${isAdmin ? "/admin" : "/teacher"}/question-banks/${id}/media`)}
-                      className="h-9 rounded-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                      className="h-9 rounded-full border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/30"
                     >
                       Media bank
                     </Button>
                     
                     {actionMenuItems.length > 0 && (
                       <Dropdown menu={{ items: actionMenuItems }} trigger={['click']} placement="bottomRight">
-                        <Button className="flex items-center justify-center rounded-full px-2.5 bg-white border-gray-200 hover:bg-gray-50 shadow-sm h-9">
-                           <EllipsisHorizontalIcon className="w-5 h-5 text-gray-600" />
+                        <Button className="flex items-center justify-center rounded-full px-2.5 bg-white border-gray-200 hover:bg-gray-50 shadow-sm h-9 dark:bg-slate-900 dark:border-gray-700 dark:hover:bg-slate-800">
+                           <EllipsisHorizontalIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                         </Button>
                       </Dropdown>
                     )}
@@ -678,11 +680,11 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 space-y-4">
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 dark:bg-slate-900 space-y-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="m-0 text-sm font-semibold text-slate-700 dark:text-slate-200">{t("questionBank.danhSachCauHoi")}</p>
-                      <p className="m-0 text-xs text-slate-500">
+                      <p className="m-0 text-xs text-slate-500 dark:text-slate-400">
                         {questionTagFilterIds.length > 0
                           ? t("questionBank.cauHoiKhopTag", { count: safeQuestions.length, selected: questionTagFilterIds.length })
                           : t("questionBank.cauHoiTrongBank", { count: safeQuestions.length })}
@@ -706,11 +708,11 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                       />
                     </div>
                   </div>
-                  <Table dataSource={safeQuestions} columns={columns} rowKey="id" pagination={{ pageSize: 15 }} />
+                  <Table dataSource={safeQuestions} columns={columns} rowKey="id" pagination={{ pageSize: 15 }} className="question-bank-detail-table" />
                 </div>
 
                 {canManageMembers && (
-                  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mt-6">
+                  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 dark:bg-slate-900 mt-6">
                     <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">{t("questionBank.thanhVienNganHang")}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3 mb-5">
                       <Select
@@ -734,7 +736,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           { value: "VIEWER", label: "VIEWER" },
                         ]}
                       />
-                      <Button type="primary" icon={<UserPlusIcon className="w-4 h-4" />} loading={memberActionLoading} onClick={handleAddMember} className="bg-blue-600 hover:bg-blue-700 h-8">
+                      <Button type="primary" icon={<UserPlusIcon className="w-4 h-4" />} loading={memberActionLoading} onClick={handleAddMember} className="bg-blue-600 hover:bg-blue-700 h-8 dark:bg-blue-600 dark:hover:bg-blue-500">
                         {t("questionBank.them")}
                       </Button>
                     </div>
@@ -752,7 +754,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           render: (_, record) => (
                             <div>
                               <div className="font-medium">{record.fullName || record.userName}</div>
-                              <div className="text-xs text-slate-500">{record.userName}</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400">{record.userName}</div>
                             </div>
                           ),
                         },
@@ -767,7 +769,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           key: "action",
                           render: (_, record) => {
                             if (record.role === "OWNER") {
-                              return <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">{t("questionBank.ownerHienTai")}</span>;
+                              return <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300">{t("questionBank.ownerHienTai")}</span>;
                             }
                             return (
                               <div className="flex flex-wrap gap-2">
@@ -781,7 +783,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                                     {t("questionBank.datRoleViewer")}
                                   </Button>
                                 )}
-                                <Button size="small" onClick={() => handleSetMemberRole(record, "OWNER")} loading={memberActionLoading} className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50 hover:border-amber-400">
+                                <Button size="small" onClick={() => handleSetMemberRole(record, "OWNER")} loading={memberActionLoading} className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50 hover:border-amber-400 dark:text-amber-300 dark:border-amber-900/60 dark:hover:bg-amber-950/20 dark:hover:border-amber-700">
                                   {t("questionBank.chuyenOwner")}
                                 </Button>
                                 <Button size="small" danger onClick={() => handleRemoveMember(record)} loading={memberActionLoading} className="text-xs">

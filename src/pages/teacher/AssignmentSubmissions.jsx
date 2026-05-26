@@ -13,6 +13,7 @@ import AdminSidebar from "../../components/layout/AdminSidebar";
 import TeachingLayout from "../../components/teaching/TeachingLayout";
 import Avatar from "../../components/common/Avatar";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getAssignmentById } from "../../api/assignment";
 import { getAssignmentSubmissions, gradeSubmission, returnSubmission } from "../../api/submission";
 
@@ -302,6 +303,13 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
 
   const content = (
       <div className="mx-auto w-full max-w-[1440px] p-6 space-y-4">
+      <AppBreadcrumb
+        className="mb-1"
+        context={{
+          classTitle: assignment?.classSectionTitle || assignment?.classTitle,
+          assignmentTitle: assignment?.title,
+        }}
+      />
       <Button
         type="text"
         icon={<ArrowLeft size={16} />}

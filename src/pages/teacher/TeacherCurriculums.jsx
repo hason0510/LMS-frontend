@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { MagnifyingGlassIcon, PlusCircleIcon, DocumentCheckIcon } from "@heroicons/react/24/outline";
 import { getTemplates, deleteTemplate } from "../../api/curriculumTemplate";
 import { createClassSectionFromTemplateId } from "../../api/classSection";
@@ -35,6 +36,10 @@ export default function TeacherCurriculums({ isAdmin = false }) {
   const [generatedCode, setGeneratedCode] = useState(null);
   const [teacherOptions, setTeacherOptions] = useState([]);
   const [teacherLoading, setTeacherLoading] = useState(false);
+  const currentUserId = user?.id || user?.sub;
+
+  const buildOwnerLabel = (account, fallback = "Người dùng") =>
+    `${account?.fullName || account?.userName || account?.username || fallback}${account?.gmail ? ` - ${account.gmail}` : ""}`;
 
   const generateRandomCode = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -106,7 +111,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
     instantiateForm.setFieldsValue({
       title: `${template.name} - Lớp mới`,
       description: template.description || "",
-      teacherId: undefined,
+      teacherId: isAdmin ? currentUserId : undefined,
     });
     setInstantiateModalVisible(true);
     if (isAdmin) {
@@ -123,11 +128,22 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         const role = item?.roleName || item?.role?.roleName || item?.role;
         return role === "TEACHER";
       });
+      const selfOption = currentUserId
+        ? [{
+            value: currentUserId,
+            label: `${buildOwnerLabel(user, "Admin")} (Chính bạn)`,
+          }]
+        : [];
       setTeacherOptions(
-        teachers.map((item) => ({
-          value: item.id,
-          label: `${item.fullName || item.userName || item.username || "Teacher"}${item.gmail ? ` - ${item.gmail}` : ""}`,
-        }))
+        [
+          ...selfOption,
+          ...teachers
+            .filter((item) => item.id !== currentUserId)
+            .map((item) => ({
+              value: item.id,
+              label: buildOwnerLabel(item, "Teacher"),
+            })),
+        ]
       );
     } catch (err) {
       console.error(err);
@@ -147,7 +163,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         classCode: generatedCode || undefined,
         startDate: values.dates?.[0]?.format("YYYY-MM-DD"),
         endDate: values.dates?.[1]?.format("YYYY-MM-DD"),
-        teacherId: isAdmin ? values.teacherId : (user?.id || user?.sub),
+        teacherId: isAdmin ? (values.teacherId || currentUserId) : currentUserId,
       });
       message.success("Tạo lớp học thành công!");
       setInstantiateModalVisible(false);
@@ -186,6 +202,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 bg-slate-50 dark:bg-slate-900 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
+            <AppBreadcrumb className="mb-6" />
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
                 <h1 className="text-2xl md:text-3xl text-[#111418] dark:text-white font-bold leading-tight tracking-[-0.015em]">
@@ -343,13 +360,13 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         >
           {isAdmin && (
             <Form.Item
-              label="Giáo viên chính"
+              label="Người đứng lớp"
               name="teacherId"
-              rules={[{ required: true, message: "Vui lòng chọn giáo viên chính" }]}
+              rules={[{ required: true, message: "Vui lòng chọn người đứng lớp" }]}
             >
               <Select
                 showSearch
-                placeholder="Chọn giáo viên đứng lớp"
+                placeholder="Chọn chính bạn hoặc một giáo viên"
                 loading={teacherLoading}
                 options={teacherOptions}
                 optionFilterProp="label"

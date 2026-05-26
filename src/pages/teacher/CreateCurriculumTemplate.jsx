@@ -6,6 +6,7 @@ import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { createTemplate, updateTemplate, getTemplateById } from "../../api/curriculumTemplate";
 import { getAllCategories } from "../../api/category";
 import { getAllSubjects } from "../../api/subject";
@@ -135,6 +136,7 @@ export default function CreateCurriculumTemplate({ isAdmin = false }) {
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 bg-slate-50 dark:bg-slate-900 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           <div className="max-w-4xl mx-auto px-6 py-8">
+            <AppBreadcrumb className="mb-5" context={{ templateName: form.getFieldValue("name") }} />
             <header className="mb-8 flex justify-between items-center">
               <h1 className="text-3xl font-bold">
                 {isExisting ? t("curriculumTemplate.detailTitle") : t("curriculumTemplate.createTitle")}

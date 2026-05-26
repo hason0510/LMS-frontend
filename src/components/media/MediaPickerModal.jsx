@@ -303,19 +303,20 @@ export default function MediaPickerModal({
       width={920}
       title={t("quizMedia.mediaGallery")}
       destroyOnHidden
+      rootClassName="media-picker-modal"
     >
       <div
-        className="mb-5 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center hover:border-blue-400"
+        className="mb-5 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center hover:border-blue-400 dark:border-gray-700 dark:bg-slate-900 dark:hover:border-blue-500"
         onClick={() => fileInputRef.current?.click()}
       >
         {uploading ? (
           <Spin />
         ) : (
           <>
-            <div className="text-base font-semibold text-gray-800">{t("quizMedia.uploadFile")}</div>
-            <div className="mt-1 text-sm text-gray-500">{t("quizMedia.dropOrBrowse")}</div>
+            <div className="text-base font-semibold text-gray-800 dark:text-white">{t("quizMedia.uploadFile")}</div>
+            <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t("quizMedia.dropOrBrowse")}</div>
             {policyMaxSize ? (
-              <div className="mt-1 text-xs text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {t("quizMedia.uploadPolicy", {
                   extensions: policyExtensions.slice(0, 8).join(", "),
                   size: formatBytes(policyMaxSize),
@@ -328,8 +329,8 @@ export default function MediaPickerModal({
         <input ref={fileInputRef} type="file" accept={accept} className="hidden" onChange={handleUpload} />
       </div>
 
-      <div className="mb-5 rounded-lg border border-gray-200 bg-white p-4">
-        <div className="mb-3 text-sm font-semibold text-gray-700">{t("quizMedia.attachByUrl")}</div>
+      <div className="mb-5 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-slate-900">
+        <div className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">{t("quizMedia.attachByUrl")}</div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {mediaType === "VIDEO" && (
             <Select
@@ -397,13 +398,13 @@ export default function MediaPickerModal({
                 key={resource.id}
                 type="button"
                 onClick={() => onSelect(resource)}
-                className="group rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm"
+                className="group rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm dark:border-gray-700 dark:bg-slate-900 dark:hover:border-blue-500"
               >
-                <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-gray-50">
+                <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-gray-50 dark:bg-slate-800">
                   <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
                 </div>
-                <div className="mt-2 truncate text-sm font-medium text-gray-800">{resource.title || t("quizMedia.untitled")}</div>
-                <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                <div className="mt-2 truncate text-sm font-medium text-gray-800 dark:text-gray-100">{resource.title || t("quizMedia.untitled")}</div>
+                <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
                   <span>{resource.type || resource.mimeType}</span>
                   {resource.fileSize ? <span>{formatBytes(resource.fileSize)}</span> : null}
                 </div>
@@ -419,7 +420,7 @@ export default function MediaPickerModal({
           )}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">
+        <div className="rounded-lg border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
           {t("quizMedia.empty")}
         </div>
       )}

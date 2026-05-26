@@ -3,6 +3,7 @@ import { Button, Empty, Form, Input, Modal, Popconfirm, Table, message } from "a
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { createCategory, deleteCategory, getAllCategories, updateCategory } from "../../api/category";
 
@@ -170,7 +171,7 @@ export default function AdminCategoryManagement() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background-dark">
+    <div className="admin-category-page min-h-screen bg-slate-50 dark:bg-background-dark">
       <TeacherHeader />
       <AdminSidebar />
       <main
@@ -179,6 +180,7 @@ export default function AdminCategoryManagement() {
         }`}
       >
         <div className="mx-auto mt-3 max-w-7xl">
+          <AppBreadcrumb className="mb-5" />
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
             <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between sm:px-6">
               <div>
@@ -189,7 +191,7 @@ export default function AdminCategoryManagement() {
                   {t("adminCatalog.categories.subtitle")}
                 </p>
               </div>
-              <Button type="primary" onClick={handleOpenCreateModal}>
+              <Button type="primary" onClick={handleOpenCreateModal} className="dark:bg-blue-600 dark:hover:bg-blue-500">
                 {t("adminCatalog.categories.create")}
               </Button>
             </div>
@@ -215,6 +217,7 @@ export default function AdminCategoryManagement() {
                 locale={{
                   emptyText: <Empty description={t("adminCatalog.empty.categories")} />,
                 }}
+                className="admin-category-table"
                 scroll={{ x: 760 }}
               />
             </div>

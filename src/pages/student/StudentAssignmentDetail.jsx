@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import Header from "../../components/layout/Header";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getAssignmentById } from "../../api/assignment";
 import { getMySubmission, submitAssignment } from "../../api/submission";
 import { uploadStandaloneResource } from "../../api/resource";
@@ -61,7 +62,7 @@ function formatDate(value, fallback = "Chưa có") {
 function getStatusMeta(status) {
   return SUBMISSION_STATUS_META[status] || {
     label: status || "Chưa rõ",
-    className: "border-slate-200 bg-slate-100 text-slate-700",
+    className: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
   };
 }
 
@@ -269,37 +270,23 @@ export default function StudentAssignmentDetail() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
+      <div className="student-assignment-detail flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
         <Spin size="large" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="student-assignment-detail min-h-screen bg-slate-50 dark:bg-slate-900">
       <Header />
       <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-6 lg:px-8">
-        <nav className="mb-5 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-          <button
-            type="button"
-            onClick={() => navigate(`/class-sections/${classSectionId}`)}
-            className="font-medium text-primary hover:underline"
-          >
-            Lớp học
-          </button>
-          <span>/</span>
-          <button
-            type="button"
-            onClick={() => navigate("/student/assignments")}
-            className="font-medium text-primary hover:underline"
-          >
-            Bài tập
-          </button>
-          <span>/</span>
-          <span className="max-w-[520px] truncate text-slate-700 dark:text-slate-200">
-            {assignment?.title || "Chi tiết bài tập"}
-          </span>
-        </nav>
+        <AppBreadcrumb
+          className="mb-5"
+          context={{
+            classTitle: assignment?.classSectionTitle || assignment?.classTitle,
+            assignmentTitle: assignment?.title,
+          }}
+        />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section className="space-y-6">

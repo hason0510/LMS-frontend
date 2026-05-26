@@ -17,6 +17,7 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import CourseCard from "../../components/course/CourseCard";
 import CourseFilters from "../../components/course/CourseFilters";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getClassSectionJoinPreview,
@@ -45,14 +46,14 @@ const createInitialQuery = (scope, extras = {}) => ({
 });
 
 const STATUS_STYLES = {
-  PUBLIC: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  PRIVATE: "bg-amber-50 text-amber-700 border-amber-200",
-  ARCHIVED: "bg-slate-100 text-slate-600 border-slate-200",
+  PUBLIC: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-900/60",
+  PRIVATE: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-900/60",
+  ARCHIVED: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
 };
 
 const ENROLLMENT_STYLES = {
-  APPROVED: "bg-blue-50 text-blue-700 border-blue-200",
-  PENDING: "bg-amber-50 text-amber-700 border-amber-200",
+  APPROVED: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-900/60",
+  PENDING: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-900/60",
 };
 
 function buildSearchParams(query) {
@@ -147,7 +148,7 @@ function ClassesSectionToolbar({
   onToggleAdvanced,
 }) {
   return (
-    <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
+    <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_220px_160px]">
         <AutoComplete
           value={query.keyword}
@@ -190,7 +191,7 @@ function ClassesSectionToolbar({
       </div>
 
       {advancedOpen && (
-        <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/70 lg:grid-cols-4">
           <AutoComplete
             value={query.teacherKeyword}
             options={teacherOptions}
@@ -227,7 +228,7 @@ function ClassesSectionToolbar({
               optionFilterProp="label"
             />
           ) : (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-2 text-sm text-slate-500">
+            <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
               {t("classesPage.filters.publicScopeHint")}
             </div>
           )}
@@ -243,8 +244,8 @@ function ClassesPaginationFooter({ t, currentPage, pageSize, totalElements, onPa
   const end = Math.min(currentPage * pageSize, safeTotal);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div className="font-semibold text-slate-700">
+    <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="font-semibold text-slate-700 dark:text-slate-200">
         {t("classesPage.pagination.total", { count: safeTotal })}
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -259,7 +260,7 @@ function ClassesPaginationFooter({ t, currentPage, pageSize, totalElements, onPa
             optionFilterProp="label"
           />
         </div>
-        <div className="font-semibold text-slate-700">
+        <div className="font-semibold text-slate-700 dark:text-slate-200">
           {t("classesPage.pagination.range", { start, end })}
         </div>
         <Pagination
@@ -281,7 +282,7 @@ function StudentClassCard({ type, item, t, onPrimaryAction, onSecondaryAction })
   const progress = typeof item?.myProgress === "number" ? Math.max(0, Math.min(item.myProgress, 100)) : null;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
       <div
         className="h-40 bg-cover bg-center"
         style={{ backgroundImage: `url(${item?.imageUrl || classPlaceholder})` }}
@@ -298,13 +299,13 @@ function StudentClassCard({ type, item, t, onPrimaryAction, onSecondaryAction })
           )}
         </div>
 
-        <div className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {[item?.subjectCode, item?.categoryTitle].filter(Boolean).join(" • ") || t("classesPage.card.classSection")}
         </div>
-        <h3 className="mt-2 line-clamp-2 text-xl font-bold text-slate-900">{item?.title || item?.classCode}</h3>
-        <div className="mt-2 text-sm text-slate-600">{item?.teacherName || t("classesPage.card.noTeacher")}</div>
+        <h3 className="mt-2 line-clamp-2 text-xl font-bold text-slate-900 dark:text-white">{item?.title || item?.classCode}</h3>
+        <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{item?.teacherName || t("classesPage.card.noTeacher")}</div>
 
-        <div className="mt-4 space-y-2 text-sm text-slate-600">
+        <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
           <div>{t("classesPage.card.classCode", { code: item?.classCode || "-" })}</div>
           <div>{formatDateRange(item?.startDate, item?.endDate, t)}</div>
           <div>{t("classesPage.card.students", { count: item?.totalEnrollments || 0 })}</div>
@@ -312,11 +313,11 @@ function StudentClassCard({ type, item, t, onPrimaryAction, onSecondaryAction })
 
         {type === "my" && (
           <div className="mt-4">
-            <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
+            <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700 dark:text-slate-200">
               <span>{t("classesPage.card.progress")}</span>
               <span>{isPending ? t("classesPage.card.pendingApproval") : `${progress ?? 0}%`}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+            <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
               <div
                 className="h-full rounded-full bg-primary transition-all"
                 style={{ width: `${isPending ? 0 : progress ?? 0}%` }}
@@ -336,7 +337,7 @@ function StudentClassCard({ type, item, t, onPrimaryAction, onSecondaryAction })
           <button
             type="button"
             onClick={onSecondaryAction}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             {t("classesPage.actions.viewDetails")}
           </button>
@@ -358,13 +359,13 @@ function JoinPreviewModal({ open, preview, loading, onConfirm, onClose, t }) {
               (preview?.subjectCode || preview?.title || "CL").slice(0, 2).toUpperCase()
             )}
           </div>
-          <h3 className="mt-6 text-[2rem] font-bold leading-tight text-slate-900">{preview.title}</h3>
-          <div className="mt-3 text-base text-slate-600">
+          <h3 className="mt-6 text-[2rem] font-bold leading-tight text-slate-900 dark:text-white">{preview.title}</h3>
+          <div className="mt-3 text-base text-slate-600 dark:text-slate-300">
             {[preview.teacherName, t("classesPage.modal.students", { count: preview.totalEnrollments || 0 })]
               .filter(Boolean)
               .join(" • ")}
           </div>
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-left text-lg leading-8 text-slate-600">
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-left text-lg leading-8 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             {preview.joinMessage}
           </div>
           <button
@@ -408,14 +409,14 @@ function StudentSection({
   renderCard,
 }) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-      <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+      <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
-            <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
           </div>
-          <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+          <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
             {t("classesPage.sectionCount", { count: totalElements || 0 })}
           </div>
         </div>
@@ -439,14 +440,14 @@ function StudentSection({
         {loading ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: query.pageSize }).map((_, index) => (
-              <div key={index} className="rounded-2xl border border-slate-200 p-4">
+              <div key={index} className="rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
                 <Skeleton.Image active className="!h-40 !w-full !rounded-2xl" />
                 <Skeleton active paragraph={{ rows: 4 }} className="mt-4" />
               </div>
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-16">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-16 dark:border-slate-700 dark:bg-slate-900/70">
             <Empty description={emptyMessage} />
           </div>
         ) : (
@@ -655,7 +656,7 @@ export default function ClassesPage() {
 
   if (isTeacherOrAdmin) {
     return (
-      <div className="min-h-screen bg-background-light font-display text-[#111418]">
+      <div className="classes-page min-h-screen bg-background-light font-display text-[#111418] dark:bg-background-dark dark:text-slate-100">
         <TeacherHeader />
         <div className="flex">
           <TeacherSidebar />
@@ -663,8 +664,8 @@ export default function ClassesPage() {
             <div className="px-4 py-8 sm:px-6 lg:px-8">
               <div className="mx-auto max-w-7xl">
                 <div className="mb-8">
-                  <h1 className="text-4xl font-black text-slate-900">{t("classesPage.teacher.title")}</h1>
-                  <p className="mt-2 text-slate-500">{t("classesPage.teacher.subtitle")}</p>
+                  <h1 className="text-4xl font-black text-slate-900 dark:text-white">{t("classesPage.teacher.title")}</h1>
+                  <p className="mt-2 text-slate-500 dark:text-slate-400">{t("classesPage.teacher.subtitle")}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
                   <aside className="lg:col-span-1">
@@ -709,26 +710,27 @@ export default function ClassesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] font-display text-slate-900">
+    <div className="classes-page min-h-screen bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-slate-100">
       <Header />
       <main className="px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
+          <AppBreadcrumb className="mb-6" />
           <div className="mb-8">
-            <h1 className="text-4xl font-black text-slate-900">{t("classesPage.title")}</h1>
-            <p className="mt-2 max-w-3xl text-base text-slate-500">{t("classesPage.subtitle")}</p>
+            <h1 className="text-4xl font-black text-slate-900 dark:text-white">{t("classesPage.title")}</h1>
+            <p className="mt-2 max-w-3xl text-base text-slate-500 dark:text-slate-400">{t("classesPage.subtitle")}</p>
           </div>
 
-          <section className="mb-6 overflow-hidden rounded-3xl border border-primary/15 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-            <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-              <h2 className="text-2xl font-bold text-slate-900">{t("classesPage.myClasses.title")}</h2>
-              <p className="mt-1 text-sm text-slate-500">{t("classesPage.joinBanner.subtitle")}</p>
+          <section className="mb-6 overflow-hidden rounded-3xl border border-primary/15 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-primary/30 dark:bg-slate-900 dark:shadow-none">
+            <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t("classesPage.myClasses.title")}</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("classesPage.joinBanner.subtitle")}</p>
             </div>
             <div className="px-5 py-5 sm:px-6">
-              <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-4 sm:px-5">
+              <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-4 dark:border-primary/30 dark:bg-primary/10 sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <div className="text-lg font-semibold text-primary">{t("classesPage.joinBanner.title")}</div>
-                    <div className="mt-1 text-sm text-slate-500">{t("classesPage.joinBanner.description")}</div>
+                    <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">{t("classesPage.joinBanner.description")}</div>
                   </div>
                   <form onSubmit={handlePreviewJoin} className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-xl">
                     <input
@@ -736,7 +738,7 @@ export default function ClassesPage() {
                       value={joinCode}
                       onChange={(event) => setJoinCode(event.target.value)}
                       placeholder={t("classesPage.joinBanner.placeholder")}
-                      className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-primary"
+                      className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
                     />
                     <button
                       type="submit"

@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
 import { parseBlankOptions, parseClozeTokenOptions, splitClozeContent } from "../../utils/cloze";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
 const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
 const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
@@ -784,7 +785,7 @@ export default function QuizAttempt() {
     </div>
   );
   
-  if (loading) return <div className="h-screen flex items-center justify-center"><Spin size="large" /></div>;
+  if (loading) return <div className="quiz-attempt-page h-screen flex items-center justify-center"><Spin size="large" /></div>;
   if (!classContentItemId) return <div className="p-8">Yêu cầu truy cập từ bài học để ghi nhận kết quả.</div>;
   if (!attempt || questions.length === 0) return <div className="p-8">Không tìm thấy dữ liệu bài kiểm tra.</div>;
 
@@ -792,7 +793,7 @@ export default function QuizAttempt() {
   const answeredQuestionCount = questions.filter(isQuestionAnswered).length;
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display flex flex-col h-screen overflow-hidden antialiased selection:bg-primary/20 selection:text-primary">
+    <div className="quiz-attempt-page bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display flex flex-col h-screen overflow-hidden antialiased selection:bg-primary/20 selection:text-primary">
       {/* Top Header */}
       <header className="flex-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-16 z-30">
         <div className="h-full px-4 md:px-6 flex items-center justify-between w-full max-w-[1920px] mx-auto">
@@ -828,6 +829,13 @@ export default function QuizAttempt() {
         <main className="flex-1 flex flex-col h-full overflow-hidden relative">
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-3xl mx-auto space-y-6">
+              <AppBreadcrumb
+                className="mb-2"
+                context={{
+                  classTitle: quizInfo?.classSectionTitle || quizInfo?.classTitle,
+                  quizTitle: quizInfo?.title,
+                }}
+              />
               {isOnePageMode
                 ? questions.map((question, index) => renderQuestionCard(question, index))
                 : renderQuestionCard(currentQuestion, currentQuestionIndex)}

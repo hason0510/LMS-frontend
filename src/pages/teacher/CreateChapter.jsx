@@ -5,6 +5,7 @@ import { ArrowLeftIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { createChapterTemplate, getTemplateById } from "../../api/curriculumTemplate";
 
 const { TextArea } = Input;
@@ -118,6 +119,7 @@ export default function CreateChapter({ isAdmin = false }) {
           }`}
         >
           <div className="px-4 sm:px-6 lg:px-8 py-8">
+            <AppBreadcrumb className="mb-5" context={{ templateName: template?.name }} />
             <button
               onClick={handleBack}
               className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
