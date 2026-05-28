@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   FlagIcon,
@@ -76,6 +77,7 @@ function DragOrderQuestion({ itemMap, currentOrder, onReorder }) {
 }
 
 export default function QuizAttempt() {
+  const { t } = useTranslation();
   const { id, classSectionId } = useParams(); // quizId
   const navigate = useNavigate();
   const location = useLocation();
@@ -170,7 +172,7 @@ export default function QuizAttempt() {
 
     } catch (err) {
       console.error(err);
-      message.error(err.message || "Lỗi khi tải bài kiểm tra");
+      message.error(err?.response?.data?.message || err.message || t("quizAttempt.errors.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -433,10 +435,10 @@ export default function QuizAttempt() {
           setSubmitting(true);
           const submitRes = await submitQuiz(attempt.id);
           const result = submitRes?.data || submitRes;
-          message.success("Nộp bài thành công!");
+          message.success(t("quizAttempt.messages.submitted"));
           navigate(`/class-sections/${classSectionId}/quizzes/${id}/result?classContentItemId=${classContentItemId}`, { state: { attemptId: result.id || attempt.id, classContentItemId } });
       } catch (err) {
-          message.error("Lỗi nộp bài: " + err.message);
+          message.error(err?.response?.data?.message || err.message || t("quizAttempt.errors.submitFailed"));
           setSubmitting(false);
       }
   };

@@ -1,43 +1,117 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Alert, Button, Empty, Select, Table, Tag } from "antd";
+import { useTranslation } from "react-i18next";
+import {
+  ArrowRightIcon,
+  CalendarDaysIcon,
+  ClipboardDocumentCheckIcon,
+  ExclamationTriangleIcon,
+  QueueListIcon,
+  Squares2X2Icon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
-import QuickActionCard from "../../components/teacher/dashboard/QuickActionCard";
-import DashboardCourseCard from "../../components/teacher/dashboard/DashboardCourseCard";
-import StatItem from "../../components/teacher/dashboard/StatItem";
-import { getTeacherCourses } from "../../api/classSection";
-import { getTeachingAssignments } from "../../api/assignment";
-import { getAllTeacherEnrollments } from "../../api/enrollment";
-import { getMyNotificationsPage } from "../../api/notification";
-import { Spin, Alert } from "antd";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import {
-  AcademicCapIcon,
-  PlusCircleIcon,
-  DocumentTextIcon,
-  ClipboardDocumentCheckIcon,
-  ArrowRightIcon,
-  TrophyIcon,
-  UserGroupIcon,
-  BookOpenIcon,
-  BellIcon,
-  ClockIcon,
-  PhotoIcon,
-} from "@heroicons/react/24/outline";
+  getClassPeople,
+  getClassReviewQueue,
+  getClassWorkbenchSummary,
+  getMyTeachingClasses,
+  getTeachingReviewQueue,
+  getTeachingWorkbenchSummary,
+} from "../../api/teaching";
+import { getTeachingAssignments } from "../../api/assignment";
+
+const DEFAULT_STUDENT_PAGE_SIZE = 5;
+
+function getSelectedClassSectionId(searchParams) {
+  const rawValue = searchParams.get("classSectionId");
+  if (!rawValue) {
+    return null;
+  }
+
+  const parsedValue = Number(rawValue);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+function unwrapPageItems(response) {
+  const payload = response?.data || response || null;
+  if (Array.isArray(payload?.pageList)) {
+    return payload.pageList;
+  }
+  if (Array.isArray(payload?.content)) {
+    return payload.content;
+  }
+  return Array.isArray(payload) ? payload : [];
+}
+
+function formatDateTime(value, language, fallback) {
+  if (!value) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleString(language === "vi" ? "vi-VN" : "en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function buildAttentionList(rows = []) {
+  return [...rows]
+    .filter((row) => {
+      const progress = Number(row.progress) || 0;
+      return progress < 80 || Number(row.missingAssignments) > 0 || Number(row.pendingReviews) > 0;
+    })
+    .sort((left, right) => {
+      const progressGap = (Number(left.progress) || 0) - (Number(right.progress) || 0);
+      if (progressGap !== 0) {
+        return progressGap;
+      }
+
+      const missingGap = (Number(right.missingAssignments) || 0) - (Number(left.missingAssignments) || 0);
+      if (missingGap !== 0) {
+        return missingGap;
+      }
+
+      const reviewGap = (Number(right.pendingReviews) || 0) - (Number(left.pendingReviews) || 0);
+      if (reviewGap !== 0) {
+        return reviewGap;
+      }
+
+      return (Number(left.latestScore) || 0) - (Number(right.latestScore) || 0);
+    });
+}
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { t, i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [classes, setClasses] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [reviewQueue, setReviewQueue] = useState([]);
+  const [upcomingAssignments, setUpcomingAssignments] = useState([]);
+  const [attentionStudents, setAttentionStudents] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [error, setError] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [upcomingAssignments, setUpcomingAssignments] = useState([]);
-  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
-  const [pendingEnrollments, setPendingEnrollments] = useState(0);
-  const [pendingReviewTotal, setPendingReviewTotal] = useState(0);
-  const [notifications, setNotifications] = useState([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [studentPage, setStudentPage] = useState(1);
+  const [studentPageSize, setStudentPageSize] = useState(DEFAULT_STUDENT_PAGE_SIZE);
+
+  const selectedClassSectionId = getSelectedClassSectionId(searchParams);
+  const selectedClass = classes.find((item) => item.id === selectedClassSectionId) || null;
+  const isAllClasses = !selectedClassSectionId;
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -47,349 +121,724 @@ export default function TeacherDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchTeacherCourses();
-    fetchUpcomingAssignments();
-    fetchAllAssignmentsForStats();
-    fetchPendingEnrollments();
-    fetchNotifications();
+    loadClasses();
   }, []);
 
-  const fetchTeacherCourses = async () => {
+  useEffect(() => {
+    if (loadingClasses) {
+      return;
+    }
+    loadDashboardData(selectedClassSectionId);
+  }, [loadingClasses, selectedClassSectionId]);
+
+  useEffect(() => {
+    setStudentPage(1);
+  }, [selectedClassSectionId]);
+
+  const visibleAttentionStudents = useMemo(() => {
+    const start = (studentPage - 1) * studentPageSize;
+    return attentionStudents.slice(start, start + studentPageSize);
+  }, [attentionStudents, studentPage, studentPageSize]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(attentionStudents.length / studentPageSize));
+    if (studentPage > totalPages) {
+      setStudentPage(totalPages);
+    }
+  }, [attentionStudents.length, studentPage, studentPageSize]);
+
+  const updateSearchState = (classSectionId) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (classSectionId) {
+      nextParams.set("classSectionId", String(classSectionId));
+    } else {
+      nextParams.delete("classSectionId");
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const loadClasses = async () => {
     try {
-      setLoading(true);
-      const res = await getTeacherCourses();
-      setCourses(res.data || []);
+      setLoadingClasses(true);
+      setError(null);
+      const response = await getMyTeachingClasses();
+      const items = Array.isArray(response) ? response : response?.data || [];
+      setClasses(items);
+
+      if (selectedClassSectionId && !items.some((item) => item.id === selectedClassSectionId)) {
+        updateSearchState(null);
+      }
     } catch (err) {
-      setError(err.message || "Lỗi khi tải khóa học");
+      setError(err?.response?.data?.message || err.message || t("teacherDashboard.errors.loadClasses"));
     } finally {
-      setLoading(false);
+      setLoadingClasses(false);
     }
   };
 
-  const fetchUpcomingAssignments = async () => {
+  const loadDashboardData = async (classSectionId) => {
     try {
-      setAssignmentsLoading(true);
-      const response = await getTeachingAssignments({ tab: "UPCOMING" });
-      const payload = response?.data;
-      setUpcomingAssignments(Array.isArray(payload?.pageList) ? payload.pageList.slice(0, 5) : []);
-    } catch {
+      setLoadingDashboard(true);
+      setError(null);
+
+      if (classSectionId) {
+        const [summaryResponse, reviewQueueResponse, assignmentsResponse, peopleResponse] = await Promise.all([
+          getClassWorkbenchSummary(classSectionId),
+          getClassReviewQueue(classSectionId),
+          getTeachingAssignments({ tab: "UPCOMING", classSectionId }),
+          getClassPeople(classSectionId, { status: "APPROVED" }),
+        ]);
+
+        const peopleRows = Array.isArray(peopleResponse) ? peopleResponse : peopleResponse?.data || [];
+        setSummary(summaryResponse?.data || summaryResponse || null);
+        setReviewQueue(Array.isArray(reviewQueueResponse) ? reviewQueueResponse : reviewQueueResponse?.data || []);
+        setUpcomingAssignments(unwrapPageItems(assignmentsResponse).slice(0, 5));
+        setAttentionStudents(buildAttentionList(peopleRows));
+        return;
+      }
+
+      const [summaryResponse, reviewQueueResponse, assignmentsResponse] = await Promise.all([
+        getTeachingWorkbenchSummary(),
+        getTeachingReviewQueue(),
+        getTeachingAssignments({ tab: "UPCOMING" }),
+      ]);
+
+      setSummary(summaryResponse?.data || summaryResponse || null);
+      setReviewQueue(Array.isArray(reviewQueueResponse) ? reviewQueueResponse : reviewQueueResponse?.data || []);
+      setUpcomingAssignments(unwrapPageItems(assignmentsResponse).slice(0, 5));
+      setAttentionStudents([]);
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || t("teacherDashboard.errors.loadDashboard"));
+      setSummary(null);
+      setReviewQueue([]);
       setUpcomingAssignments([]);
+      setAttentionStudents([]);
     } finally {
-      setAssignmentsLoading(false);
+      setLoadingDashboard(false);
     }
   };
 
-  const fetchAllAssignmentsForStats = async () => {
-    try {
-      const response = await getTeachingAssignments({ tab: "ALL", pageSize: 200 });
-      const list = response?.data?.pageList || [];
-      const total = list.reduce((sum, a) => sum + (a.pendingReviewCount || 0), 0);
-      setPendingReviewTotal(total);
-    } catch {
-      setPendingReviewTotal(0);
+  const stats = {
+    totalClasses: Number(summary?.totalClasses) || classes.length,
+    totalStudents: Number(summary?.totalStudents) || classes.reduce((sum, item) => sum + (Number(item.totalEnrollments) || 0), 0),
+    pendingSubmissions: Number(summary?.pendingSubmissions) || 0,
+    pendingQuizReviews: Number(summary?.pendingQuizReviews) || 0,
+    atRiskStudents: Number(summary?.atRiskStudents) || 0,
+  };
+
+  const studentTableColumns = [
+    {
+      title: t("teacherDashboard.students.columns.student"),
+      dataIndex: "studentName",
+      render: (_, record) => (
+        <div className="min-w-0">
+          <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
+            {record.studentName || t("teacherDashboard.students.defaults.noName")}
+          </p>
+          <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {record.email || record.studentNumber || t("teacherDashboard.students.defaults.noStudentNumber")}
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: t("teacherDashboard.students.columns.progress"),
+      dataIndex: "progress",
+      width: 180,
+      render: (value) => <ProgressPill value={value} />,
+    },
+    {
+      title: t("teacherDashboard.students.columns.missingAssignments"),
+      dataIndex: "missingAssignments",
+      width: 140,
+      align: "right",
+      render: (value) => <span className="font-semibold text-slate-700 dark:text-slate-200">{value || 0}</span>,
+    },
+    {
+      title: t("teacherDashboard.students.columns.pendingReviews"),
+      dataIndex: "pendingReviews",
+      width: 160,
+      align: "right",
+      render: (value) => <span className="font-semibold text-slate-700 dark:text-slate-200">{value || 0}</span>,
+    },
+    {
+      title: t("teacherDashboard.students.columns.latestScore"),
+      dataIndex: "latestScore",
+      width: 130,
+      align: "right",
+      render: (value) => (
+        <span className="font-semibold text-slate-700 dark:text-slate-200">
+          {value ?? t("teacherDashboard.students.defaults.scoreFallback")}
+        </span>
+      ),
+    },
+    {
+      title: t("teacherDashboard.students.columns.action"),
+      key: "actions",
+      width: 120,
+      align: "right",
+      render: () => (
+        <button
+          onClick={() => navigate(`/teacher/class-sections/${selectedClassSectionId}`)}
+          className="text-sm font-semibold text-primary hover:underline"
+        >
+          {t("teacherDashboard.students.openClass")}
+        </button>
+      ),
+    },
+  ];
+
+  const studentRangeStart = attentionStudents.length === 0 ? 0 : (studentPage - 1) * studentPageSize + 1;
+  const studentRangeEnd = Math.min(studentPage * studentPageSize, attentionStudents.length);
+
+  const openReviewItem = (item) => {
+    if (!item) {
+      return;
+    }
+
+    if (String(item.type).toUpperCase() === "QUIZ" && item.attemptId) {
+      navigate(`/teacher/quiz-attempts/${item.attemptId}`);
+      return;
+    }
+
+    if (item.classSectionId && item.assignmentId) {
+      navigate(`/teacher/class-sections/${item.classSectionId}/assignments/${item.assignmentId}/submissions`);
     }
   };
 
-  const fetchPendingEnrollments = async () => {
-    try {
-      const res = await getAllTeacherEnrollments(1, 1, "PENDING");
-      setPendingEnrollments(res.data?.totalElements || 0);
-    } catch {
-      setPendingEnrollments(0);
-    }
-  };
-
-  const fetchNotifications = async () => {
-    try {
-      setNotificationsLoading(true);
-      const res = await getMyNotificationsPage(1, 3);
-      setNotifications(res.data?.pageList || []);
-    } catch {
-      setNotifications([]);
-    } finally {
-      setNotificationsLoading(false);
-    }
-  };
-
-  const totalStudents = Array.isArray(courses)
-    ? courses.reduce((sum, c) => sum + (c.totalEnrollments || 0), 0)
-    : 0;
-  const totalCourses = Array.isArray(courses) ? courses.length : 0;
-
-  const formatNotificationTime = (createdAt) => {
-    if (!createdAt) return "";
-    const date = new Date(createdAt);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "Vừa xong";
-    if (diffMins < 60) return `${diffMins} phút trước`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} giờ trước`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} ngày trước`;
-  };
+  const contentLoading = loadingClasses || loadingDashboard;
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
+    <div className="min-h-screen bg-[#f4f7fb] font-display text-slate-950 dark:bg-slate-950 dark:text-white">
       <TeacherHeader />
       <div className="flex">
         <TeacherSidebar />
         <main
-          className={`flex-1 bg-slate-50 dark:bg-slate-900 pt-16 transition-all duration-300 ${
+          className={`flex-1 pt-16 transition-all duration-300 ${
             sidebarCollapsed ? "pl-20" : "pl-64"
           }`}
         >
-          <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
+          <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <AppBreadcrumb className="mb-5" />
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-              <div>
-                <h1 className="text-2xl md:text-3xl text-[#111418] dark:text-white font-bold leading-tight tracking-[-0.015em]">
-                  Dashboard Giáo viên
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Tổng quan hoạt động giảng dạy các lớp học của bạn.
-                </p>
+
+            <section className="rounded-[28px] border border-slate-200 bg-white px-6 py-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-8">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                <div className="max-w-3xl">
+                  <p className="m-0 text-xs font-bold uppercase tracking-[0.2em] text-primary">
+                    {t("teacherDashboard.header.eyebrow")}
+                  </p>
+                  <h1 className="m-0 mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
+                    {t("teacherDashboard.header.title")}
+                  </h1>
+                  <p className="m-0 mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    {t("teacherDashboard.header.subtitle")}
+                  </p>
+                </div>
+
+                <div className="w-full xl:max-w-sm">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    {t("teacherDashboard.filters.label")}
+                  </label>
+                  <Select
+                    value={selectedClassSectionId || "ALL"}
+                    onChange={(value) => updateSearchState(value === "ALL" ? null : value)}
+                    className="w-full"
+                    optionFilterProp="label"
+                    showSearch
+                    options={[
+                      { value: "ALL", label: t("teacherDashboard.filters.allClasses") },
+                      ...classes.map((item) => ({
+                        value: item.id,
+                        label: item.title || item.classCode || t("teacherDashboard.defaults.classTitle", { id: item.id }),
+                      })),
+                    ]}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column (2/3) */}
-              <div className="lg:col-span-2 flex flex-col gap-8">
-                {/* Quick Actions */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                  <h3 className="text-lg font-bold mb-4 text-[#111418] dark:text-white">
-                    Hành động nhanh
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <QuickActionCard
-                      icon={<PlusCircleIcon className="h-8 w-8" />}
-                      label="Tạo lớp học"
-                      to="/teacher/curriculums"
-                    />
-                    <QuickActionCard
-                      icon={<BookOpenIcon className="h-8 w-8" />}
-                      label="Ngân hàng câu hỏi"
-                      to="/teacher/question-banks"
-                    />
-                    <QuickActionCard
-                      icon={<PhotoIcon className="h-8 w-8" />}
-                      label="Kho media"
-                      to="/teacher/media"
-                    />
-                    <QuickActionCard
-                      icon={<ClipboardDocumentCheckIcon className="h-8 w-8" />}
-                      label="Quản lý bài tập"
-                      to="/teacher/assignments"
-                    />
-                    <QuickActionCard
-                      icon={<DocumentTextIcon className="h-8 w-8" />}
-                      label="Báo cáo"
-                      to="/teacher/report"
-                    />
-                  </div>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <HeaderChip
+                  label={t("teacherDashboard.header.scopeLabel")}
+                  value={selectedClass?.title || t("teacherDashboard.filters.allClasses")}
+                />
+                <HeaderChip
+                  label={t("teacherDashboard.header.focusLabel")}
+                  value={t("teacherDashboard.header.focusValue", {
+                    submissions: stats.pendingSubmissions,
+                    quizzes: stats.pendingQuizReviews,
+                  })}
+                />
+              </div>
+            </section>
+
+            {error ? (
+              <Alert
+                type="error"
+                showIcon
+                message={t("teacherDashboard.errors.alertTitle")}
+                description={error}
+                className="mt-6"
+              />
+            ) : null}
+
+            {contentLoading ? (
+              <DashboardSkeleton />
+            ) : classes.length === 0 ? (
+              <section className="mt-6 rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-700 dark:bg-slate-900">
+                <Empty description={t("teacherDashboard.empty.title")}>
+                  <Button type="primary" onClick={() => navigate("/teacher/curriculums")}>
+                    {t("teacherDashboard.empty.action")}
+                  </Button>
+                </Empty>
+              </section>
+            ) : (
+              <div className="mt-6 space-y-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                  <MetricCard
+                    icon={<Squares2X2Icon className="h-6 w-6" />}
+                    label={t("teacherDashboard.stats.classes")}
+                    value={stats.totalClasses}
+                    tone="blue"
+                  />
+                  <MetricCard
+                    icon={<UserGroupIcon className="h-6 w-6" />}
+                    label={t("teacherDashboard.stats.students")}
+                    value={stats.totalStudents}
+                    tone="emerald"
+                  />
+                  <MetricCard
+                    icon={<ClipboardDocumentCheckIcon className="h-6 w-6" />}
+                    label={t("teacherDashboard.stats.pendingSubmissions")}
+                    value={stats.pendingSubmissions}
+                    tone="amber"
+                  />
+                  <MetricCard
+                    icon={<QueueListIcon className="h-6 w-6" />}
+                    label={t("teacherDashboard.stats.pendingQuizReviews")}
+                    value={stats.pendingQuizReviews}
+                    tone="sky"
+                  />
+                  <MetricCard
+                    icon={<ExclamationTriangleIcon className="h-6 w-6" />}
+                    label={t("teacherDashboard.stats.atRiskStudents")}
+                    value={stats.atRiskStudents}
+                    tone="rose"
+                  />
                 </div>
 
-                {/* Teaching Courses */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">
-                      Các lớp học đang giảng dạy
-                    </h3>
-                    <button
-                      onClick={() => navigate("/teacher/class-sections")}
-                      className="flex items-center gap-2 text-sm font-bold text-primary hover:underline"
-                    >
-                      <span>Xem tất cả</span>
-                      <ArrowRightIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                  {loading ? (
-                    <div className="flex justify-center py-8">
-                      <Spin />
-                    </div>
-                  ) : error ? (
-                    <Alert description={error} type="error" showIcon />
-                  ) : courses.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {courses.slice(0, 4).map((course) => (
-                        <div
-                          key={course.id}
-                          onClick={() => navigate(`/teacher/class-sections/${course.id}`)}
-                          className="cursor-pointer"
-                        >
-                          <DashboardCourseCard
-                            title={course.title}
-                            students={course.totalEnrollments || 0}
-                            classCode={course.classCode}
-                            subject={course.subjectTitle || "Chưa phân loại"}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <p>Chưa có lớp học nào. Hãy tạo lớp học đầu tiên của bạn!</p>
-                      <button
-                        onClick={() => navigate("/teacher/curriculums")}
-                        className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                      >
-                        Tạo lớp học
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_0.95fr]">
+                  <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <SectionHeader
+                      title={t("teacherDashboard.reviewQueue.title")}
+                      subtitle={t("teacherDashboard.reviewQueue.subtitle")}
+                      actionLabel={t("teacherDashboard.reviewQueue.action")}
+                      onAction={() => navigate("/teacher/assignments")}
+                    />
 
-                {/* Upcoming Assignments */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">
-                      Bài tập sắp đến hạn
-                    </h3>
-                    <button
-                      onClick={() => navigate("/teacher/assignments")}
-                      className="flex items-center gap-2 text-sm font-bold text-primary hover:underline"
-                    >
-                      <span>Xem tất cả</span>
-                      <ArrowRightIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                  {assignmentsLoading ? (
-                    <div className="flex justify-center py-6">
-                      <Spin />
-                    </div>
-                  ) : upcomingAssignments.length === 0 ? (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 py-2">
-                      Không có bài tập nào sắp đến hạn.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {upcomingAssignments.map((assignment) => (
-                        <button
-                          key={`${assignment.assignmentId}-${assignment.classSectionId}`}
-                          onClick={() =>
-                            navigate(
-                              `/teacher/class-sections/${assignment.classSectionId}/assignments/${assignment.assignmentId}/submissions`
-                            )
-                          }
-                          className="w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-3 hover:border-primary/60 transition-colors"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                {assignment.assignmentTitle}
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                {assignment.classSectionTitle}
-                              </p>
+                    {reviewQueue.length === 0 ? (
+                      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("teacherDashboard.reviewQueue.empty")} />
+                    ) : (
+                      <div className="mt-4 space-y-3">
+                        {reviewQueue.slice(0, 6).map((item) => (
+                          <button
+                            key={`${item.type}-${item.submissionId || item.attemptId}`}
+                            onClick={() => openReviewItem(item)}
+                            className="w-full rounded-2xl border border-slate-200 px-4 py-4 text-left transition hover:border-primary/50 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Tag color={String(item.type).toUpperCase() === "QUIZ" ? "blue" : "green"}>
+                                    {String(item.type).toUpperCase() === "QUIZ"
+                                      ? t("teacherDashboard.reviewQueue.types.quiz")
+                                      : t("teacherDashboard.reviewQueue.types.assignment")}
+                                  </Tag>
+                                  {item.late ? (
+                                    <Tag color="red">{t("teacherDashboard.reviewQueue.late")}</Tag>
+                                  ) : null}
+                                </div>
+                                <p className="m-0 mt-2 truncate text-sm font-bold text-slate-900 dark:text-white">
+                                  {item.title}
+                                </p>
+                                <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                  {item.classSectionTitle} · {item.studentName}
+                                </p>
+                              </div>
+
+                              <div className="shrink-0 text-sm text-slate-500 dark:text-slate-400 sm:text-right">
+                                <p className="m-0">
+                                  {formatDateTime(
+                                    item.submittedAt || item.dueAt,
+                                    i18n.language,
+                                    t("teacherDashboard.defaults.noDate")
+                                  )}
+                                </p>
+                                <p className="m-0 mt-1 font-semibold text-primary">
+                                  {t("teacherDashboard.reviewQueue.open")}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {assignment.pendingReviewCount > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
-                                  {assignment.pendingReviewCount} chờ chấm
-                                </span>
-                              )}
-                              <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
-                                {assignment.turnedInCount}/{assignment.totalStudents} nộp
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <SectionHeader
+                      title={t("teacherDashboard.classes.title")}
+                      subtitle={t("teacherDashboard.classes.subtitle")}
+                      actionLabel={t("teacherDashboard.classes.action")}
+                      onAction={() => navigate("/teacher/class-sections")}
+                    />
+
+                    <div className="mt-4 space-y-3">
+                      <button
+                        onClick={() => updateSearchState(null)}
+                        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                          isAllClasses
+                            ? "border-primary/40 bg-primary/5"
+                            : "border-slate-200 hover:border-slate-300 dark:border-slate-800"
+                        }`}
+                      >
+                        <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
+                          {t("teacherDashboard.filters.allClasses")}
+                        </p>
+                        <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {t("teacherDashboard.classes.allClassesHint")}
+                        </p>
+                      </button>
+
+                      {classes.slice(0, 6).map((item) => {
+                        const isSelected = item.id === selectedClassSectionId;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => updateSearchState(item.id)}
+                            className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                              isSelected
+                                ? "border-primary/40 bg-primary/5"
+                                : "border-slate-200 hover:border-slate-300 dark:border-slate-800"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
+                                  {item.title || item.classCode}
+                                </p>
+                                <p className="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                                  {item.subjectTitle || t("teacherDashboard.defaults.noSubject")}
+                                </p>
+                              </div>
+                              <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                {t("teacherDashboard.classes.students", { count: item.totalEnrollments || 0 })}
                               </span>
                             </div>
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
+
+                <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <SectionHeader
+                    title={t("teacherDashboard.upcoming.title")}
+                    subtitle={t("teacherDashboard.upcoming.subtitle")}
+                    actionLabel={t("teacherDashboard.upcoming.action")}
+                    onAction={() => navigate("/teacher/assignments")}
+                  />
+
+                  {upcomingAssignments.length === 0 ? (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("teacherDashboard.upcoming.empty")} />
+                  ) : (
+                    <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      {upcomingAssignments.map((assignment) => {
+                        const totalStudents = Number(assignment.totalStudents) || 0;
+                        const turnedInCount = Number(assignment.turnedInCount) || 0;
+                        const pendingReviewCount = Number(assignment.pendingReviewCount) || 0;
+                        const gradedCount = Number(assignment.gradedCount) || 0;
+                        const notSubmittedCount = Math.max(0, totalStudents - turnedInCount);
+
+                        return (
+                          <button
+                            key={`${assignment.assignmentId}-${assignment.classSectionId}`}
+                            onClick={() =>
+                              navigate(
+                                `/teacher/class-sections/${assignment.classSectionId}/assignments/${assignment.assignmentId}/submissions`
+                              )
+                            }
+                            className="rounded-2xl border border-slate-200 p-4 text-left transition hover:border-primary/50 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
+                                  {assignment.assignmentTitle}
+                                </p>
+                                <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                  {assignment.classSectionTitle}
+                                </p>
+                              </div>
+                              <div className="shrink-0 text-sm text-slate-500 dark:text-slate-400 sm:text-right">
+                                <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                  <CalendarDaysIcon className="h-4 w-4" />
+                                  {formatDateTime(
+                                    assignment.dueAt,
+                                    i18n.language,
+                                    t("teacherDashboard.defaults.noDate")
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 space-y-3">
+                              <AssignmentStatusBar
+                                label={t("teacherDashboard.upcoming.submitted")}
+                                value={turnedInCount}
+                                total={totalStudents}
+                                tone="bg-blue-500"
+                              />
+                              <AssignmentStatusBar
+                                label={t("teacherDashboard.upcoming.waitingFeedback")}
+                                value={pendingReviewCount}
+                                total={totalStudents}
+                                tone="bg-amber-500"
+                              />
+                              <AssignmentStatusBar
+                                label={t("teacherDashboard.upcoming.notSubmitted")}
+                                value={notSubmittedCount}
+                                total={totalStudents}
+                                tone="bg-rose-500"
+                              />
+                              <AssignmentStatusBar
+                                label={t("teacherDashboard.upcoming.feedbackSent")}
+                                value={gradedCount}
+                                total={totalStudents}
+                                tone="bg-emerald-500"
+                              />
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
-                </div>
-              </div>
+                </section>
 
-              {/* Right Column (1/3) */}
-              <div className="flex flex-col gap-8">
-                {/* Quick Stats */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                  <h3 className="text-lg font-bold mb-4 text-[#111418] dark:text-white">
-                    Thống kê nhanh
-                  </h3>
-                  <div className="space-y-4">
-                    <StatItem
-                      icon={<AcademicCapIcon className="h-6 w-6" />}
-                      colorClass="bg-blue-500/10 text-blue-500"
-                      label="Lớp học"
-                      value={totalCourses}
-                    />
-                    <StatItem
-                      icon={<UserGroupIcon className="h-6 w-6" />}
-                      colorClass="bg-green-500/10 text-green-500"
-                      label="Tổng học viên"
-                      value={totalStudents}
-                    />
-                    <StatItem
-                      icon={<TrophyIcon className="h-6 w-6" />}
-                      colorClass="bg-amber-500/10 text-amber-500"
-                      label="Yêu cầu tham gia chờ duyệt"
-                      value={pendingEnrollments}
-                    />
-                    <StatItem
-                      icon={<ClockIcon className="h-6 w-6" />}
-                      colorClass="bg-red-500/10 text-red-500"
-                      label="Bài nộp chưa chấm"
-                      value={pendingReviewTotal}
+                <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <div className="px-5 py-5">
+                    <SectionHeader
+                      title={t("teacherDashboard.students.title")}
+                      subtitle={
+                        selectedClass
+                          ? t("teacherDashboard.students.subtitleForClass", { classTitle: selectedClass.title || selectedClass.classCode })
+                          : t("teacherDashboard.students.subtitleAllClasses")
+                      }
                     />
                   </div>
-                </div>
 
-                {/* Real Notifications */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">
-                      Thông báo gần đây
-                    </h3>
-                    <button
-                      onClick={() => navigate("/notifications")}
-                      className="text-xs font-bold text-primary hover:underline"
-                    >
-                      Xem tất cả
-                    </button>
-                  </div>
-                  {notificationsLoading ? (
-                    <div className="flex justify-center py-4">
-                      <Spin size="small" />
+                  {!selectedClass ? (
+                    <div className="border-t border-slate-200 px-5 py-12 dark:border-slate-800">
+                      <Empty description={t("teacherDashboard.students.selectClassPrompt")} />
                     </div>
-                  ) : notifications.length === 0 ? (
-                    <div className="flex flex-col items-center py-4 text-slate-400 dark:text-slate-500 gap-2">
-                      <BellIcon className="h-8 w-8 opacity-40" />
-                      <p className="text-sm">Không có thông báo mới.</p>
+                  ) : attentionStudents.length === 0 ? (
+                    <div className="border-t border-slate-200 px-5 py-12 dark:border-slate-800">
+                      <Empty description={t("teacherDashboard.students.empty")} />
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
-                            notif.read
-                              ? "bg-slate-50 dark:bg-slate-800/50"
-                              : "bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20"
-                          }`}
-                        >
-                          <div className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-500/20 shrink-0 mt-0.5">
-                            <BellIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <>
+                      <div className="hidden md:block">
+                        <Table
+                          rowKey="studentId"
+                          columns={studentTableColumns}
+                          dataSource={visibleAttentionStudents}
+                          pagination={false}
+                          scroll={{ x: 860 }}
+                        />
+                      </div>
+
+                      <div className="space-y-3 px-5 pb-5 md:hidden">
+                        {visibleAttentionStudents.map((student) => (
+                          <div key={student.studentId} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
+                                  {student.studentName || t("teacherDashboard.students.defaults.noName")}
+                                </p>
+                                <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                  {student.email || student.studentNumber || t("teacherDashboard.students.defaults.noStudentNumber")}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => navigate(`/teacher/class-sections/${selectedClassSectionId}`)}
+                                className="shrink-0 text-sm font-semibold text-primary"
+                              >
+                                {t("teacherDashboard.students.openClass")}
+                              </button>
+                            </div>
+
+                            <div className="mt-4 space-y-3">
+                              <ProgressPill value={student.progress} />
+                              <MobileMetricRow
+                                label={t("teacherDashboard.students.columns.missingAssignments")}
+                                value={student.missingAssignments || 0}
+                              />
+                              <MobileMetricRow
+                                label={t("teacherDashboard.students.columns.pendingReviews")}
+                                value={student.pendingReviews || 0}
+                              />
+                              <MobileMetricRow
+                                label={t("teacherDashboard.students.columns.latestScore")}
+                                value={student.latestScore ?? t("teacherDashboard.students.defaults.scoreFallback")}
+                              />
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-slate-900 dark:text-white leading-snug line-clamp-2">
-                              {notif.title || notif.content}
-                            </p>
-                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                              {formatNotificationTime(notif.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+
+                      <DataPaginationFooter
+                        currentPage={studentPage}
+                        pageSize={studentPageSize}
+                        total={attentionStudents.length}
+                        pageSizeOptions={[5, 10, 15]}
+                        totalLabel={t("teacherDashboard.students.pagination.total", { count: attentionStudents.length })}
+                        pageSizeLabel={t("teacherDashboard.students.pagination.pageSize")}
+                        rangeLabel={t("teacherDashboard.students.pagination.range", {
+                          start: studentRangeStart,
+                          end: studentRangeEnd,
+                        })}
+                        onPageChange={setStudentPage}
+                        onPageSizeChange={(value) => {
+                          setStudentPageSize(value);
+                          setStudentPage(1);
+                        }}
+                      />
+                    </>
                   )}
-                </div>
+                </section>
               </div>
-            </div>
+            )}
           </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="h-28 animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_0.95fr]">
+        <div className="h-96 animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+        <div className="h-96 animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+      </div>
+      <div className="h-[30rem] animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+      <div className="h-[34rem] animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+    </div>
+  );
+}
+
+function HeaderChip({ label, value }) {
+  return (
+    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/70 dark:text-slate-300">
+      <span className="font-semibold">{label}:</span> {value}
+    </div>
+  );
+}
+
+function MetricCard({ icon, label, value, tone }) {
+  const toneMap = {
+    blue: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300",
+    emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300",
+    amber: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300",
+    sky: "bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300",
+    rose: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300",
+  };
+
+  return (
+    <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="m-0 text-sm font-semibold text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="m-0 mt-3 text-3xl font-black text-slate-950 dark:text-white">{value}</p>
+        </div>
+        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneMap[tone] || toneMap.blue}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({ title, subtitle, actionLabel, onAction }) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h2 className="m-0 text-lg font-black text-slate-950 dark:text-white">{title}</h2>
+        {subtitle ? <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p> : null}
+      </div>
+      {actionLabel && onAction ? (
+        <button
+          onClick={onAction}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+        >
+          {actionLabel}
+          <ArrowRightIcon className="h-4 w-4" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function AssignmentStatusBar({ label, value, total, tone }) {
+  const safeTotal = Math.max(0, Number(total) || 0);
+  const safeValue = Math.max(0, Number(value) || 0);
+  const percent = safeTotal > 0 ? Math.min(100, Math.round((safeValue / safeTotal) * 100)) : 0;
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+        <span className="text-slate-600 dark:text-slate-300">{label}</span>
+        <span className="font-semibold text-slate-700 dark:text-slate-200">
+          {safeValue}/{safeTotal}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800">
+        <div className={`h-2 rounded-full ${tone}`} style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function ProgressPill({ value }) {
+  const safeValue = Math.max(0, Math.min(100, Number(value) || 0));
+  const toneClass =
+    safeValue < 50
+      ? "bg-rose-500"
+      : safeValue < 80
+      ? "bg-amber-500"
+      : "bg-emerald-500";
+
+  return (
+    <div className="min-w-0">
+      <div className="mb-1 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <span>{safeValue}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800">
+        <div className={`h-2 rounded-full ${toneClass}`} style={{ width: `${safeValue}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function MobileMetricRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between gap-4 text-sm">
+      <span className="text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="font-semibold text-slate-800 dark:text-slate-100">{value}</span>
     </div>
   );
 }

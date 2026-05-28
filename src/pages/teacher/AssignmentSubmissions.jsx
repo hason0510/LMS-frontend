@@ -16,17 +16,17 @@ import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getAssignmentById } from "../../api/assignment";
 import { getAssignmentSubmissions, gradeSubmission, returnSubmission } from "../../api/submission";
+import { buildQuillModules, createQuillTableControl, extendQuillFormats } from "../../utils/quillTable";
 
-const quillModules = {
-  toolbar: [
-    [{ header: [2, 3, false] }],
-    ["bold", "italic", "underline"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    ["link", "clean"],
-  ],
-};
+const quillModules = buildQuillModules([
+  [{ header: [2, 3, false] }],
+  ["bold", "italic", "underline"],
+  [{ list: "ordered" }, { list: "bullet" }],
+  [createQuillTableControl()],
+  ["link", "clean"],
+]);
 
-const quillFormats = ["header", "bold", "italic", "underline", "list", "bullet", "link"];
+const quillFormats = extendQuillFormats(["header", "bold", "italic", "underline", "list", "bullet", "link"]);
 
 const DEFAULT_PAGE_SIZE = 10;
 const SUBMISSION_STATUSES = ["ALL", "NOT_SUBMITTED", "SUBMITTED", "LATE_SUBMITTED", "GRADED", "RETURNED"];

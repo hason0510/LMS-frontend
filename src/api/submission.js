@@ -14,6 +14,11 @@ export async function getMySubmission(assignmentId, classSectionId) {
   return response.data;
 }
 
+export async function getMySubmissions(params = {}) {
+  const response = await axiosClient.get("submissions/me", { params });
+  return response.data;
+}
+
 export async function getAssignmentSubmissions(assignmentId, params = {}) {
   const {
     classSectionId,

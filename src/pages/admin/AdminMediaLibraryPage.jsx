@@ -21,6 +21,7 @@ export default function AdminMediaLibraryPage() {
             fixedScope={false}
             allowLinkCreate
             governance
+            showInstitutionScope
           />
         </main>
       </div>

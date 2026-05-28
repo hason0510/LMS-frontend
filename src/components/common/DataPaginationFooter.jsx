@@ -16,25 +16,25 @@ export default function DataPaginationFooter({
   const start = safeTotal === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, safeTotal);
 
-  return (
-    <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between">
-      <div className="font-semibold text-slate-700 dark:text-slate-200">
-        {totalLabel || `Total: ${safeTotal}`}
+  return safeTotal > 0 ? (
+    <div className="flex flex-col gap-4 border-t border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-1">
+        <div className="font-semibold text-slate-900 dark:text-slate-100">
+          {totalLabel || `Total: ${safeTotal}`}
+        </div>
+        <div className="text-slate-500 dark:text-slate-400">
+          {rangeLabel || `${start} - ${end}`}
+        </div>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <div className="flex items-center gap-2">
-          <span>{pageSizeLabel || "Rows per page"}</span>
+          <span className="whitespace-nowrap">{pageSizeLabel || "Rows per page"}</span>
           <Select
             value={pageSize}
             onChange={(value) => onPageSizeChange?.(value)}
             options={pageSizeOptions.map((value) => ({ value, label: value }))}
-            showSearch
-            optionFilterProp="label"
-            className="w-24"
+            className="w-28"
           />
-        </div>
-        <div className="font-semibold text-slate-700 dark:text-slate-200">
-          {rangeLabel || `${start} - ${end}`}
         </div>
         <Pagination
           current={currentPage}
@@ -42,8 +42,18 @@ export default function DataPaginationFooter({
           total={safeTotal}
           onChange={(page) => onPageChange?.(page)}
           showSizeChanger={false}
-          size="small"
+          size="default"
+          responsive
         />
+      </div>
+    </div>
+  ) : (
+    <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
+      <div className="flex items-center justify-between gap-4">
+        <span className="font-semibold text-slate-900 dark:text-slate-100">
+          {totalLabel || "Total: 0"}
+        </span>
+        <span>{rangeLabel || "0 - 0"}</span>
       </div>
     </div>
   );

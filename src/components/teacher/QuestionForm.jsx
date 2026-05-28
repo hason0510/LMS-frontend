@@ -22,18 +22,18 @@ import { getTags as getQuestionBankTags } from "../../api/questionBank";
 import MediaAttachButton from "../media/MediaAttachButton";
 import ResourceRenderer from "../media/ResourceRenderer";
 import { parseClozeToItems } from "../../utils/cloze";
+import { buildQuillModules, createQuillTableControl } from "../../utils/quillTable";
 
 const { TextArea } = Input;
 
-const QUILL_MODULES = {
-  toolbar: [
-    [{ header: [1, 2, 3, false] }],
-    ["bold", "italic", "underline", "strike"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    ["link", "image", "code-block"],
-    ["clean"],
-  ],
-};
+const QUILL_MODULES = buildQuillModules([
+  [{ header: [1, 2, 3, false] }],
+  ["bold", "italic", "underline", "strike"],
+  [{ list: "ordered" }, { list: "bullet" }],
+  [createQuillTableControl()],
+  ["link", "image", "code-block"],
+  ["clean"],
+]);
 
 const createLocalId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 

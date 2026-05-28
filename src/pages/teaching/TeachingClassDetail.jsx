@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Alert, App, Button, Empty, Form, Input, Modal, Spin, Tabs } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeftIcon,
   BookOpenIcon,
   ClipboardDocumentCheckIcon,
   MegaphoneIcon,
-  PhotoIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
@@ -26,12 +26,6 @@ const CAP_REVIEW_QUIZZES = "REVIEW_QUIZZES";
 const CAP_POST_ANNOUNCEMENTS = "POST_ANNOUNCEMENTS";
 const CAP_MANAGE_STAFF = "MANAGE_STAFF";
 
-const statusLabel = {
-  PUBLIC: "Công khai",
-  PRIVATE: "Riêng tư",
-  ARCHIVED: "Đã lưu trữ",
-};
-
 const statusClass = {
   PUBLIC: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-300",
   PRIVATE: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300",
@@ -49,6 +43,7 @@ const tabFromPath = (pathname) => {
 const hasCapability = (course, capability) => (course?.myCapabilities || []).includes(capability);
 
 export default function TeachingClassDetail() {
+  const { t } = useTranslation();
   const { message } = App.useApp();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -70,6 +65,9 @@ export default function TeachingClassDetail() {
   const canReviewQuizzes = hasCapability(course, CAP_REVIEW_QUIZZES);
   const canReview = canGradeAssignments || canReviewQuizzes;
   const canPostAnnouncements = hasCapability(course, CAP_POST_ANNOUNCEMENTS);
+  const isArchived = course?.status === "ARCHIVED";
+  const canManageStaffActions = canManageStaff && !isArchived;
+  const canPostAnnouncementsActions = canPostAnnouncements && !isArchived;
 
   const load = async () => {
     try {
@@ -79,7 +77,7 @@ export default function TeachingClassDetail() {
       setCourse(courseRes?.data || courseRes || null);
       setSummary(summaryRes?.data || summaryRes || null);
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || "Không thể tải lớp trợ giảng.");
+      setError(err?.response?.data?.message || err.message || t("teaching.classDetail.errors.loadClass"));
     } finally {
       setLoading(false);
     }
@@ -96,6 +94,10 @@ export default function TeachingClassDetail() {
   }, [id, location.pathname, navigate]);
 
   const openAnnouncementModal = () => {
+    if (isArchived) {
+      message.warning(t("teaching.classDetail.archived.actionsBlocked"));
+      return;
+    }
     announcementForm.resetFields();
     setAnnouncementOpen(true);
   };
@@ -109,12 +111,12 @@ export default function TeachingClassDetail() {
         title: values.title?.trim(),
         summary: values.summary,
       });
-      message.success("Đã đăng thông báo lớp học.");
+      message.success(t("teaching.classDetail.messages.announcementCreated"));
       setAnnouncementOpen(false);
       setAnnouncementVersion((value) => value + 1);
     } catch (err) {
       if (err?.errorFields) return;
-      message.error(err?.response?.data?.message || "Không thể đăng thông báo.");
+      message.error(err?.response?.data?.message || t("teaching.classDetail.errors.createAnnouncement"));
     } finally {
       setSubmittingAnnouncement(false);
     }
@@ -124,17 +126,19 @@ export default function TeachingClassDetail() {
     const items = [
       {
         key: "overview",
-        label: "Tổng quan",
+        label: t("teaching.classDetail.tabs.overview"),
         children: (
           <Overview
+            t={t}
             course={course}
             summary={summary}
             canViewPeople={canViewPeople}
             canReview={canReview}
             canGradeAssignments={canGradeAssignments}
             canReviewQuizzes={canReviewQuizzes}
-            canPostAnnouncements={canPostAnnouncements}
-            canManageStaff={canManageStaff}
+            canPostAnnouncements={canPostAnnouncementsActions}
+            canManageStaff={canManageStaffActions}
+            isArchived={isArchived}
             onNavigate={navigate}
             onOpenStaff={() => setStaffOpen(true)}
             onOpenAnnouncement={openAnnouncementModal}
@@ -143,15 +147,15 @@ export default function TeachingClassDetail() {
       },
       {
         key: "content",
-        label: "Nội dung",
-        children: <CourseContent enrollmentStatus="APPROVED" workspaceMode="teaching" capabilities={course?.myCapabilities || []} />,
+        label: t("teaching.classDetail.tabs.content"),
+        children: <CourseContent enrollmentStatus="APPROVED" workspaceMode="teaching" capabilities={course?.myCapabilities || []} archived={isArchived} />,
       },
     ];
 
     if (canViewPeople) {
       items.push({
         key: "people",
-        label: "Học viên",
+        label: t("teaching.classDetail.tabs.people"),
         children: <ClassPeopleTab classSectionId={Number(id)} />,
       });
     }
@@ -159,7 +163,7 @@ export default function TeachingClassDetail() {
     if (canReview) {
       items.push({
         key: "review",
-        label: "Chấm bài",
+        label: t("teaching.classDetail.tabs.review"),
         children: (
           <ClassReviewTab
             classSectionId={Number(id)}
@@ -173,12 +177,14 @@ export default function TeachingClassDetail() {
     if (canPostAnnouncements) {
       items.push({
         key: "announcements",
-        label: "Thông báo",
+        label: t("teaching.classDetail.tabs.announcements"),
         children: (
           <AnnouncementsPanel
+            t={t}
             classSectionId={id}
             refreshKey={announcementVersion}
             onCreate={openAnnouncementModal}
+            canCreate={canPostAnnouncementsActions}
           />
         ),
       });
@@ -215,26 +221,34 @@ export default function TeachingClassDetail() {
             <Spin size="large" />
           </div>
         ) : error ? (
-          <Alert type="error" showIcon message="Không thể tải dữ liệu" description={error} />
+          <Alert type="error" showIcon message={t("teaching.classDetail.errors.loadClass")} description={error} />
         ) : !course ? (
           <section className="rounded-lg border border-dashed border-slate-300 bg-white py-16 dark:border-slate-700 dark:bg-slate-900">
-            <Empty description="Không có dữ liệu lớp." />
+            <Empty description={t("teaching.classDetail.noClassData")} />
           </section>
         ) : (
           <div className="space-y-5">
             <AppBreadcrumb className="mb-1" context={{ classTitle: course?.title || course?.classCode }} />
+            {isArchived && (
+              <Alert
+                type="info"
+                showIcon
+                message={t("teaching.classDetail.archived.title")}
+                description={t("teaching.classDetail.archived.description")}
+              />
+            )}
 {/*            <button onClick={() => navigate("/teaching/classes")} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
               <ArrowLeftIcon className="h-4 w-4" />
               Quay lại danh sách lớp
             </button>*/}
 
             <ClassHero
+              t={t}
               course={course}
-              canManageStaff={canManageStaff}
-              canPostAnnouncements={canPostAnnouncements}
+              canManageStaff={canManageStaffActions}
+              canPostAnnouncements={canPostAnnouncementsActions}
               onOpenStaff={() => setStaffOpen(true)}
               onOpenAnnouncement={openAnnouncementModal}
-              onOpenMedia={() => navigate(`/teaching/class-sections/${id}/media`)}
             />
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -247,35 +261,35 @@ export default function TeachingClassDetail() {
       <ClassStaffModal
         open={staffOpen}
         classSectionId={Number(id)}
-        canManageStaff={canManageStaff}
+        canManageStaff={canManageStaffActions}
         onClose={() => setStaffOpen(false)}
         onChanged={load}
       />
 
       <Modal
-        title="Tạo thông báo lớp học"
+        title={t("teaching.classDetail.announcements.modalTitle")}
         open={announcementOpen}
         onCancel={() => setAnnouncementOpen(false)}
         onOk={handleCreateAnnouncement}
-        okText="Đăng thông báo"
-        cancelText="Hủy"
+        okText={t("teaching.classDetail.announcements.submit")}
+        cancelText={t("teaching.classDetail.announcements.cancel")}
         confirmLoading={submittingAnnouncement}
         destroyOnHidden
       >
         <Form form={announcementForm} layout="vertical" className="mt-4">
           <Form.Item
             name="title"
-            label="Tiêu đề"
-            rules={[{ required: true, message: "Nhập tiêu đề thông báo" }]}
+            label={t("teaching.classDetail.announcements.title")}
+            rules={[{ required: true, message: t("teaching.classDetail.announcements.validationTitle") }]}
           >
-            <Input placeholder="Ví dụ: Nhắc lịch nộp bài tuần này" />
+            <Input placeholder={t("teaching.classDetail.announcements.placeholderTitle")} />
           </Form.Item>
           <Form.Item
             name="summary"
-            label="Nội dung"
-            rules={[{ required: true, message: "Nhập nội dung thông báo" }]}
+            label={t("teaching.classDetail.announcements.content")}
+            rules={[{ required: true, message: t("teaching.classDetail.announcements.validationContent") }]}
           >
-            <Input.TextArea rows={5} placeholder="Nội dung gửi tới học viên trong lớp..." />
+            <Input.TextArea rows={5} placeholder={t("teaching.classDetail.announcements.placeholderContent")} />
           </Form.Item>
         </Form>
       </Modal>
@@ -283,7 +297,7 @@ export default function TeachingClassDetail() {
   );
 }
 
-function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, onOpenAnnouncement, onOpenMedia }) {
+function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, onOpenAnnouncement, t }) {
   const title = course.title || course.classCode || "Lớp chưa có tên";
   const status = course.status || "PRIVATE";
 
@@ -298,7 +312,7 @@ function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, 
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass[status] || statusClass.PRIVATE}`}>
-              {statusLabel[status] || status}
+              {t(`teaching.status.${String(status || "private").toLowerCase()}`)}
             </span>
             {course.subjectTitle && (
               <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-300">
@@ -315,17 +329,14 @@ function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, 
         <div className="flex flex-wrap gap-2">
           {canPostAnnouncements && (
             <Button type="primary" icon={<MegaphoneIcon className="h-4 w-4" />} onClick={onOpenAnnouncement}>
-              Tạo thông báo
+              {t("teaching.classDetail.announcements.create")}
             </Button>
           )}
           {canManageStaff && (
             <Button icon={<UserGroupIcon className="h-4 w-4" />} onClick={onOpenStaff}>
-              Nhân sự giảng dạy
+              {t("teaching.classes.staff")}
             </Button>
           )}
-          <Button icon={<PhotoIcon className="h-4 w-4" />} onClick={onOpenMedia}>
-            Media lớp
-          </Button>
         </div>
       </div>
     </section>
@@ -333,6 +344,7 @@ function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, 
 }
 
 function Overview({
+  t,
   course,
   summary,
   canViewPeople,
@@ -341,31 +353,32 @@ function Overview({
   canReviewQuizzes,
   canPostAnnouncements,
   canManageStaff,
+  isArchived,
   onNavigate,
   onOpenStaff,
   onOpenAnnouncement,
 }) {
-  if (!course) return <Empty description="Không có dữ liệu lớp." />;
+  if (!course) return <Empty description={t("teaching.classDetail.noClassData")} />;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryTile label="Học viên" value={summary?.totalStudents ?? course.totalEnrollments ?? 0} icon={<UserGroupIcon className="h-5 w-5" />} />
-        <SummaryTile label="Bài chờ chấm" value={summary?.pendingSubmissions ?? 0} icon={<ClipboardDocumentCheckIcon className="h-5 w-5" />} />
-        <SummaryTile label="Quiz cần review" value={summary?.pendingQuizReviews ?? 0} icon={<BookOpenIcon className="h-5 w-5" />} />
-        <SummaryTile label="Cần chú ý" value={summary?.atRiskStudents ?? 0} icon={<MegaphoneIcon className="h-5 w-5" />} />
+        <SummaryTile label={t("teaching.classDetail.stats.students")} value={summary?.totalStudents ?? course.totalEnrollments ?? 0} icon={<UserGroupIcon className="h-5 w-5" />} />
+        <SummaryTile label={t("teaching.classDetail.stats.pendingSubmissions")} value={summary?.pendingSubmissions ?? 0} icon={<ClipboardDocumentCheckIcon className="h-5 w-5" />} />
+        <SummaryTile label={t("teaching.classDetail.stats.pendingQuizReviews")} value={summary?.pendingQuizReviews ?? 0} icon={<BookOpenIcon className="h-5 w-5" />} />
+        <SummaryTile label={t("teaching.classDetail.stats.atRiskStudents")} value={summary?.atRiskStudents ?? 0} icon={<MegaphoneIcon className="h-5 w-5" />} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-          <h2 className="m-0 text-base font-black text-slate-950 dark:text-white">Thao tác nhanh</h2>
+          <h2 className="m-0 text-base font-black text-slate-950 dark:text-white">{t("teaching.classDetail.quickStart")}</h2>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button onClick={() => onNavigate(`/teaching/class-sections/${course.id}/content`)}>
-              Nội dung lớp
+              {t("teaching.classDetail.tabs.content")}
             </Button>
             {canViewPeople && (
               <Button onClick={() => onNavigate(`/teaching/class-sections/${course.id}/people`)}>
-                Danh sách học viên
+                {t("teaching.classDetail.tabs.people")}
               </Button>
             )}
             {canReview && (
@@ -375,21 +388,18 @@ function Overview({
             )}
             {canPostAnnouncements && (
               <Button onClick={onOpenAnnouncement}>
-                Tạo thông báo
+                {t("teaching.classDetail.announcements.create")}
               </Button>
             )}
-            <Button onClick={() => onNavigate(`/teaching/class-sections/${course.id}/media`)}>
-              Media lớp
-            </Button>
           </div>
         </section>
 
         <section className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="m-0 text-base font-black text-slate-950 dark:text-white">Nhân sự giảng dạy</h2>
+            <h2 className="m-0 text-base font-black text-slate-950 dark:text-white">{t("teaching.staff.title")}</h2>
             {canManageStaff && (
               <Button type="link" onClick={onOpenStaff} className="px-0">
-                Quản lý
+                {t("teaching.staff.actions.manage")}
               </Button>
             )}
           </div>
@@ -402,12 +412,12 @@ function Overview({
                     <p className="m-0 truncate text-xs text-slate-500">@{member.username}</p>
                   </div>
                   <span className="shrink-0 text-xs font-semibold text-slate-500">
-                    {member.role === "TEACHER" ? "Giáo viên" : "Trợ giảng"}
+                    {member.role === "TEACHER" ? t("teaching.roles.primaryTeacher") : t("teaching.roles.teachingAssistant")}
                   </span>
                 </div>
               ))
             ) : (
-              <p className="m-0 text-sm text-slate-500">Chưa có dữ liệu nhân sự.</p>
+              <p className="m-0 text-sm text-slate-500">{t("teaching.classDetail.archived.noStaffData")}</p>
             )}
           </div>
         </section>
@@ -428,16 +438,16 @@ function SummaryTile({ label, value, icon }) {
   );
 }
 
-function AnnouncementsPanel({ classSectionId, refreshKey, onCreate }) {
+function AnnouncementsPanel({ classSectionId, refreshKey, onCreate, canCreate, t }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="m-0 text-lg font-black text-slate-950 dark:text-white">Thông báo lớp học</h2>
-          <p className="m-0 text-sm text-slate-500">Gửi cập nhật cho học viên trong lớp.</p>
+          <h2 className="m-0 text-lg font-black text-slate-950 dark:text-white">{t("teaching.classDetail.announcements.panelTitle")}</h2>
+          <p className="m-0 text-sm text-slate-500">{t("teaching.classDetail.announcements.panelDescription")}</p>
         </div>
-        <Button type="primary" onClick={onCreate}>
-          Tạo thông báo
+        <Button type="primary" onClick={onCreate} disabled={!canCreate}>
+          {t("teaching.classDetail.announcements.create")}
         </Button>
       </div>
       <AnnouncementsTab key={refreshKey} classSectionId={classSectionId} />

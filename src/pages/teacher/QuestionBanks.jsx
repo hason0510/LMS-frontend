@@ -1,53 +1,69 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Table, Tag } from "antd";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-import { Modal, Form, Input, Select, Button, message, Table, Tag, Tooltip } from "antd";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { useAuth } from "../../contexts/AuthContext";
-import {
-  createQuestionBank,
-  deleteQuestionBank,
-  getQuestionBanks,
-  updateQuestionBank,
-} from "../../api/questionBank";
+import { createQuestionBank, deleteQuestionBank, getQuestionBanks, updateQuestionBank } from "../../api/questionBank";
 import { getAllCategories } from "../../api/category";
 import { getAllSubjects, getSubjectsByCategory } from "../../api/subject";
-import {
-  ArrowPathIcon,
-  PencilSquareIcon,
-  PlusIcon,
-  TrashIcon,
-  EyeIcon,
-  CircleStackIcon,
-} from "@heroicons/react/24/outline";
 
 const { TextArea } = Input;
+const DEFAULT_PAGE_SIZE = 10;
+const ACTION_BUTTON_CLASS =
+  "!rounded-md !border !border-slate-300 !bg-white !px-3 !text-slate-700 hover:!border-slate-400 hover:!bg-slate-50 hover:!text-slate-900 dark:!border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!border-slate-500 dark:hover:!bg-slate-700 dark:hover:!text-white";
+const DANGER_BUTTON_CLASS =
+  "!rounded-md !border !border-red-300 !bg-white !px-3 !text-red-600 hover:!border-red-400 hover:!bg-red-50 hover:!text-red-700 dark:!border-red-900/60 dark:!bg-slate-800 dark:!text-red-300 dark:hover:!border-red-700 dark:hover:!bg-red-950/40 dark:hover:!text-red-200";
+
+function normalizeCategories(payload) {
+  return Array.isArray(payload?.data?.pageList) ? payload.data.pageList : [];
+}
+
+function normalizeSubjects(payload) {
+  return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+}
+
+function formatSubjectLabel(subject) {
+  return (
+    [subject?.subjectCode || subject?.code, subject?.subjectTitle || subject?.title].filter(Boolean).join(" - ") ||
+    subject?.subjectTitle ||
+    subject?.title ||
+    ""
+  );
+}
 
 export default function QuestionBanks({ isAdmin = false }) {
+  const navigate = useNavigate();
+  useAuth();
+  const userRole = isAdmin ? "admin" : "teacher";
+  const { message } = App.useApp();
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const userRole = user?.role.toLowerCase();
-  
+
   const [banks, setBanks] = useState([]);
   const [categories, setCategories] = useState([]);
   const [allSubjects, setAllSubjects] = useState([]);
-  const [subjects, setSubjects] = useState([]);
+  const [modalSubjects, setModalSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subjectsLoading, setSubjectsLoading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(undefined);
+  const [selectedSubjectId, setSelectedSubjectId] = useState(undefined);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingBank, setEditingBank] = useState(null);
   const [form] = Form.useForm();
-  const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm] = Form.useForm();
   const [editLoading, setEditLoading] = useState(false);
-  const [editingBank, setEditingBank] = useState(null);
-  
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [filters, setFilters] = useState({
-    subjectId: undefined,
-  });
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -56,107 +72,165 @@ export default function QuestionBanks({ isAdmin = false }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [banksResponse, categoriesResponse, subjectsResponse] = await Promise.all([
+        getQuestionBanks(),
+        getAllCategories(1, 1000),
+        getAllSubjects(),
+      ]);
+      setBanks(Array.isArray(banksResponse) ? banksResponse : []);
+      setCategories(normalizeCategories(categoriesResponse));
+      setAllSubjects(normalizeSubjects(subjectsResponse));
+    } catch (error) {
+      console.error(error);
+      message.error(t("teacherLists.questionBanks.messages.loadFailed"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchInitialData();
+    loadData();
   }, []);
 
   useEffect(() => {
-    fetchBanks();
-  }, [filters.subjectId]);
+    setPage(1);
+  }, [searchQuery, ownerSearchQuery, selectedCategoryId, selectedSubjectId, pageSize]);
 
-  const formatSubjectLabel = (subject) =>
-    [subject?.code, subject?.title].filter(Boolean).join(" - ") || "Chưa gán môn học";
+  const availableSubjects = useMemo(() => {
+    if (!selectedCategoryId) return allSubjects;
+    return allSubjects.filter((subject) => subject.categoryId === selectedCategoryId);
+  }, [allSubjects, selectedCategoryId]);
 
-  const fetchInitialData = async () => {
-    try {
-      setLoading(true);
-      const [banksRes, catRes, subjectRes] = await Promise.all([
-        getQuestionBanks({ subjectId: filters.subjectId }),
-        getAllCategories(1, 100),
-        getAllSubjects()
-      ]);
-      setBanks(Array.isArray(banksRes) ? banksRes : []);
-      setCategories(catRes.data?.pageList.map(cat => ({ value: cat.id, label: cat.title })) || []);
-      setAllSubjects(subjectRes.data || subjectRes || []);
-    } catch (err) {
-      console.error(err);
-      message.error("Lỗi khi tải dữ liệu");
-    } finally {
-      setLoading(false);
+  const filteredBanks = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    const ownerKeyword = ownerSearchQuery.trim().toLowerCase();
+    return banks.filter((bank) => {
+      const matchesKeyword =
+        !keyword ||
+        [bank.name, bank.description]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(keyword));
+      const matchesOwner =
+        !ownerKeyword ||
+        [bank.ownerName]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(ownerKeyword));
+      const matchedSubject = allSubjects.find((subject) => subject.id === bank.subjectId);
+      const matchesCategory = !selectedCategoryId || matchedSubject?.categoryId === selectedCategoryId;
+      const matchesSubject = !selectedSubjectId || bank.subjectId === selectedSubjectId;
+      return matchesKeyword && matchesOwner && matchesCategory && matchesSubject;
+    });
+  }, [allSubjects, banks, ownerSearchQuery, searchQuery, selectedCategoryId, selectedSubjectId]);
+
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredBanks.slice(start, start + pageSize);
+  }, [filteredBanks, page, pageSize]);
+
+  const categoryOptions = useMemo(
+    () => categories.map((category) => ({ value: category.id, label: category.title })),
+    [categories]
+  );
+
+  const categoryTitleById = useMemo(
+    () =>
+      categories.reduce((accumulator, category) => {
+        accumulator[category.id] = category.title;
+        return accumulator;
+      }, {}),
+    [categories]
+  );
+
+  const subjectOptions = useMemo(
+    () => availableSubjects.map((subject) => ({ value: subject.id, label: formatSubjectLabel(subject) })),
+    [availableSubjects]
+  );
+
+  const handleToolbarCategoryChange = (value) => {
+    setSelectedCategoryId(value || undefined);
+    if (!value) return;
+
+    const selectedSubject = allSubjects.find((subject) => subject.id === selectedSubjectId);
+    if (selectedSubject && selectedSubject.categoryId !== value) {
+      setSelectedSubjectId(undefined);
     }
   };
 
-  const fetchBanks = async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (filters.subjectId) params.subjectId = filters.subjectId;
-      const banksRes = await getQuestionBanks(params);
-      setBanks(Array.isArray(banksRes) ? banksRes : []);
-    } catch (err) {
-      console.error(err);
-      message.error("Lỗi khi tải ngân hàng câu hỏi");
-    } finally {
-      setLoading(false);
+  const handleToolbarSubjectChange = (value) => {
+    const nextValue = value || undefined;
+    setSelectedSubjectId(nextValue);
+    if (!nextValue) return;
+    const matchedSubject = allSubjects.find((subject) => subject.id === nextValue);
+    if (matchedSubject?.categoryId) {
+      setSelectedCategoryId(matchedSubject.categoryId);
     }
   };
 
-  const handleCategoryChange = async (value) => {
-    form.setFieldsValue({ subjectId: undefined });
-    if (value) {
-      try {
-        setSubjectsLoading(true);
-        const res = await getSubjectsByCategory(value);
-        const subjectList = res.data || [];
-        setSubjects(subjectList.map(sub => ({ value: sub.id, label: formatSubjectLabel(sub) })));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setSubjectsLoading(false);
-      }
-    } else {
-      setSubjects([]);
-    }
-  };
-
-  const handleCreate = async (values) => {
-    try {
-      const payload = {
-        name: values.name,
-        description: values.description,
-        scopeType: "SUBJECT_WIDE",
-        subjectId: values.subjectId
-      };
-      await createQuestionBank(payload);
-      message.success("Tạo Ngân hàng câu hỏi thành công");
-      setIsModalOpen(false);
-      form.resetFields();
-      fetchBanks();
-    } catch (err) {
-      message.error("Lỗi khi tạo Ngân hàng câu hỏi");
-    }
+  const resetFilters = () => {
+    setSearchQuery("");
+    setOwnerSearchQuery("");
+    setSelectedCategoryId(undefined);
+    setSelectedSubjectId(undefined);
   };
 
   const closeCreateModal = () => {
-    setIsModalOpen(false);
+    setIsCreateOpen(false);
+    setModalSubjects([]);
     form.resetFields();
-    setSubjects([]);
   };
 
-  const handleOpenEdit = (record) => {
+  const openEditModal = (record) => {
     setEditingBank(record);
     editForm.setFieldsValue({
       name: record.name,
       description: record.description || "",
       subjectId: record.subjectId,
     });
-    setEditModalOpen(true);
+    setIsEditOpen(true);
   };
 
   const closeEditModal = () => {
-    setEditModalOpen(false);
+    setIsEditOpen(false);
     setEditingBank(null);
     editForm.resetFields();
+  };
+
+  const handleCreateCategoryChange = async (value) => {
+    form.setFieldsValue({ subjectId: undefined });
+    if (!value) {
+      setModalSubjects([]);
+      return;
+    }
+
+    try {
+      setSubjectsLoading(true);
+      const response = await getSubjectsByCategory(value);
+      setModalSubjects(normalizeSubjects(response));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSubjectsLoading(false);
+    }
+  };
+
+  const handleCreate = async (values) => {
+    try {
+      await createQuestionBank({
+        name: values.name,
+        description: values.description,
+        scopeType: "SUBJECT_WIDE",
+        subjectId: values.subjectId,
+      });
+      message.success(t("teacherLists.questionBanks.messages.createSuccess"));
+      closeCreateModal();
+      loadData();
+    } catch (error) {
+      console.error(error);
+      message.error(error?.response?.data?.message || t("teacherLists.questionBanks.messages.createFailed"));
+    }
   };
 
   const handleUpdate = async () => {
@@ -165,257 +239,364 @@ export default function QuestionBanks({ isAdmin = false }) {
       const values = await editForm.validateFields();
       setEditLoading(true);
       await updateQuestionBank(editingBank.id, values);
-      message.success("Đã cập nhật ngân hàng câu hỏi");
+      message.success(t("teacherLists.questionBanks.messages.updateSuccess"));
       closeEditModal();
-      fetchBanks();
-    } catch (err) {
-      if (err?.errorFields) return;
-      message.error(err?.response?.data?.message || "Lỗi khi cập nhật Ngân hàng câu hỏi");
+      loadData();
+    } catch (error) {
+      if (error?.errorFields) return;
+      console.error(error);
+      message.error(error?.response?.data?.message || t("teacherLists.questionBanks.messages.updateFailed"));
     } finally {
       setEditLoading(false);
     }
   };
 
-  const handleDelete = (record) => {
-    Modal.confirm({
-      title: "Xác nhận xóa ngân hàng câu hỏi",
-      content: `Bạn có chắc muốn xóa "${record.name}" không? Hành động này không thể hoàn tác.`,
-      okText: "Xóa",
-      cancelText: "Hủy",
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        try {
-          await deleteQuestionBank(record.id);
-          message.success("Đã xóa ngân hàng câu hỏi");
-          fetchBanks();
-        } catch (err) {
-          message.error(err?.response?.data?.message || "Không thể xóa ngân hàng câu hỏi");
-        }
-      },
-    });
+  const handleDelete = async (id) => {
+    try {
+      await deleteQuestionBank(id);
+      message.success(t("teacherLists.questionBanks.messages.deleteSuccess"));
+      setBanks((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error(error);
+      message.error(error?.response?.data?.message || t("teacherLists.questionBanks.messages.deleteFailed"));
+    }
   };
 
-  const columns = [
-    {
-      title: "Tên",
-      dataIndex: "name",
-      key: "name",
-      render: (text, record) => (
-        <Link to={`/${userRole}/question-banks/${record.id}`} className="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-base dark:text-blue-300 dark:hover:text-blue-200">
-          {text}
-        </Link>
-      )
-    },
-    {
-      title: "Mô tả",
-      dataIndex: "description",
-      key: "description",
-      render: (text) => <span className="text-gray-500 dark:text-gray-400">{text || "-"}</span>
-    },
-    {
-      title: "Môn học",
-      key: "subject",
-      render: (_, record) => (
-        <span className="font-medium text-gray-700 dark:text-gray-200">{[record.subjectCode, record.subjectTitle].filter(Boolean).join(" - ") || record.subjectId || "-"}</span>
-      )
-    },
-    {
-      title: "Owner",
-      dataIndex: "ownerName",
-      key: "ownerName",
-      render: (ownerName, record) => {
-        const name = ownerName || (record.ownerId ? `#${record.ownerId}` : "-");
-        return (
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold uppercase dark:bg-indigo-950/60 dark:text-indigo-200">
-              {name !== "-" ? name.charAt(0) : "?"}
+  const columns = useMemo(
+    () => [
+      {
+        title: t("teacherLists.questionBanks.columns.bank"),
+        key: "name",
+        render: (_, record) => (
+          <div className="min-w-0">
+            <Link
+              to={`/${userRole}/question-banks/${record.id}`}
+              className="block truncate text-sm font-semibold text-primary hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              {record.name}
+            </Link>
+            <p className="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+              {record.description || t("teacherLists.shared.noDescription")}
+            </p>
+          </div>
+        ),
+      },
+      {
+        title: t("teacherLists.questionBanks.columns.subject"),
+        key: "subject",
+        render: (_, record) => {
+          const matchedSubject = allSubjects.find((subject) => subject.id === record.subjectId);
+          return (
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-200">
+                {formatSubjectLabel(record) || t("teacherLists.shared.noSubject")}
+              </div>
+              <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+                {matchedSubject?.categoryTitle || categoryTitleById[matchedSubject?.categoryId] || t("teacherLists.shared.noCategory")}
+              </div>
             </div>
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{name}</span>
-          </div>
-        );
-      }
-    },
-    {
-      title: "Vai trò của tôi",
-      dataIndex: "myRole",
-      key: "myRole",
-      render: (role) => {
-        if (!role) return "-";
-        const color = role === "OWNER" ? "gold" : role === "EDITOR" ? "blue" : "default";
-        return <Tag color={color} className="font-medium border-0 shadow-sm">{role}</Tag>;
-      }
-    },
-    {
-      title: "Hành động",
-      key: "action",
-      render: (_, record) => {
-        const canManage = isAdmin || record.myRole === "OWNER";
-
-        return (
-          <div className="flex items-center gap-2">
-            <Tooltip title="Chi tiết">
-              <Link to={`/${userRole}/question-banks/${record.id}`}>
-                <Button type="text" className="text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 flex items-center justify-center rounded-md dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/50 dark:hover:text-blue-100" icon={<EyeIcon className="h-4 w-4" />} />
-              </Link>
-            </Tooltip>
-            {canManage && (
-              <>
-                <Tooltip title="Sửa">
-                  <Button type="text" className="text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center justify-center rounded-md dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/50 dark:hover:text-amber-100" icon={<PencilSquareIcon className="h-4 w-4" />} onClick={() => handleOpenEdit(record)} />
-                </Tooltip>
-                <Tooltip title="Xóa">
-                  <Button type="text" className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 flex items-center justify-center rounded-md dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-900/50 dark:hover:text-red-100" icon={<TrashIcon className="h-4 w-4" />} onClick={() => handleDelete(record)} />
-                </Tooltip>
-              </>
-            )}
-          </div>
-        );
-      }
-    }
-  ];
+          );
+        },
+      },
+      {
+        title: t("teacherLists.questionBanks.columns.owner"),
+        dataIndex: "ownerName",
+        key: "ownerName",
+        render: (value) => <span className="text-sm text-slate-700 dark:text-slate-300">{value || "—"}</span>,
+      },
+      {
+        title: t("teacherLists.questionBanks.columns.role"),
+        dataIndex: "myRole",
+        key: "myRole",
+        width: 140,
+        align: "center",
+        render: (value) =>
+          value ? (
+            <Tag color={value === "OWNER" ? "gold" : value === "EDITOR" ? "blue" : "default"}>{value}</Tag>
+          ) : (
+            <span className="text-slate-400">—</span>
+          ),
+      },
+      {
+        title: t("teacherLists.questionBanks.columns.action"),
+        key: "action",
+        width: 220,
+        align: "right",
+        render: (_, record) => {
+          const canManage = isAdmin || record.myRole === "OWNER";
+          return (
+            <div className="flex justify-end gap-2">
+              <Button className={ACTION_BUTTON_CLASS} onClick={() => navigate(`/${userRole}/question-banks/${record.id}`)}>
+                {t("teacherLists.shared.view")}
+              </Button>
+              {canManage && (
+                <Button className={ACTION_BUTTON_CLASS} onClick={() => openEditModal(record)}>
+                  {t("teacherLists.shared.edit")}
+                </Button>
+              )}
+              {canManage && (
+                <Popconfirm
+                  title={t("teacherLists.questionBanks.confirm.deleteTitle")}
+                  description={t("teacherLists.questionBanks.confirm.deleteDescription")}
+                  okText={t("teacherLists.shared.delete")}
+                  cancelText={t("teacherLists.shared.cancel")}
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => handleDelete(record.id)}
+                >
+                  <Button className={DANGER_BUTTON_CLASS}>{t("teacherLists.shared.delete")}</Button>
+                </Popconfirm>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [allSubjects, isAdmin, t, userRole]
+  );
 
   return (
-    <div className="question-banks-page min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-        <main className={`flex-1 pt-16 bg-slate-50 dark:bg-slate-900 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-          <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
-            <AppBreadcrumb className="mb-6" />
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-              <div className="flex items-start gap-4">
+        <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
+          <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+            <AppBreadcrumb className="mb-4" />
 
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Ngân hàng câu hỏi</h1>
-                  <p className="text-slate-500 mt-1 dark:text-slate-400">Quản lý kho câu hỏi dùng cho bài Quizz/Assignment.</p>
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+              <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
+                      {t("teacherLists.questionBanks.title")}
+                    </h1>
+                    <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {t("teacherLists.questionBanks.subtitle")}
+                    </p>
+                  </div>
+                  <Button type="primary" onClick={() => setIsCreateOpen(true)}>
+                    {t("teacherLists.questionBanks.actions.create")}
+                  </Button>
                 </div>
               </div>
-              {/*<Button
-                type="primary"
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 rounded-full px-5 h-10 shadow-sm bg-blue-600 hover:bg-blue-700 border-0"
-                icon={<PlusCircleIcon className="h-5 w-5" />}
-              >
-                Tạo mới
-              </Button>*/}
-              <Button
-                  type="primary"
-                  onClick={() => setIsModalOpen(true)}
-                  // 1. Thêm justify-center để căn giữa hoàn hảo
-                  className="flex items-center justify-center gap-2 rounded-full px-5 h-10 shadow-sm bg-blue-600 hover:bg-blue-700 border-0"
-              >
-                {/* 2. Đưa icon vào đây làm con trực tiếp */}
-                <PlusIcon className="h-4 w-4" />
 
-                {/* 3. Bọc chữ trong thẻ span và thêm leading-none để triệt tiêu chiều cao dòng thừa */}
-                <span className="leading-none">Tạo mới</span>
-              </Button>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div className="w-full sm:max-w-md">
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">Môn học / mã học phần</label>
+              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_220px_220px_110px]">
+                  <Input.Search
+                    allowClear
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder={t("teacherLists.questionBanks.filters.searchPlaceholder")}
+                  />
+                  <Input
+                    allowClear
+                    value={ownerSearchQuery}
+                    onChange={(event) => setOwnerSearchQuery(event.target.value)}
+                    placeholder={t("teacherLists.questionBanks.filters.ownerSearchPlaceholder")}
+                  />
                   <Select
-                    className="w-full h-10"
                     allowClear
                     showSearch
                     optionFilterProp="label"
-                    placeholder="Tất cả môn học"
-                    value={filters.subjectId}
-                    onChange={(value) => setFilters((prev) => ({ ...prev, subjectId: value }))}
-                    options={allSubjects.map((subject) => ({
-                      value: subject.id,
-                      label: formatSubjectLabel(subject),
-                    }))}
+                    value={selectedCategoryId}
+                    onChange={handleToolbarCategoryChange}
+                    placeholder={t("teacherLists.questionBanks.filters.categoryPlaceholder")}
+                    options={categoryOptions}
+                  />
+                  <Select
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    value={selectedSubjectId}
+                    onChange={handleToolbarSubjectChange}
+                    placeholder={t("teacherLists.questionBanks.filters.subjectPlaceholder")}
+                    options={subjectOptions}
+                  />
+                  <Button onClick={resetFilters}>{t("teacherLists.shared.reset")}</Button>
+                </div>
+              </div>
+
+              <div className="px-5 py-4 sm:px-6">
+                <div className="hidden md:block">
+                  <Table
+                    columns={columns}
+                    dataSource={pageItems}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={false}
+                    tableLayout="fixed"
+                    locale={{ emptyText: <Empty description={t("teacherLists.questionBanks.empty")} /> }}
+                    className="[&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:font-semibold [&_.ant-table-thead_th]:text-slate-600 dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
+                    scroll={{ x: 920 }}
                   />
                 </div>
-                <Button
-                  className="h-10 px-4 rounded-lg flex items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
-                  icon={<ArrowPathIcon className="h-4 w-4" />}
-                  onClick={() => setFilters({ subjectId: undefined })}
-                >
-                  Reset
-                </Button>
+
+                <div className="space-y-3 md:hidden">
+                  {!loading && pageItems.length === 0 && <Empty description={t("teacherLists.questionBanks.empty")} />}
+                  {pageItems.map((bank) => {
+                    const matchedSubject = allSubjects.find((subject) => subject.id === bank.subjectId);
+                    const canManage = isAdmin || bank.myRole === "OWNER";
+                    return (
+                      <article
+                        key={bank.id}
+                        className="rounded-lg border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/40"
+                      >
+                        <Link
+                          to={`/${userRole}/question-banks/${bank.id}`}
+                          className="block text-sm font-semibold text-primary dark:text-blue-300"
+                        >
+                          {bank.name}
+                        </Link>
+                        <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                          {bank.description || t("teacherLists.shared.noDescription")}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Tag color="blue">{formatSubjectLabel(bank) || t("teacherLists.shared.noSubject")}</Tag>
+                          <Tag>{matchedSubject?.categoryTitle || categoryTitleById[matchedSubject?.categoryId] || t("teacherLists.shared.noCategory")}</Tag>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Button className={ACTION_BUTTON_CLASS} onClick={() => navigate(`/${userRole}/question-banks/${bank.id}`)}>
+                            {t("teacherLists.shared.view")}
+                          </Button>
+                          {canManage && (
+                            <Button className={ACTION_BUTTON_CLASS} onClick={() => openEditModal(bank)}>
+                              {t("teacherLists.shared.edit")}
+                            </Button>
+                          )}
+                          {canManage && (
+                            <Popconfirm
+                              title={t("teacherLists.questionBanks.confirm.deleteTitle")}
+                              description={t("teacherLists.questionBanks.confirm.deleteDescription")}
+                              okText={t("teacherLists.shared.delete")}
+                              cancelText={t("teacherLists.shared.cancel")}
+                              okButtonProps={{ danger: true }}
+                              onConfirm={() => handleDelete(bank.id)}
+                            >
+                              <Button className={DANGER_BUTTON_CLASS}>{t("teacherLists.shared.delete")}</Button>
+                            </Popconfirm>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
-              <Table 
-                columns={columns} 
-                dataSource={banks} 
-                rowKey="id" 
-                loading={loading}
-                pagination={{ pageSize: 10, className: "mt-6" }}
-                className="question-banks-table [&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:text-slate-600 [&_.ant-table-thead_th]:font-semibold dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
-              />
+
+              {!loading && filteredBanks.length > 0 && (
+                <DataPaginationFooter
+                  currentPage={page}
+                  pageSize={pageSize}
+                  total={filteredBanks.length}
+                  totalLabel={t("teacherLists.shared.pagination.total", { count: filteredBanks.length })}
+                  pageSizeLabel={t("teacherLists.shared.pagination.pageSize")}
+                  rangeLabel={t("teacherLists.shared.pagination.range", {
+                    start: (page - 1) * pageSize + 1,
+                    end: Math.min(page * pageSize, filteredBanks.length),
+                  })}
+                  onPageChange={setPage}
+                  onPageSizeChange={(nextSize) => {
+                    setPageSize(nextSize);
+                    setPage(1);
+                  }}
+                />
+              )}
             </div>
           </div>
         </main>
       </div>
 
       <Modal
-        title="Tạo Ngân hàng câu hỏi mới"
-        open={isModalOpen}
+        title={t("teacherLists.questionBanks.modals.createTitle")}
+        open={isCreateOpen}
         onCancel={closeCreateModal}
         footer={null}
-        forceRender
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" onFinish={handleCreate} className="question-banks-modal">
-          <Form.Item label="Tên ngân hàng" name="name" rules={[{ required: true, message: "Bắt buộc nhập" }]}>
-            <Input placeholder="Ví dụ: Ngân hàng câu hỏi Java" />
+        <Form form={form} layout="vertical" onFinish={handleCreate} className="mt-4">
+          <Form.Item
+            label={t("teacherLists.questionBanks.fields.name")}
+            name="name"
+            rules={[{ required: true, message: t("teacherLists.questionBanks.validation.nameRequired") }]}
+          >
+            <Input placeholder={t("teacherLists.questionBanks.placeholders.name")} />
           </Form.Item>
-          <Form.Item label="Danh mục (Category)" name="categoryId" rules={[{ required: true, message: "Bắt buộc chọn" }]}>
-            <Select options={categories} placeholder="Chọn danh mục" onChange={handleCategoryChange} showSearch optionFilterProp="label" />
+          <Form.Item
+            label={t("teacherLists.questionBanks.fields.category")}
+            name="categoryId"
+            rules={[{ required: true, message: t("teacherLists.questionBanks.validation.categoryRequired") }]}
+          >
+            <Select
+              options={categoryOptions}
+              placeholder={t("teacherLists.questionBanks.placeholders.category")}
+              onChange={handleCreateCategoryChange}
+              showSearch
+              optionFilterProp="label"
+            />
           </Form.Item>
-          <Form.Item label="Môn học (Subject)" name="subjectId" rules={[{ required: true, message: "Bắt buộc chọn" }]}>
-            <Select 
-              options={subjects} 
-              placeholder={form.getFieldValue("categoryId") ? "Chọn môn học" : "Vui lòng chọn danh mục trước"} 
+          <Form.Item
+            label={t("teacherLists.questionBanks.fields.subject")}
+            name="subjectId"
+            rules={[{ required: true, message: t("teacherLists.questionBanks.validation.subjectRequired") }]}
+          >
+            <Select
+              options={modalSubjects.map((subject) => ({ value: subject.id, label: formatSubjectLabel(subject) }))}
+              placeholder={
+                form.getFieldValue("categoryId")
+                  ? t("teacherLists.questionBanks.placeholders.subject")
+                  : t("teacherLists.questionBanks.placeholders.subjectDisabled")
+              }
               loading={subjectsLoading}
               disabled={!form.getFieldValue("categoryId")}
               showSearch
               optionFilterProp="label"
             />
           </Form.Item>
-          <Form.Item label="Mô tả" name="description">
-            <TextArea rows={4} placeholder="Mô tả" />
+          <Form.Item label={t("teacherLists.questionBanks.fields.description")} name="description">
+            <TextArea rows={4} placeholder={t("teacherLists.questionBanks.placeholders.description")} />
           </Form.Item>
           <div className="flex justify-end gap-2">
-            <Button onClick={closeCreateModal}>Hủy</Button>
-            <Button type="primary" htmlType="submit">Tạo</Button>
+            <Button onClick={closeCreateModal}>{t("teacherLists.shared.cancel")}</Button>
+            <Button type="primary" htmlType="submit">
+              {t("teacherLists.shared.create")}
+            </Button>
           </div>
         </Form>
       </Modal>
 
       <Modal
-        title="Sửa Ngân hàng câu hỏi"
-        open={editModalOpen}
+        title={t("teacherLists.questionBanks.modals.editTitle")}
+        open={isEditOpen}
         onCancel={closeEditModal}
         footer={null}
-        forceRender
         destroyOnHidden
       >
-        <Form form={editForm} layout="vertical" onFinish={handleUpdate} className="question-banks-modal">
-          <Form.Item label="Tên ngân hàng" name="name" rules={[{ required: true, message: "Bắt buộc nhập" }]}>
-            <Input placeholder="Tên ngân hàng" />
+        <Form form={editForm} layout="vertical" onFinish={handleUpdate} className="mt-4">
+          <Form.Item
+            label={t("teacherLists.questionBanks.fields.name")}
+            name="name"
+            rules={[{ required: true, message: t("teacherLists.questionBanks.validation.nameRequired") }]}
+          >
+            <Input placeholder={t("teacherLists.questionBanks.placeholders.name")} />
           </Form.Item>
-          <Form.Item label="Môn học" name="subjectId" rules={[{ required: true, message: "Bắt buộc chọn" }]}>
+          <Form.Item
+            label={t("teacherLists.questionBanks.fields.subject")}
+            name="subjectId"
+            rules={[{ required: true, message: t("teacherLists.questionBanks.validation.subjectRequired") }]}
+          >
             <Select
-              options={allSubjects.map((subject) => ({
-                value: subject.id,
-                label: formatSubjectLabel(subject),
-              }))}
-              placeholder="Chọn môn học"
+              options={allSubjects.map((subject) => ({ value: subject.id, label: formatSubjectLabel(subject) }))}
+              placeholder={t("teacherLists.questionBanks.placeholders.subject")}
               showSearch
               optionFilterProp="label"
             />
           </Form.Item>
-          <Form.Item label="Mô tả" name="description">
-            <TextArea rows={4} placeholder="Mô tả" />
+          <Form.Item label={t("teacherLists.questionBanks.fields.description")} name="description">
+            <TextArea rows={4} placeholder={t("teacherLists.questionBanks.placeholders.description")} />
           </Form.Item>
           <div className="flex justify-end gap-2">
-            <Button onClick={closeEditModal}>Hủy</Button>
+            <Button onClick={closeEditModal}>{t("teacherLists.shared.cancel")}</Button>
             <Button type="primary" htmlType="submit" loading={editLoading}>
-              Lưu
+              {t("teacherLists.shared.save")}
             </Button>
           </div>
         </Form>

@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import {
-  Button, Input, Select, Switch, InputNumber, Drawer, Checkbox,
-  Spin, Dropdown, Tag, Radio, Modal, message,
+  App, Button, Input, Select, Switch, InputNumber, Drawer, Checkbox,
+  Spin, Dropdown, Tag, Radio, Modal,
 } from "antd";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -23,16 +23,18 @@ import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { createQuiz, getQuizById, updateQuiz } from "../../api/quiz";
 import { createStandaloneResource, deleteResource, uploadStandaloneResource } from "../../api/resource";
 import { getQuestionBankById, getQuestionBanks, getTags } from "../../api/questionBank";
-import { createClassContentItem } from "../../api/classSection";
+import { createClassContentItem, getCourseById } from "../../api/classSection";
 import MediaAttachButton from "../../components/media/MediaAttachButton";
 import ResourceRenderer from "../../components/media/ResourceRenderer";
 import { parseClozeToItems } from "../../utils/cloze";
 import {
   createContentItemTemplate,
   getQuizTemplateById,
+  getTemplateById,
   createQuizTemplate,
   updateQuizTemplate,
 } from "../../api/curriculumTemplate";
+import { buildQuillModules, createQuillTableControl } from "../../utils/quillTable";
 
 /* ─────────────────────────────────────────────
    Constants
@@ -54,15 +56,14 @@ const DIFFICULTY_VALUES = ["EASY", "MEDIUM", "HARD"];
 const SELECTION_MODE_VALUES = ["ALL_MATCHED", "RANDOM"];
 const TAG_MATCH_MODE_VALUES = ["ANY", "ALL"];
 
-const QUILL_MODULES = {
-  toolbar: [
-    [{ header: [1, 2, 3, false] }],
-    ["bold", "italic", "underline", "strike"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    ["link", "image", "code-block"],
-    ["clean"],
-  ],
-};
+const QUILL_MODULES = buildQuillModules([
+  [{ header: [1, 2, 3, false] }],
+  ["bold", "italic", "underline", "strike"],
+  [{ list: "ordered" }, { list: "bullet" }],
+  [createQuillTableControl()],
+  ["link", "image", "code-block"],
+  ["clean"],
+]);
 
 /* ─────────────────────────────────────────────
    Helper functions
@@ -1513,12 +1514,15 @@ export default function QuizDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const { message } = App.useApp();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isAdmin = location.pathname.startsWith("/admin");
   const isTemplateMode = !!templateId;
   const isEditMode = !!quizId;
   const chapterIdFromState = location.state?.chapterId || chapterId;
   const initialClassContentItemId = location.state?.classContentItemId || null;
 
+  const [course, setCourse] = useState(null);
   const [title, setTitle] = useState(t("quizEditor.defaults.newQuizTitle"));
   const [questions, setQuestions] = useState([]);
   const [bankSources, setBankSources] = useState([]);
@@ -1551,6 +1555,43 @@ export default function QuizDetail() {
       scopeId: Number(classSectionId),
     };
   }, [classSectionId, isTemplateMode]);
+  const activeChapter = useMemo(
+    () =>
+      (course?.chapters || []).find(
+        (chapterItem) => Number(chapterItem?.id) === Number(chapterIdFromState)
+      ) || null,
+    [course, chapterIdFromState]
+  );
+
+  useEffect(() => {
+    const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const loadContext = async () => {
+      try {
+        if (isTemplateMode && templateId) {
+          const templateResponse = await getTemplateById(templateId);
+          setCourse(templateResponse?.data ?? templateResponse);
+          return;
+        }
+        if (classSectionId) {
+          const classSectionResponse = await getCourseById(classSectionId);
+          setCourse(classSectionResponse?.data ?? classSectionResponse);
+          return;
+        }
+        setCourse(null);
+      } catch (error) {
+        console.error("Failed to load quiz context", error);
+        setCourse(null);
+      }
+    };
+
+    loadContext();
+  }, [classSectionId, isTemplateMode, templateId]);
 
   // load quiz in edit mode
   useEffect(() => {

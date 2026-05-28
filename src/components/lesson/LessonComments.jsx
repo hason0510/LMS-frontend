@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Input, Button, Avatar, Spin, message, Empty } from "antd";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getCommentsByLesson,
@@ -8,7 +9,8 @@ import {
 } from "../../api/lessonComment";
 import { SendOutlined } from "@ant-design/icons";
 
-export default function LessonComments({ lectureId, previewMode = false }) {
+export default function LessonComments({ lectureId, previewMode = false, readOnlyReason = null }) {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
   const [commentText, setCommentText] = useState("");
   const [replyText, setReplyText] = useState("");
   const [showCommentForm, setShowCommentForm] = useState(false);
+  const isReadOnly = previewMode || Boolean(readOnlyReason);
 
   useEffect(() => {
     fetchComments();
@@ -37,7 +40,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
       setComments(commentsList);
     } catch (err) {
       console.error("Error fetching comments:", err);
-      message.error("Lỗi khi tải bình luận");
+      message.error(t("lessonComments.errors.loadFailed"));
       setComments([]);
     } finally {
       setLoading(false);
@@ -46,7 +49,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
 
   const handleSubmitComment = async () => {
     if (!commentText.trim()) {
-      message.error("Vui lòng nhập bình luận");
+      message.error(t("lessonComments.errors.emptyComment"));
       return;
     }
 
@@ -55,12 +58,12 @@ export default function LessonComments({ lectureId, previewMode = false }) {
       await createComment(lectureId, {
         content: commentText,
       });
-      message.success("Bình luận thành công");
+      message.success(t("lessonComments.messages.created"));
       setCommentText("");
       setShowCommentForm(false);
       await fetchComments();
     } catch (err) {
-      message.error(err.message || "Lỗi khi gửi bình luận");
+      message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.createFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -68,7 +71,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
 
   const handleReplyComment = async () => {
     if (!replyText.trim()) {
-      message.error("Vui lòng nhập phản hồi");
+      message.error(t("lessonComments.errors.emptyReply"));
       return;
     }
 
@@ -78,12 +81,12 @@ export default function LessonComments({ lectureId, previewMode = false }) {
         content: replyText,
         lessonId: lectureId,
       });
-      message.success("Phản hồi thành công");
+      message.success(t("lessonComments.messages.replied"));
       setReplyText("");
       setReplyingTo(null);
       await fetchComments();
     } catch (err) {
-      message.error(err.message || "Lỗi khi gửi phản hồi");
+      message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.replyFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -95,25 +98,25 @@ export default function LessonComments({ lectureId, previewMode = false }) {
     const now = new Date();
     const diff = now - date;
 
-    if (diff < 60000) return "vừa xong";
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} phút trước`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)} giờ trước`;
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)} ngày trước`;
+    if (diff < 60000) return t("lessonComments.time.justNow");
+    if (diff < 3600000) return t("lessonComments.time.minutesAgo", { count: Math.floor(diff / 60000) });
+    if (diff < 86400000) return t("lessonComments.time.hoursAgo", { count: Math.floor(diff / 3600000) });
+    if (diff < 604800000) return t("lessonComments.time.daysAgo", { count: Math.floor(diff / 86400000) });
 
-    return date.toLocaleDateString("vi-VN");
+    return date.toLocaleDateString(i18n.language === "en" ? "en-US" : "vi-VN");
   };
 
   return (
     <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
       <h3 className="text-xl font-bold text-[#111418] dark:text-white mb-6">
-        Bình luận ({comments.length})
+        {t("lessonComments.title", { count: comments.length })}
       </h3>
 
       {/* Comment Button / Form */}
-      {previewMode ? (
+      {isReadOnly ? (
         <div className="mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
           <div className="text-center text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg py-2.5 px-4">
-            Chế độ xem trước — bình luận ở chế độ chỉ đọc, không thể đăng bình luận mới
+            {readOnlyReason || t("lessonComments.previewReadOnly")}
           </div>
         </div>
       ) : user ? (
@@ -125,7 +128,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
               onClick={() => setShowCommentForm(true)}
               className="w-full"
             >
-              Thêm bình luận mới
+              {t("lessonComments.actions.add")}
             </Button>
           ) : (
             <div className="flex gap-3 mb-4">
@@ -141,7 +144,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                 <Input.TextArea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Chia sẻ suy nghĩ của bạn..."
+                  placeholder={t("lessonComments.placeholders.comment")}
                   rows={3}
                   className="text-sm"
                   autoFocus
@@ -153,7 +156,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                       setShowCommentForm(false);
                     }}
                   >
-                    Hủy
+                    {t("lessonComments.actions.cancel")}
                   </Button>
                   <Button
                     type="primary"
@@ -161,7 +164,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                     onClick={handleSubmitComment}
                     icon={<SendOutlined />}
                   >
-                    Bình luận
+                    {t("lessonComments.actions.submit")}
                   </Button>
                 </div>
               </div>
@@ -171,7 +174,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
       ) : (
         <div className="mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
           <div className="text-center text-gray-500 dark:text-gray-400">
-            Vui lòng đăng nhập để bình luận
+            {t("lessonComments.loginRequired")}
           </div>
         </div>
       )}
@@ -182,7 +185,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
           <Spin />
         </div>
       ) : comments.length === 0 ? (
-        <Empty description="Chưa có bình luận nào" />
+        <Empty description={t("lessonComments.empty")} />
       ) : (
         <div className="space-y-6">
           {comments.map((comment) => (
@@ -200,7 +203,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-semibold text-[#111418] dark:text-white">
-                        {comment.fullName || "Người dùng"}
+                        {comment.fullName || t("lessonComments.unknownUser")}
                       </h4>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {formatDate(comment.createdAt)}
@@ -211,12 +214,12 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                     </p>
                   </div>
                   <div className="flex gap-4 mt-2 text-xs font-medium">
-                    {user && !previewMode && (
+                    {user && !isReadOnly && (
                       <button
                         onClick={() => setReplyingTo(comment.commentId)}
                         className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                       >
-                        Phản hồi
+                        {t("lessonComments.actions.reply")}
                       </button>
                     )}
                   </div>
@@ -224,7 +227,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
               </div>
 
               {/* Reply Form */}
-              {replyingTo === comment.commentId && user && !previewMode && (
+              {replyingTo === comment.commentId && user && !isReadOnly && (
                 <div className="ml-12 mb-4">
                   <div className="flex gap-3">
                     <Avatar
@@ -238,7 +241,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                       <Input.TextArea
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Nhập phản hồi..."
+                        placeholder={t("lessonComments.placeholders.reply")}
                         rows={2}
                         className="text-sm"
                       />
@@ -250,7 +253,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                             setReplyText("");
                           }}
                         >
-                          Hủy
+                          {t("lessonComments.actions.cancel")}
                         </Button>
                         <Button
                           type="primary"
@@ -259,7 +262,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                           onClick={handleReplyComment}
                           icon={<SendOutlined />}
                         >
-                          Phản hồi
+                          {t("lessonComments.actions.reply")}
                         </Button>
                       </div>
                     </div>
@@ -283,7 +286,7 @@ export default function LessonComments({ lectureId, previewMode = false }) {
                         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                           <div className="flex items-center justify-between mb-1">
                             <h5 className="font-semibold text-sm text-[#111418] dark:text-white">
-                              {reply.fullName || "Người dùng"}
+                              {reply.fullName || t("lessonComments.unknownUser")}
                             </h5>
                             <span className="text-xs text-gray-500 dark:text-gray-400">
                               {formatDate(reply.createdAt)}

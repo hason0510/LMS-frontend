@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { App, Button, DatePicker, Dropdown, Empty, Form, Input, Modal, Select, Spin } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
+import { App, Button, DatePicker, Dropdown, Empty, Form, Input, Modal, Select, Table } from "antd";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -16,9 +18,21 @@ import { getAllSubjects } from "../../api/subject";
 import {
   ArrowPathIcon,
   EllipsisVerticalIcon,
+  EyeIcon,
   MegaphoneIcon,
   MagnifyingGlassIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
+
+const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_FILTERS = {
+  classSectionId: undefined,
+  subjectId: undefined,
+  sort: "DESC",
+  dateRange: null,
+};
 
 function unwrapList(response) {
   const data = response?.data;
@@ -26,35 +40,64 @@ function unwrapList(response) {
   return data?.pageList || [];
 }
 
-function formatDate(value) {
-  return value ? dayjs(value).format("MMMM D, YYYY") : "";
+function formatDateTime(value, locale) {
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return dayjs(value).format("YYYY-MM-DD HH:mm");
+  }
 }
 
-function formatTime(value) {
-  return value ? dayjs(value).format("HH:mm") : "";
+function getAnnouncementScope(record, t) {
+  const subjectLabel = [record.subjectCode, record.subjectTitle].filter(Boolean).join(" - ");
+  return (
+    <div className="min-w-0 space-y-1">
+      <div className="truncate font-semibold text-slate-900 dark:text-white">
+        {record.classSectionTitle || t("announcementsPage.scope.unknownClass")}
+      </div>
+      <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+        {subjectLabel || t("announcementsPage.scope.unknownSubject")}
+      </div>
+    </div>
+  );
 }
 
 export default function TeacherAnnouncements({ isAdmin = false }) {
   const { message } = App.useApp();
+  const { t, i18n } = useTranslation();
   const [form] = Form.useForm();
   const [courses, setCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [totalAnnouncements, setTotalAnnouncements] = useState(0);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [filters, setFilters] = useState({
-    classSectionId: undefined,
-    subjectId: undefined,
-    sort: "DESC",
-    date: null,
-    contentKeyword: "",
-  });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
 
-  const basePath = isAdmin ? "/admin" : "/teacher";
+  const locale = useMemo(() => (i18n.language?.toLowerCase().startsWith("vi") ? "vi-VN" : "en-US"), [i18n.language]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedKeyword(searchKeyword.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchKeyword]);
+
+  useEffect(() => {
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [debouncedKeyword, filters.classSectionId, filters.subjectId, filters.sort, filters.dateRange, pageSize]);
 
   useEffect(() => {
     loadCourses();
@@ -63,7 +106,8 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
 
   useEffect(() => {
     loadAnnouncements();
-  }, [filters.classSectionId, filters.subjectId, filters.sort, filters.date, filters.contentKeyword]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, page, pageSize, filters.classSectionId, filters.subjectId, filters.sort, filters.dateRange, debouncedKeyword]);
 
   const loadCourses = async () => {
     try {
@@ -71,7 +115,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
       setCourses(unwrapList(response));
     } catch (error) {
       console.error(error);
-      message.error("Không thể tải danh sách lớp");
+      message.error(t("announcementsPage.errors.loadClasses"));
     }
   };
 
@@ -81,7 +125,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
       setSubjects(response?.data || []);
     } catch (error) {
       console.error(error);
-      message.error("Không thể tải danh sách môn học");
+      message.error(t("announcementsPage.errors.loadSubjects"));
     }
   };
 
@@ -91,17 +135,26 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
       const response = await getAnnouncements({
         classSectionId: filters.classSectionId,
         subjectId: filters.subjectId,
-        contentKeyword: filters.contentKeyword?.trim() || undefined,
+        contentKeyword: debouncedKeyword || undefined,
         sort: filters.sort,
-        date: filters.date ? filters.date.format("YYYY-MM-DD") : undefined,
-        pageNumber: 1,
-        pageSize: 100,
+        dateFrom: filters.dateRange?.[0] ? filters.dateRange[0].format("YYYY-MM-DD") : undefined,
+        dateTo: filters.dateRange?.[1] ? filters.dateRange[1].format("YYYY-MM-DD") : undefined,
+        pageNumber: page,
+        pageSize,
       });
       const data = response?.data;
-      setAnnouncements(data?.pageList || []);
+      const pageList = Array.isArray(data?.pageList) ? data.pageList : Array.isArray(data) ? data : [];
+      const totalElements = data?.totalElements ?? pageList.length ?? 0;
+      const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+      if (page > totalPages && totalElements > 0) {
+        setPage(totalPages);
+        return;
+      }
+      setAnnouncements(pageList);
+      setTotalAnnouncements(totalElements);
     } catch (error) {
       console.error(error);
-      message.error("Không thể tải announcements");
+      message.error(error?.response?.data?.message || t("announcementsPage.errors.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -138,17 +191,17 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
       };
       if (editing) {
         await updateAnnouncement(editing.id, payload);
-        message.success("Đã cập nhật announcement");
+        message.success(t("announcementsPage.messages.updated"));
       } else {
         await createAnnouncement(payload);
-        message.success("Đã publish announcement");
+        message.success(t("announcementsPage.messages.created"));
       }
       setModalOpen(false);
       await loadAnnouncements();
     } catch (error) {
       if (error?.errorFields) return;
       console.error(error);
-      message.error(error?.response?.data?.message || "Không thể lưu announcement");
+      message.error(error?.response?.data?.message || t("announcementsPage.errors.saveFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -157,70 +210,126 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
   const handleDelete = async (announcement) => {
     try {
       await deleteAnnouncement(announcement.id);
-      message.success("Đã xóa announcement");
+      message.success(t("announcementsPage.messages.deleted"));
       setDetailOpen(false);
       await loadAnnouncements();
     } catch (error) {
       console.error(error);
-      message.error(error?.response?.data?.message || "Không thể xóa announcement");
+      message.error(error?.response?.data?.message || t("announcementsPage.errors.deleteFailed"));
     }
   };
 
+  const columns = useMemo(
+    () => [
+      {
+        title: t("announcementsPage.columns.publishedAt"),
+        dataIndex: "createdAt",
+        width: 180,
+        render: (value) => (
+          <div className="space-y-1">
+            <div className="font-semibold text-slate-900 dark:text-white">
+              {formatDateTime(value, locale)}
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: t("announcementsPage.columns.announcement"),
+        dataIndex: "title",
+        render: (_, record) => (
+          <div className="min-w-0 space-y-1">
+            <div className="truncate font-semibold text-slate-900 dark:text-white">
+              {record.title}
+            </div>
+            <div className="line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+              {record.summary || t("announcementsPage.emptySummary")}
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: t("announcementsPage.columns.scope"),
+        dataIndex: "classSectionTitle",
+        width: 280,
+        render: (_, record) => getAnnouncementScope(record, t),
+      },
+      {
+        title: t("announcementsPage.columns.actions"),
+        width: 180,
+        align: "right",
+        render: (_, record) => (
+          <div className="flex justify-end gap-2">
+            <Button
+              icon={<EyeIcon className="h-4 w-4" />}
+              onClick={() => {
+                setSelected(record);
+                setDetailOpen(true);
+              }}
+            >
+              {t("announcementsPage.actions.details")}
+            </Button>
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  { key: "edit", label: t("announcementsPage.actions.edit"), icon: <PencilSquareIcon className="h-4 w-4" /> },
+                  { key: "delete", label: t("announcementsPage.actions.delete"), danger: true, icon: <TrashIcon className="h-4 w-4" /> },
+                ],
+                onClick: ({ key }) => {
+                  if (key === "edit") openEditModal(record);
+                  if (key === "delete") handleDelete(record);
+                },
+              }}
+            >
+              <button
+                type="button"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                aria-label={t("announcementsPage.actions.more")}
+              >
+                <EllipsisVerticalIcon className="h-5 w-5" />
+              </button>
+            </Dropdown>
+          </div>
+        ),
+      },
+    ],
+    [locale, t]
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="teacher-list-page min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-900 dark:text-white">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className="flex-1 pt-16 lg:pl-64">
-          <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <AppBreadcrumb className="mb-6" />
-            <h1 className="mb-5 text-2xl font-bold text-slate-900 dark:text-white">Announcements</h1>
+          <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+            <AppBreadcrumb className="mb-4" />
 
-            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-gray-800">
-              <div className="flex flex-col gap-4 rounded-lg border border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <MegaphoneIcon className="h-7 w-7" />
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
+              <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
+                      {t("announcementsPage.title")}
+                    </h1>
+                    <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {t("announcementsPage.subtitle")}
+                    </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Create Announcement</p>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      Notify all students of your course
-                    </h2>
-                  </div>
+                  <Button type="primary" icon={<PlusIcon className="h-4 w-4" />} onClick={openCreateModal}>
+                    {t("announcementsPage.actions.create")}
+                  </Button>
                 </div>
-                <Button type="primary" onClick={openCreateModal}>
-                  Add New Announcement
-                </Button>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_180px_220px_1fr_auto] md:items-end">
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    Môn học / mã học phần
-                  </label>
+              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_280px_minmax(0,1fr)_auto]">
                   <Select
                     className="w-full"
                     allowClear
                     showSearch
                     optionFilterProp="label"
-                    placeholder="Tất cả môn học"
-                    value={filters.subjectId}
-                    onChange={(value) => setFilters((prev) => ({ ...prev, subjectId: value }))}
-                    options={subjects.map((subject) => ({
-                      value: subject.id,
-                      label: [subject.code, subject.title].filter(Boolean).join(" - "),
-                    }))}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">Lớp</label>
-                  <Select
-                    className="w-full"
-                    allowClear
-                    showSearch
-                    optionFilterProp="label"
-                    placeholder="Tất cả lớp"
+                    placeholder={t("announcementsPage.filters.class")}
                     value={filters.classSectionId}
                     onChange={(value) => setFilters((prev) => ({ ...prev, classSectionId: value }))}
                     options={courses.map((course) => ({
@@ -228,115 +337,97 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
                       label: [course.title, course.classCode].filter(Boolean).join(" - "),
                     }))}
                   />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">Sort By</label>
+                  <Select
+                    className="w-full"
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    placeholder={t("announcementsPage.filters.subject")}
+                    value={filters.subjectId}
+                    onChange={(value) => setFilters((prev) => ({ ...prev, subjectId: value }))}
+                    options={subjects.map((subject) => ({
+                      value: subject.id,
+                      label: [subject.code, subject.title].filter(Boolean).join(" - "),
+                    }))}
+                  />
                   <Select
                     className="w-full"
                     value={filters.sort}
                     onChange={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
                     showSearch
                     optionFilterProp="label"
+                    placeholder={t("announcementsPage.filters.sort")}
                     options={[
-                      { value: "DESC", label: "DESC" },
-                      { value: "ASC", label: "ASC" },
+                      { value: "DESC", label: t("announcementsPage.filters.latestFirst") },
+                      { value: "ASC", label: t("announcementsPage.filters.oldestFirst") },
                     ]}
                   />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">Date</label>
-                  <DatePicker
+                  <DatePicker.RangePicker
                     className="w-full"
-                    value={filters.date}
-                    onChange={(value) => setFilters((prev) => ({ ...prev, date: value }))}
-                    format="MMMM D, YYYY"
+                    allowClear
+                    value={filters.dateRange}
+                    onChange={(value) => setFilters((prev) => ({ ...prev, dateRange: value }))}
+                    placeholder={[
+                      t("announcementsPage.filters.dateFrom"),
+                      t("announcementsPage.filters.dateTo"),
+                    ]}
                   />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">Search</label>
                   <Input
+                    allowClear
+                    value={searchKeyword}
+                    onChange={(event) => setSearchKeyword(event.target.value)}
                     prefix={<MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />}
-                    placeholder="Search title or summary..."
-                    value={filters.contentKeyword}
-                    onChange={(event) => setFilters((prev) => ({ ...prev, contentKeyword: event.target.value }))}
+                    placeholder={t("announcementsPage.searchPlaceholder")}
+                    className="w-full"
                   />
+                  <Button
+                    icon={<ArrowPathIcon className="h-4 w-4" />}
+                    onClick={() => {
+                      setFilters(DEFAULT_FILTERS);
+                      setSearchKeyword("");
+                      setDebouncedKeyword("");
+                      setPage(1);
+                    }}
+                  >
+                    {t("announcementsPage.filters.reset")}
+                  </Button>
                 </div>
-                <Button
-                  icon={<ArrowPathIcon className="h-4 w-4" />}
-                  onClick={() => setFilters({
-                    classSectionId: undefined,
-                    subjectId: undefined,
-                    sort: "DESC",
-                    date: null,
-                    contentKeyword: "",
-                  })}
-                >
-                  Reset
-                </Button>
               </div>
 
-              <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
-                <div className="grid grid-cols-[180px_1fr_110px_44px] bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                  <span>Date</span>
-                  <span>Announcements</span>
-                  <span></span>
-                  <span></span>
-                </div>
-                {loading ? (
-                  <div className="flex justify-center py-10">
-                    <Spin />
-                  </div>
-                ) : announcements.length === 0 ? (
-                  <div className="py-10">
-                    <Empty description="No announcements" />
-                  </div>
-                ) : (
-                  announcements.map((item) => (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-[180px_1fr_110px_44px] items-center border-t border-slate-200 px-4 py-4 text-sm dark:border-slate-700"
-                    >
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">{formatDate(item.createdAt)}</p>
-                        <p className="text-slate-500">{formatTime(item.createdAt)}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-slate-900 dark:text-white">{item.title}</p>
-                        <p className="truncate text-slate-500">
-                          {[item.subjectCode, item.subjectTitle].filter(Boolean).join(" - ") || "Subject"} | {item.classSectionTitle}
-                        </p>
-                      </div>
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          setSelected(item);
-                          setDetailOpen(true);
-                        }}
-                      >
-                        Details
-                      </Button>
-                      <Dropdown
-                        trigger={["click"]}
-                        menu={{
-                          items: [
-                            { key: "edit", label: "Edit" },
-                            { key: "delete", label: "Delete", danger: true },
-                          ],
-                          onClick: ({ key }) => {
-                            if (key === "edit") openEditModal(item);
-                            if (key === "delete") handleDelete(item);
-                          },
-                        }}
-                      >
-                        <button className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-                          <EllipsisVerticalIcon className="h-5 w-5" />
-                        </button>
-                      </Dropdown>
-                    </div>
-                  ))
-                )}
+              <div className="px-5 py-4 sm:px-6">
+                <Table
+                  rowKey="id"
+                  loading={loading}
+                  dataSource={announcements}
+                  columns={columns}
+                  pagination={false}
+                  tableLayout="fixed"
+                  scroll={{ x: 1180 }}
+                  sticky
+                  className="teacher-announcements-table [&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:font-semibold [&_.ant-table-thead_th]:text-slate-600 dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
+                  locale={{
+                    emptyText: <Empty description={t("announcementsPage.empty")} />,
+                  }}
+                />
               </div>
-            </section>
+
+              <DataPaginationFooter
+                currentPage={page}
+                pageSize={pageSize}
+                total={totalAnnouncements}
+                totalLabel={t("announcementsPage.pagination.total", { count: totalAnnouncements })}
+                pageSizeLabel={t("announcementsPage.pagination.pageSize")}
+                rangeLabel={t("announcementsPage.pagination.range", {
+                  start: totalAnnouncements === 0 ? 0 : (page - 1) * pageSize + 1,
+                  end: Math.min(page * pageSize, totalAnnouncements),
+                })}
+                onPageChange={setPage}
+                onPageSizeChange={(nextSize) => {
+                  setPageSize(nextSize);
+                  setPage(1);
+                }}
+              />
+            </div>
           </div>
         </main>
       </div>
@@ -345,21 +436,21 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={handleSubmit}
-        okText={editing ? "Update" : "Publish"}
-        cancelText="Cancel"
+        okText={editing ? t("announcementsPage.modal.update") : t("announcementsPage.modal.publish")}
+        cancelText={t("announcementsPage.modal.cancel")}
         confirmLoading={submitting}
-        title={editing ? "Edit Announcement" : "Create Announcement"}
+        title={editing ? t("announcementsPage.modal.editTitle") : t("announcementsPage.modal.createTitle")}
         width={760}
       >
         <div className="mt-4 border-y border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800">
           <Form form={form} layout="vertical">
             <Form.Item
               name="classSectionId"
-              label="Select Course"
-              rules={[{ required: true, message: "Please select a course" }]}
+              label={t("announcementsPage.modal.class")}
+              rules={[{ required: true, message: t("announcementsPage.validation.classRequired") }]}
             >
               <Select
-                placeholder="Select Course"
+                placeholder={t("announcementsPage.modal.classPlaceholder")}
                 showSearch
                 optionFilterProp="label"
                 options={courses.map((course) => ({
@@ -370,13 +461,13 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
             </Form.Item>
             <Form.Item
               name="title"
-              label="Announcement Title"
-              rules={[{ required: true, message: "Please enter announcement title" }]}
+              label={t("announcementsPage.modal.title")}
+              rules={[{ required: true, message: t("announcementsPage.validation.titleRequired") }]}
             >
-              <Input placeholder="Announcement title" />
+              <Input placeholder={t("announcementsPage.modal.titlePlaceholder")} />
             </Form.Item>
-            <Form.Item name="summary" label="Summary">
-              <Input.TextArea rows={8} placeholder="Summary..." />
+            <Form.Item name="summary" label={t("announcementsPage.modal.summary")}>
+              <Input.TextArea rows={8} placeholder={t("announcementsPage.modal.summaryPlaceholder")} />
             </Form.Item>
           </Form>
         </div>
@@ -385,11 +476,27 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
       <Modal
         open={detailOpen}
         onCancel={() => setDetailOpen(false)}
-        footer={selected ? [
-          <Button key="cancel" onClick={() => setDetailOpen(false)}>Cancel</Button>,
-          <Button key="delete" danger onClick={() => handleDelete(selected)}>Delete</Button>,
-          <Button key="edit" type="primary" onClick={() => openEditModal(selected)}>Edit</Button>,
-        ] : null}
+        footer={
+          selected
+            ? [
+                <Button key="cancel" onClick={() => setDetailOpen(false)}>
+                  {t("announcementsPage.modal.cancel")}
+                </Button>,
+                <Button
+                  key="delete"
+                  danger
+                  icon={<TrashIcon className="h-4 w-4" />}
+                  onClick={() => handleDelete(selected)}
+                  className="border-red-200 text-red-600 hover:!border-red-300 hover:!bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:!bg-red-950/40 dark:hover:!border-red-600"
+                >
+                  {t("announcementsPage.actions.delete")}
+                </Button>,
+                <Button key="edit" type="primary" icon={<PencilSquareIcon className="h-4 w-4" />} onClick={() => openEditModal(selected)}>
+                  {t("announcementsPage.actions.edit")}
+                </Button>,
+              ]
+            : null
+        }
         width={760}
         title={null}
       >
@@ -406,13 +513,19 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
             </div>
             <div className="grid border-t border-slate-200 pt-6 sm:grid-cols-2 dark:border-slate-700">
               <div>
-                <p className="font-semibold text-slate-600 dark:text-slate-300">Course</p>
-                <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white">{selected.classSectionTitle}</p>
+                <p className="font-semibold text-slate-600 dark:text-slate-300">
+                  {t("announcementsPage.modal.class")}
+                </p>
+                <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                  {selected.classSectionTitle}
+                </p>
               </div>
               <div>
-                <p className="font-semibold text-slate-600 dark:text-slate-300">Published Date</p>
+                <p className="font-semibold text-slate-600 dark:text-slate-300">
+                  {t("announcementsPage.modal.publishedAt")}
+                </p>
                 <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
-                  {selected.createdAt ? dayjs(selected.createdAt).format("MMMM D, YYYY, HH:mm") : ""}
+                  {formatDateTime(selected.createdAt, locale)}
                 </p>
               </div>
             </div>

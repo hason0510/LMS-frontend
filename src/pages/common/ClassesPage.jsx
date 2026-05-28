@@ -4,10 +4,8 @@ import {
   App,
   AutoComplete,
   Button,
-  DatePicker,
   Empty,
   Modal,
-  Pagination,
   Select,
   Skeleton,
   Spin,
@@ -18,6 +16,7 @@ import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import CourseCard from "../../components/course/CourseCard";
 import CourseFilters from "../../components/course/CourseFilters";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getClassSectionJoinPreview,
@@ -56,6 +55,9 @@ const ENROLLMENT_STYLES = {
   PENDING: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-900/60",
 };
 
+const STUDENT_PRIMARY_BUTTON_CLASS =
+  "inline-flex items-center justify-center rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90";
+
 function buildSearchParams(query) {
   const [sortBy = "createdDate", sortDirection = "ASC"] = (query.sortValue || "createdDate:ASC").split(":");
   return {
@@ -77,30 +79,22 @@ function buildSearchParams(query) {
 function buildKeywordOptions(items = []) {
   const uniqueValues = new Set();
   items.forEach((item) => {
-    [item?.title, item?.teacherName, item?.subjectCode].forEach((value) => {
-      if (value) uniqueValues.add(value);
-    });
+    if (item?.title) uniqueValues.add(item.title);
   });
   return Array.from(uniqueValues).slice(0, 12).map((value) => ({ value }));
 }
 
-function buildTeacherOptions(myItems = [], publicItems = []) {
-  const uniqueValues = new Set();
-  [...myItems, ...publicItems].forEach((item) => {
-    if (item?.teacherName) uniqueValues.add(item.teacherName);
-  });
-  return Array.from(uniqueValues).map((value) => ({ value }));
-}
-
-function buildSubjectOptions(subjects = [], myItems = [], publicItems = []) {
-  const uniqueValues = new Set();
-  subjects.forEach((subject) => {
-    if (subject?.code) uniqueValues.add(subject.code);
-  });
-  [...myItems, ...publicItems].forEach((item) => {
-    if (item?.subjectCode) uniqueValues.add(item.subjectCode);
-  });
-  return Array.from(uniqueValues).map((value) => ({ value }));
+function buildSubjectOptions(subjects = []) {
+  return subjects
+    .filter((subject) => subject?.code || subject?.title)
+    .map((subject) => ({
+      value: subject?.code || subject?.title,
+      label:
+        subject?.code && subject?.title
+          ? `${subject.code} - ${subject.title}`
+          : subject?.code || subject?.title,
+      categoryId: subject?.categoryId,
+    }));
 }
 
 function formatDateRange(startDate, endDate, t) {
@@ -134,22 +128,63 @@ function EnrollmentBadge({ value, children }) {
   );
 }
 
+function getProgressColor(progress) {
+  if (progress >= 80) return "#22c55e";
+  if (progress >= 50) return "#137fec";
+  if (progress > 0) return "#f59e0b";
+  return "#9ca3af";
+}
+
+function StudentViewSwitch({ activeView, onChange, t, myCount, publicCount }) {
+  const tabs = [
+    { key: "my", label: t("classesPage.views.my"), count: myCount || 0 },
+    { key: "public", label: t("classesPage.views.public"), count: publicCount || 0 },
+  ];
+
+  return (
+    <div className="inline-flex w-full rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800 sm:w-auto">
+      {tabs.map((tab) => {
+        const isActive = activeView === tab.key;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onChange(tab.key)}
+            className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors sm:flex-none ${
+              isActive
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+            }`}
+          >
+            <span className="truncate">{tab.label}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${
+                isActive
+                  ? "bg-primary/10 text-primary dark:bg-primary/20"
+                  : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              }`}
+            >
+              {tab.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ClassesSectionToolbar({
   t,
   query,
   onChange,
   onReset,
   keywordOptions,
-  teacherOptions,
   subjectOptions,
   categoryOptions,
-  showStatusFilter = false,
-  advancedOpen,
-  onToggleAdvanced,
 }) {
   return (
     <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_220px_160px]">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_220px_220px_180px_110px]">
         <AutoComplete
           value={query.keyword}
           options={keywordOptions}
@@ -169,181 +204,132 @@ function ClassesSectionToolbar({
           optionFilterProp="label"
         />
         <Select
+          value={query.subjectKeyword || undefined}
+          onChange={(value) => onChange({ subjectKeyword: value || "", pageNumber: 1 })}
+          options={subjectOptions}
+          placeholder={t("classesPage.filters.subject")}
+          className="w-full"
+          allowClear
+          showSearch
+          optionFilterProp="label"
+        />
+        <Select
           value={query.sortValue}
           onChange={(value) => onChange({ sortValue: value, pageNumber: 1 })}
           options={[
             { value: "createdDate:ASC", label: t("classesPage.sort.createdAsc") },
             { value: "createdDate:DESC", label: t("classesPage.sort.createdDesc") },
-            { value: "startDate:ASC", label: t("classesPage.sort.startAsc") },
             { value: "title:ASC", label: t("classesPage.sort.titleAsc") },
           ]}
           className="w-full"
           showSearch
           optionFilterProp="label"
         />
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <Button type={advancedOpen ? "primary" : "default"} onClick={onToggleAdvanced}>
-          {advancedOpen ? t("classesPage.filters.hideAdvanced") : t("classesPage.filters.showAdvanced")}
-        </Button>
         <Button onClick={onReset}>{t("classesPage.filters.reset")}</Button>
       </div>
-
-      {advancedOpen && (
-        <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/70 lg:grid-cols-4">
-          <AutoComplete
-            value={query.teacherKeyword}
-            options={teacherOptions}
-            onChange={(value) => onChange({ teacherKeyword: value, pageNumber: 1 })}
-            placeholder={t("classesPage.filters.teacher")}
-            allowClear
-          />
-          <AutoComplete
-            value={query.subjectKeyword}
-            options={subjectOptions}
-            onChange={(value) => onChange({ subjectKeyword: value, pageNumber: 1 })}
-            placeholder={t("classesPage.filters.subject")}
-            allowClear
-          />
-          <DatePicker.RangePicker
-            value={query.startDateRange}
-            onChange={(value) => onChange({ startDateRange: value, pageNumber: 1 })}
-            className="w-full"
-            format="DD/MM/YYYY"
-          />
-          {showStatusFilter ? (
-            <Select
-              value={query.status}
-              onChange={(value) => onChange({ status: value, pageNumber: 1 })}
-              options={[
-                { value: "PUBLIC", label: t("classesPage.status.public") },
-                { value: "PRIVATE", label: t("classesPage.status.private") },
-                { value: "ARCHIVED", label: t("classesPage.status.archived") },
-              ]}
-              placeholder={t("classesPage.filters.status")}
-              allowClear
-              className="w-full"
-              showSearch
-              optionFilterProp="label"
-            />
-          ) : (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-              {t("classesPage.filters.publicScopeHint")}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
 
-function ClassesPaginationFooter({ t, currentPage, pageSize, totalElements, onPageChange, onPageSizeChange }) {
-  const safeTotal = totalElements || 0;
-  const start = safeTotal === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const end = Math.min(currentPage * pageSize, safeTotal);
-
-  return (
-    <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div className="font-semibold text-slate-700 dark:text-slate-200">
-        {t("classesPage.pagination.total", { count: safeTotal })}
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-2">
-          <span>{t("classesPage.pagination.pageSize")}</span>
-          <Select
-            value={pageSize}
-            onChange={onPageSizeChange}
-            options={[6, 12, 24].map((value) => ({ value, label: value }))}
-            className="w-24"
-            showSearch
-            optionFilterProp="label"
-          />
-        </div>
-        <div className="font-semibold text-slate-700 dark:text-slate-200">
-          {t("classesPage.pagination.range", { start, end })}
-        </div>
-        <Pagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={safeTotal}
-          onChange={onPageChange}
-          showSizeChanger={false}
-          size="small"
-        />
-      </div>
-    </div>
-  );
-}
-
-function StudentClassCard({ type, item, t, onPrimaryAction, onSecondaryAction }) {
+function StudentClassCard({ type, item, t, onPrimaryAction }) {
   const enrollmentStatus = item?.myEnrollmentStatus;
   const isPending = enrollmentStatus === "PENDING";
   const progress = typeof item?.myProgress === "number" ? Math.max(0, Math.min(item.myProgress, 100)) : null;
+  const progressValue = progress ?? 0;
+  const subjectText = item?.subjectTitle
+    ? item?.subjectCode
+      ? `${item.subjectCode} - ${item.subjectTitle}`
+      : item.subjectTitle
+    : item?.subjectCode || t("classesPage.card.noSubject");
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
       <div
-        className="h-40 bg-cover bg-center"
+        className="aspect-[16/7] bg-cover bg-center"
         style={{ backgroundImage: `url(${item?.imageUrl || classPlaceholder})` }}
       />
-      <div className="flex flex-1 flex-col px-5 py-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge value={item?.status}>
-            {item?.status ? t(`classesPage.status.${item.status.toLowerCase()}`) : null}
-          </StatusBadge>
-          {type === "my" && enrollmentStatus && (
-            <EnrollmentBadge value={enrollmentStatus}>
-              {t(`classesPage.enrollment.${enrollmentStatus.toLowerCase()}`)}
-            </EnrollmentBadge>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">
+              {item?.title || item?.classCode || t("classesPage.card.classSection")}
+            </h3>
+            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {t("classesPage.card.classCode", { code: item?.classCode || "-" })}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <StatusBadge value={item?.status}>
+              {item?.status ? t(`classesPage.status.${item.status.toLowerCase()}`) : null}
+            </StatusBadge>
+            {type === "my" && enrollmentStatus && (
+              <EnrollmentBadge value={enrollmentStatus}>
+                {t(`classesPage.enrollment.${enrollmentStatus.toLowerCase()}`)}
+              </EnrollmentBadge>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">{t("classesPage.card.category")}:</span>{" "}
+            {item?.categoryTitle || t("classesPage.card.noCategory")}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">{t("classesPage.card.subject")}:</span>{" "}
+            {subjectText}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">{t("classesPage.card.teacher")}:</span>{" "}
+            {item?.teacherName || t("classesPage.card.noTeacher")}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">{t("classesPage.card.schedule")}:</span>{" "}
+            {formatDateRange(item?.startDate, item?.endDate, t)}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">{t("classesPage.card.studentsLabel")}:</span>{" "}
+            {item?.totalEnrollments || 0}
+          </div>
+          {type === "my" && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium text-slate-800 dark:text-slate-100">
+                  {t("classesPage.card.progress")}
+                </span>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  {isPending ? t("classesPage.card.pendingApproval") : `${progressValue}%`}
+                </span>
+              </div>
+              {!isPending && (
+                <div
+                  className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                  aria-hidden="true"
+                >
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${progressValue}%`,
+                      backgroundColor: getProgressColor(progressValue),
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        <div className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          {[item?.subjectCode, item?.categoryTitle].filter(Boolean).join(" • ") || t("classesPage.card.classSection")}
-        </div>
-        <h3 className="mt-2 line-clamp-2 text-xl font-bold text-slate-900 dark:text-white">{item?.title || item?.classCode}</h3>
-        <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{item?.teacherName || t("classesPage.card.noTeacher")}</div>
-
-        <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-          <div>{t("classesPage.card.classCode", { code: item?.classCode || "-" })}</div>
-          <div>{formatDateRange(item?.startDate, item?.endDate, t)}</div>
-          <div>{t("classesPage.card.students", { count: item?.totalEnrollments || 0 })}</div>
-        </div>
-
-        {type === "my" && (
-          <div className="mt-4">
-            <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700 dark:text-slate-200">
-              <span>{t("classesPage.card.progress")}</span>
-              <span>{isPending ? t("classesPage.card.pendingApproval") : `${progress ?? 0}%`}</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${isPending ? 0 : progress ?? 0}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="mt-5 grid grid-cols-2 gap-3 pt-4">
+        <div className="mt-4 pt-1">
           <button
             type="button"
             onClick={onPrimaryAction}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className={STUDENT_PRIMARY_BUTTON_CLASS}
           >
             {type === "my" ? t("classesPage.actions.openClass") : t("classesPage.actions.joinClass")}
           </button>
-          <button
-            type="button"
-            onClick={onSecondaryAction}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            {t("classesPage.actions.viewDetails")}
-          </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -388,87 +374,6 @@ function JoinPreviewModal({ open, preview, loading, onConfirm, onClose, t }) {
   );
 }
 
-function StudentSection({
-  t,
-  title,
-  subtitle,
-  query,
-  onQueryChange,
-  onReset,
-  advancedOpen,
-  onToggleAdvanced,
-  keywordOptions,
-  teacherOptions,
-  subjectOptions,
-  categoryOptions,
-  showStatusFilter,
-  items,
-  loading,
-  totalElements,
-  emptyMessage,
-  renderCard,
-}) {
-  return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-      <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
-          </div>
-          <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-            {t("classesPage.sectionCount", { count: totalElements || 0 })}
-          </div>
-        </div>
-      </div>
-
-      <ClassesSectionToolbar
-        t={t}
-        query={query}
-        onChange={onQueryChange}
-        onReset={onReset}
-        keywordOptions={keywordOptions}
-        teacherOptions={teacherOptions}
-        subjectOptions={subjectOptions}
-        categoryOptions={categoryOptions}
-        showStatusFilter={showStatusFilter}
-        advancedOpen={advancedOpen}
-        onToggleAdvanced={onToggleAdvanced}
-      />
-
-      <div className="px-5 py-5 sm:px-6">
-        {loading ? (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: query.pageSize }).map((_, index) => (
-              <div key={index} className="rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                <Skeleton.Image active className="!h-40 !w-full !rounded-2xl" />
-                <Skeleton active paragraph={{ rows: 4 }} className="mt-4" />
-              </div>
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-16 dark:border-slate-700 dark:bg-slate-900/70">
-            <Empty description={emptyMessage} />
-          </div>
-        ) : (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {items.map(renderCard)}
-          </div>
-        )}
-      </div>
-
-      <ClassesPaginationFooter
-        t={t}
-        currentPage={query.pageNumber}
-        pageSize={query.pageSize}
-        totalElements={totalElements}
-        onPageChange={(page) => onQueryChange({ pageNumber: page })}
-        onPageSizeChange={(pageSize) => onQueryChange({ pageSize, pageNumber: 1 })}
-      />
-    </section>
-  );
-}
-
 export default function ClassesPage() {
   const { user } = useAuth();
   const { message } = App.useApp();
@@ -483,13 +388,12 @@ export default function ClassesPage() {
 
   const [myQuery, setMyQuery] = useState(createInitialQuery("MY"));
   const [publicQuery, setPublicQuery] = useState(createInitialQuery("PUBLIC", { status: "PUBLIC" }));
+  const [activeView, setActiveView] = useState("my");
   const [myClasses, setMyClasses] = useState({ items: [], totalElements: 0, loading: true });
   const [publicClasses, setPublicClasses] = useState({ items: [], totalElements: 0, loading: true });
   const [categories, setCategories] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [metadataLoading, setMetadataLoading] = useState(true);
-  const [myAdvancedOpen, setMyAdvancedOpen] = useState(false);
-  const [publicAdvancedOpen, setPublicAdvancedOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joinPreview, setJoinPreview] = useState(null);
   const [joinPreviewOpen, setJoinPreviewOpen] = useState(false);
@@ -559,9 +463,13 @@ export default function ClassesPage() {
     try {
       setMyClasses((current) => ({ ...current, loading: true }));
       const response = await searchClassSections(buildSearchParams(myQuery));
+      const filteredItems = (response.items || []).filter((item) => item?.status !== "ARCHIVED");
       setMyClasses({
-        items: response.items || [],
-        totalElements: response.totalElements || 0,
+        items: filteredItems,
+        totalElements:
+          filteredItems.length === (response.items || []).length
+            ? response.totalElements || filteredItems.length
+            : filteredItems.length,
         loading: false,
       });
     } catch (error) {
@@ -590,21 +498,61 @@ export default function ClassesPage() {
     label: category.title,
   }));
 
-  const keywordOptions = useMemo(
-    () => buildKeywordOptions([...myClasses.items, ...publicClasses.items]),
-    [myClasses.items, publicClasses.items]
+  const myKeywordOptions = useMemo(
+    () => buildKeywordOptions(myClasses.items),
+    [myClasses.items]
   );
-  const teacherOptions = useMemo(
-    () => buildTeacherOptions(myClasses.items, publicClasses.items),
-    [myClasses.items, publicClasses.items]
+  const publicKeywordOptions = useMemo(
+    () => buildKeywordOptions(publicClasses.items),
+    [publicClasses.items]
   );
   const subjectOptions = useMemo(
-    () => buildSubjectOptions(subjects, myClasses.items, publicClasses.items),
-    [subjects, myClasses.items, publicClasses.items]
+    () => buildSubjectOptions(subjects),
+    [subjects]
   );
+  const activeQuery = activeView === "my" ? myQuery : publicQuery;
+  const activeClasses = activeView === "my" ? myClasses : publicClasses;
+  const activeKeywordOptions = activeView === "my" ? myKeywordOptions : publicKeywordOptions;
+  const activeSubjectOptions = useMemo(() => {
+    if (!activeQuery.categoryId) return subjectOptions;
+    return subjectOptions.filter((option) => option.categoryId === activeQuery.categoryId);
+  }, [activeQuery.categoryId, subjectOptions]);
+  const activeTitle = activeView === "my" ? t("classesPage.myClasses.title") : t("classesPage.publicClasses.title");
+  const activeSubtitle =
+    activeView === "my" ? t("classesPage.myClasses.subtitle") : t("classesPage.publicClasses.subtitle");
+  const activeEmptyMessage =
+    activeView === "my" ? t("classesPage.empty.myClasses") : t("classesPage.empty.publicClasses");
 
   const resetMyFilters = () => setMyQuery(createInitialQuery("MY"));
   const resetPublicFilters = () => setPublicQuery(createInitialQuery("PUBLIC", { status: "PUBLIC" }));
+  const getSubjectValue = (subject) => subject?.code || subject?.title;
+
+  const handleStudentQueryChange = (view, changes) => {
+    const setQuery = view === "my" ? setMyQuery : setPublicQuery;
+    setQuery((current) => {
+      const next = { ...current, ...changes };
+
+      if (Object.prototype.hasOwnProperty.call(changes, "subjectKeyword")) {
+        const matchedSubject = subjects.find((subject) => getSubjectValue(subject) === next.subjectKeyword);
+        if (matchedSubject?.categoryId) {
+          next.categoryId = matchedSubject.categoryId;
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, "categoryId") && changes.categoryId) {
+        const currentSubject = subjects.find((subject) => getSubjectValue(subject) === next.subjectKeyword);
+        if (currentSubject && currentSubject.categoryId !== changes.categoryId) {
+          next.subjectKeyword = "";
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, "categoryId") && !changes.categoryId) {
+        next.categoryId = undefined;
+      }
+
+      return next;
+    });
+  };
 
   const handlePreviewJoin = async (event) => {
     event.preventDefault();
@@ -720,100 +668,114 @@ export default function ClassesPage() {
             <p className="mt-2 max-w-3xl text-base text-slate-500 dark:text-slate-400">{t("classesPage.subtitle")}</p>
           </div>
 
-          <section className="mb-6 overflow-hidden rounded-3xl border border-primary/15 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-primary/30 dark:bg-slate-900 dark:shadow-none">
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
             <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t("classesPage.myClasses.title")}</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("classesPage.joinBanner.subtitle")}</p>
-            </div>
-            <div className="px-5 py-5 sm:px-6">
-              <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-4 dark:border-primary/30 dark:bg-primary/10 sm:px-5">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <div className="text-lg font-semibold text-primary">{t("classesPage.joinBanner.title")}</div>
-                    <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">{t("classesPage.joinBanner.description")}</div>
-                  </div>
-                  <form onSubmit={handlePreviewJoin} className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-xl">
-                    <input
-                      type="text"
-                      value={joinCode}
-                      onChange={(event) => setJoinCode(event.target.value)}
-                      placeholder={t("classesPage.joinBanner.placeholder")}
-                      className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
-                    />
-                    <button
-                      type="submit"
-                      disabled={joinLoading || !joinCode.trim()}
-                      className="h-12 rounded-2xl bg-primary px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {joinLoading ? t("common.dangXuLy") : t("classesPage.actions.previewJoin")}
-                    </button>
-                  </form>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{activeTitle}</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{activeSubtitle}</p>
                 </div>
+                <StudentViewSwitch
+                  activeView={activeView}
+                  onChange={setActiveView}
+                  t={t}
+                  myCount={myClasses.totalElements}
+                  publicCount={publicClasses.totalElements}
+                />
               </div>
             </div>
+
+            {activeView === "public" && (
+              <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+                <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-4 dark:border-primary/30 dark:bg-primary/10">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <div className="text-base font-semibold text-primary">{t("classesPage.joinBanner.title")}</div>
+                      <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                        {t("classesPage.joinBanner.description")}
+                      </div>
+                    </div>
+                    <form onSubmit={handlePreviewJoin} className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-xl">
+                      <input
+                        type="text"
+                        value={joinCode}
+                        onChange={(event) => setJoinCode(event.target.value)}
+                        placeholder={t("classesPage.joinBanner.placeholder")}
+                        className="h-11 flex-1 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={joinLoading || !joinCode.trim()}
+                        className="h-11 rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {joinLoading ? t("common.dangXuLy") : t("classesPage.actions.previewJoin")}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <ClassesSectionToolbar
+              t={t}
+              query={activeQuery}
+              onChange={(changes) => handleStudentQueryChange(activeView, changes)}
+              onReset={activeView === "my" ? resetMyFilters : resetPublicFilters}
+              keywordOptions={activeKeywordOptions}
+              subjectOptions={activeSubjectOptions}
+              categoryOptions={categoryOptions}
+            />
+
+            <div className="px-5 py-5 sm:px-6">
+              {activeClasses.loading || metadataLoading ? (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: activeQuery.pageSize }).map((_, index) => (
+                    <div key={index} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+                      <Skeleton.Image active className="!aspect-[16/7] !h-auto !w-full !rounded-lg" />
+                      <Skeleton active paragraph={{ rows: 5 }} className="mt-4" />
+                    </div>
+                  ))}
+                </div>
+              ) : activeClasses.items.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 py-16 dark:border-slate-700 dark:bg-slate-900/70">
+                  <Empty description={activeEmptyMessage} />
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {activeClasses.items.map((item) => (
+                    <StudentClassCard
+                      key={item.id}
+                      type={activeView === "my" ? "my" : "public"}
+                      item={item}
+                      t={t}
+                      onPrimaryAction={() =>
+                        activeView === "my" ? navigate(`/class-sections/${item.id}`) : handleJoinPublicClass(item.id)
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DataPaginationFooter
+              currentPage={activeQuery.pageNumber}
+              pageSize={activeQuery.pageSize}
+              total={activeClasses.totalElements}
+              pageSizeOptions={[6, 12, 24]}
+              totalLabel={t("classesPage.pagination.total", { count: activeClasses.totalElements || 0 })}
+              pageSizeLabel={t("classesPage.pagination.pageSize")}
+              rangeLabel={t("classesPage.pagination.range", {
+                start: activeClasses.totalElements ? (activeQuery.pageNumber - 1) * activeQuery.pageSize + 1 : 0,
+                end: activeClasses.totalElements
+                  ? Math.min(activeQuery.pageNumber * activeQuery.pageSize, activeClasses.totalElements)
+                  : 0,
+              })}
+              onPageChange={(page) => handleStudentQueryChange(activeView, { pageNumber: page })}
+              onPageSizeChange={(pageSize) =>
+                handleStudentQueryChange(activeView, { pageSize, pageNumber: 1 })
+              }
+            />
           </section>
-
-          <div className="space-y-8">
-            <StudentSection
-              t={t}
-              title={t("classesPage.myClasses.title")}
-              subtitle={t("classesPage.myClasses.subtitle")}
-              query={myQuery}
-              onQueryChange={(changes) => setMyQuery((current) => ({ ...current, ...changes }))}
-              onReset={resetMyFilters}
-              advancedOpen={myAdvancedOpen}
-              onToggleAdvanced={() => setMyAdvancedOpen((current) => !current)}
-              keywordOptions={keywordOptions}
-              teacherOptions={teacherOptions}
-              subjectOptions={subjectOptions}
-              categoryOptions={categoryOptions}
-              showStatusFilter
-              items={myClasses.items}
-              loading={myClasses.loading || metadataLoading}
-              totalElements={myClasses.totalElements}
-              emptyMessage={t("classesPage.empty.myClasses")}
-              renderCard={(item) => (
-                <StudentClassCard
-                  key={item.id}
-                  type="my"
-                  item={item}
-                  t={t}
-                  onPrimaryAction={() => navigate(`/class-sections/${item.id}`)}
-                  onSecondaryAction={() => navigate(`/class-sections/${item.id}`)}
-                />
-              )}
-            />
-
-            <StudentSection
-              t={t}
-              title={t("classesPage.publicClasses.title")}
-              subtitle={t("classesPage.publicClasses.subtitle")}
-              query={publicQuery}
-              onQueryChange={(changes) => setPublicQuery((current) => ({ ...current, ...changes }))}
-              onReset={resetPublicFilters}
-              advancedOpen={publicAdvancedOpen}
-              onToggleAdvanced={() => setPublicAdvancedOpen((current) => !current)}
-              keywordOptions={keywordOptions}
-              teacherOptions={teacherOptions}
-              subjectOptions={subjectOptions}
-              categoryOptions={categoryOptions}
-              showStatusFilter={false}
-              items={publicClasses.items}
-              loading={publicClasses.loading || metadataLoading}
-              totalElements={publicClasses.totalElements}
-              emptyMessage={t("classesPage.empty.publicClasses")}
-              renderCard={(item) => (
-                <StudentClassCard
-                  key={item.id}
-                  type="public"
-                  item={item}
-                  t={t}
-                  onPrimaryAction={() => handleJoinPublicClass(item.id)}
-                  onSecondaryAction={() => navigate(`/class-sections/${item.id}`)}
-                />
-              )}
-            />
-          </div>
         </div>
       </main>
 

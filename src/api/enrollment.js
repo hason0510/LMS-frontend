@@ -72,9 +72,9 @@ export const getApprovedEnrollments = async (courseId, pageNumber = 1, pageSize 
     return response.data;
 };
 
-export const getApprovedClassSectionEnrollments = async (classSectionId, pageNumber = 1, pageSize = 10) => {
+export const getApprovedClassSectionEnrollments = async (classSectionId, pageNumber = 1, pageSize = 10, keyword = null) => {
     const response = await axiosClient.get(`class-sections/${classSectionId}/enrollments/approved`, {
-        params: { pageNumber, pageSize },
+        params: { pageNumber, pageSize, keyword: keyword || undefined },
     });
     return response.data;
 };

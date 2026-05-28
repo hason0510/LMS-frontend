@@ -1,39 +1,88 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Alert, Button, Empty, Spin, Tag } from "antd";
+import { useTranslation } from "react-i18next";
+import {
+  AcademicCapIcon,
+  ArrowPathIcon,
+  ArrowRightIcon,
+  BookOpenIcon,
+  ChatBubbleLeftRightIcon,
+  ClipboardDocumentCheckIcon,
+  Squares2X2Icon,
+  UserGroupIcon,
+  UserPlusIcon,
+} from "@heroicons/react/24/outline";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
-import {
-  UserGroupIcon,
-  AcademicCapIcon,
-  UserPlusIcon,
-  BookOpenIcon,
-  UsersIcon,
-  CheckBadgeIcon,
-  TagIcon,
-  ListBulletIcon,
-  PhotoIcon,
-} from "@heroicons/react/24/outline";
-import { Spin } from "antd";
 import { getAllUsers } from "../../api/user";
-import { getAdminCourses as getAdminClassSections } from "../../api/classSection";
+import { getClassSections } from "../../api/classSection";
 import { getAllEnrollments } from "../../api/enrollment";
 import { getAllSubjects } from "../../api/subject";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { getTeachingReviewQueue, getTeachingWorkbenchSummary } from "../../api/teaching";
+
+function unwrapListPayload(payload) {
+  const data = payload?.data ?? payload ?? null;
+  if (Array.isArray(data?.pageList)) {
+    return data.pageList;
+  }
+  if (Array.isArray(data?.content)) {
+    return data.content;
+  }
+  return Array.isArray(data) ? data : [];
+}
+
+function formatTime(value, language, fallback) {
+  if (!value) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleString(language === "vi" ? "vi-VN" : "en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getClassAccessTone(status) {
+  if (status === "PUBLIC") {
+    return "emerald";
+  }
+  if (status === "PRIVATE") {
+    return "amber";
+  }
+  return "slate";
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [stats, setStats] = useState([
-    { label: "Tổng số người dùng", value: "...", icon: UserGroupIcon, color: "blue" },
-    { label: "Lớp học đang hoạt động", value: "...", icon: AcademicCapIcon, color: "green" },
-    { label: "Yêu cầu đăng ký mới", value: "...", icon: UserPlusIcon, color: "amber" },
-    { label: "Tổng môn học", value: "...", icon: BookOpenIcon, color: "purple" },
-  ]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [stats, setStats] = useState(null);
   const [chartData, setChartData] = useState([]);
-  const [alerts, setAlerts] = useState([]);
+  const [reviewQueue, setReviewQueue] = useState([]);
+  const [topClasses, setTopClasses] = useState([]);
+  const [topTeachers, setTopTeachers] = useState([]);
+  const [assistants, setAssistants] = useState([]);
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -43,161 +92,196 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchDashboardData();
+    loadDashboard();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const loadDashboard = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [usersRes, classSectionsRes, subjectsRes] = await Promise.all([
-        getAllUsers(0, 1),
-        getAdminClassSections(1, 1000),
-        getAllSubjects(),
-      ]);
+      const [usersResponse, classesResponse, subjectsResponse, enrollmentsResponse, summaryResponse, reviewQueueResponse] =
+        await Promise.all([
+          getAllUsers(0, 1),
+          getClassSections({ pageNumber: 1, pageSize: 1000 }),
+          getAllSubjects(),
+          getAllEnrollments(1, 1, "PENDING"),
+          getTeachingWorkbenchSummary(),
+          getTeachingReviewQueue(),
+        ]);
 
-      const totalUsers = usersRes.data?.totalElements || 0;
+      const classSections = unwrapListPayload(classesResponse);
+      const subjects = unwrapListPayload(subjectsResponse);
+      const summary = summaryResponse?.data || summaryResponse || null;
+      const reviewItems = unwrapListPayload(reviewQueueResponse);
+      const totalUsers = usersResponse?.data?.totalElements || 0;
+      const pendingJoinRequests = enrollmentsResponse?.data?.totalElements || 0;
 
-      const classSectionsList = Array.isArray(classSectionsRes.data)
-        ? classSectionsRes.data
-        : classSectionsRes.data?.pageList || [];
-      const totalClassSections = classSectionsRes.data?.totalElements ?? classSectionsList.length;
+      const classStatusCounts = classSections.reduce(
+        (accumulator, item) => {
+          const status = item.status || "PRIVATE";
+          accumulator[status] = (accumulator[status] || 0) + 1;
+          return accumulator;
+        },
+        { PUBLIC: 0, PRIVATE: 0, ARCHIVED: 0 }
+      );
 
-      const totalSubjects = Array.isArray(subjectsRes.data)
-        ? subjectsRes.data.length
-        : subjectsRes.data?.totalElements || 0;
+      const subjectChartMap = classSections.reduce((accumulator, item) => {
+        const subject = item.subjectTitle || t("adminDashboard.defaults.noSubject");
+        accumulator[subject] = (accumulator[subject] || 0) + 1;
+        return accumulator;
+      }, {});
 
-      // Pending enrollments — null = fetch failed (unknown), number = confirmed count
-      let pendingEnrollmentsCount = null;
-      try {
-        const pendingRes = await getAllEnrollments(1, 1, "PENDING");
-        pendingEnrollmentsCount = pendingRes.data?.totalElements ?? 0;
-      } catch {
-        // leave null so we don't falsely claim "all clear"
-      }
-
-      // Chart: class sections grouped by subject
-      const subjectMap = {};
-      classSectionsList.forEach((cs) => {
-        const subject = cs.subjectTitle || "Chưa phân loại";
-        subjectMap[subject] = (subjectMap[subject] || 0) + 1;
-      });
-      const rawChartData = Object.entries(subjectMap)
+      const nextChartData = Object.entries(subjectChartMap)
         .map(([subject, count]) => ({ subject, count }))
-        .sort((a, b) => b.count - a.count)
+        .sort((left, right) => right.count - left.count)
         .slice(0, 8);
-      setChartData(rawChartData);
 
-      // Alerts
-      const newAlerts = [];
-      if (pendingEnrollmentsCount === null) {
-        newAlerts.push({
-          id: 1,
-          type: "warning",
-          title: "Không thể tải yêu cầu tham gia",
-          message: "Không thể xác nhận trạng thái yêu cầu đăng ký. Hãy kiểm tra lại.",
-          action: null,
-          actionLabel: null,
-        });
-      } else if (pendingEnrollmentsCount > 0) {
-        newAlerts.push({
-          id: 1,
-          type: "info",
-          title: "Yêu cầu tham gia chờ xử lý",
-          message: `Có ${pendingEnrollmentsCount} yêu cầu tham gia lớp học đang chờ phê duyệt.`,
-          action: null,
-          actionLabel: null,
-        });
-      } else {
-        newAlerts.push({
-          id: 1,
-          type: "success",
-          title: "Hệ thống ổn định",
-          message: "Không có yêu cầu tham gia lớp học nào đang chờ xử lý.",
-          action: null,
-          actionLabel: null,
-        });
-      }
-      setAlerts(newAlerts);
+      const nextTopClasses = [...classSections]
+        .sort((left, right) => (Number(right.totalEnrollments) || 0) - (Number(left.totalEnrollments) || 0))
+        .slice(0, 5);
 
-      setStats([
-        {
-          label: "Tổng số người dùng",
-          value: totalUsers.toLocaleString(),
-          icon: UserGroupIcon,
-          color: "blue",
-        },
-        {
-          label: "Lớp học đang hoạt động",
-          value: totalClassSections.toLocaleString(),
-          icon: AcademicCapIcon,
-          color: "green",
-        },
-        {
-          label: "Yêu cầu đăng ký mới",
-          value: pendingEnrollmentsCount !== null ? pendingEnrollmentsCount.toLocaleString() : "—",
-          icon: UserPlusIcon,
-          color: "amber",
-        },
-        {
-          label: "Tổng môn học",
-          value: totalSubjects.toLocaleString(),
-          icon: BookOpenIcon,
-          color: "purple",
-        },
-      ]);
+      const teacherMap = new Map();
+      const assistantMap = new Map();
+
+      classSections.forEach((item) => {
+        const teacherKey = item.teacherId || item.teacherName;
+        if (teacherKey) {
+          const currentTeacher = teacherMap.get(teacherKey) || {
+            id: teacherKey,
+            name: item.teacherName || t("adminDashboard.defaults.unknownTeacher"),
+            classes: 0,
+            students: 0,
+          };
+          currentTeacher.classes += 1;
+          currentTeacher.students += Number(item.totalEnrollments) || 0;
+          teacherMap.set(teacherKey, currentTeacher);
+        }
+
+        (item.teachingMembers || [])
+          .filter((member) => member.role === "TA")
+          .forEach((member) => {
+            const assistantKey = member.userId || member.id || member.email;
+            if (!assistantKey) {
+              return;
+            }
+
+            const currentAssistant = assistantMap.get(assistantKey) || {
+              id: assistantKey,
+              name: member.fullName || member.username || t("adminDashboard.defaults.unknownAssistant"),
+              email: member.email,
+              classes: [],
+            };
+
+            if (!currentAssistant.classes.some((classItem) => classItem.id === item.id)) {
+              currentAssistant.classes.push({
+                id: item.id,
+                title: item.title || item.classCode || t("adminDashboard.defaults.classTitle", { id: item.id }),
+              });
+            }
+
+            assistantMap.set(assistantKey, currentAssistant);
+          });
+      });
+
+      const nextTopTeachers = Array.from(teacherMap.values())
+        .sort((left, right) => {
+          const classGap = right.classes - left.classes;
+          if (classGap !== 0) {
+            return classGap;
+          }
+          return right.students - left.students;
+        })
+        .slice(0, 5);
+
+      const nextAssistants = Array.from(assistantMap.values())
+        .sort((left, right) => right.classes.length - left.classes.length)
+        .slice(0, 6);
+
+      setStats({
+        totalUsers,
+        totalClasses: classSections.length,
+        totalSubjects: subjects.length,
+        pendingJoinRequests,
+        teachingStaff: nextTopTeachers.length,
+        assistants: assistantMap.size,
+        waitingFeedback: (Number(summary?.pendingSubmissions) || 0) + (Number(summary?.pendingQuizReviews) || 0),
+        totalStudents: Number(summary?.totalStudents) || classSections.reduce((sum, item) => sum + (Number(item.totalEnrollments) || 0), 0),
+        classStatusCounts,
+      });
+      setChartData(nextChartData);
+      setReviewQueue(reviewItems.slice(0, 6));
+      setTopClasses(nextTopClasses);
+      setTopTeachers(nextTopTeachers);
+      setAssistants(nextAssistants);
     } catch (err) {
-      console.error("Failed to fetch dashboard data:", err);
-      setError("Lỗi khi tải dữ liệu bảng điều khiển");
+      setError(err?.response?.data?.message || err.message || t("adminDashboard.errors.loadDashboard"));
+      setStats(null);
+      setChartData([]);
+      setReviewQueue([]);
+      setTopClasses([]);
+      setTopTeachers([]);
+      setAssistants([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const colorMap = {
-    blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    green: "bg-green-500/10 text-green-600 dark:text-green-400",
-    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    purple: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  };
+  const statCards = useMemo(() => {
+    if (!stats) {
+      return [];
+    }
 
-  const alertColorMap = {
-    warning: {
-      card: "bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20",
-      title: "text-amber-900 dark:text-amber-200",
-      message: "text-amber-800/80 dark:text-amber-400/80",
-    },
-    info: {
-      card: "bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20",
-      title: "text-blue-900 dark:text-blue-200",
-      message: "text-blue-800/80 dark:text-blue-400/80",
-    },
-    success: {
-      card: "bg-green-50 dark:bg-green-500/10 border border-green-100 dark:border-green-500/20",
-      title: "text-green-900 dark:text-green-200",
-      message: "text-green-800/80 dark:text-green-400/80",
-    },
-  };
+    return [
+      {
+        key: "users",
+        label: t("adminDashboard.stats.totalUsers"),
+        value: stats.totalUsers,
+        icon: <UserGroupIcon className="h-6 w-6" />,
+        tone: "blue",
+      },
+      {
+        key: "classes",
+        label: t("adminDashboard.stats.totalClasses"),
+        value: stats.totalClasses,
+        icon: <Squares2X2Icon className="h-6 w-6" />,
+        tone: "emerald",
+      },
+      {
+        key: "pendingRequests",
+        label: t("adminDashboard.stats.pendingRequests"),
+        value: stats.pendingJoinRequests,
+        icon: <UserPlusIcon className="h-6 w-6" />,
+        tone: "amber",
+      },
+      {
+        key: "teachers",
+        label: t("adminDashboard.stats.teachers"),
+        value: stats.teachingStaff,
+        icon: <AcademicCapIcon className="h-6 w-6" />,
+        tone: "sky",
+      },
+      {
+        key: "assistants",
+        label: t("adminDashboard.stats.assistants"),
+        value: stats.assistants,
+        icon: <BookOpenIcon className="h-6 w-6" />,
+        tone: "violet",
+      },
+      {
+        key: "waitingFeedback",
+        label: t("adminDashboard.stats.waitingFeedback"),
+        value: stats.waitingFeedback,
+        icon: <ChatBubbleLeftRightIcon className="h-6 w-6" />,
+        tone: "rose",
+      },
+    ];
+  }, [stats, t]);
 
-  const quickActions = [
-    { label: "Quản lý người dùng", icon: UsersIcon, to: "/admin/users" },
-    { label: "Duyệt lớp học", icon: CheckBadgeIcon, to: "/admin/class-sections" },
-    { label: "Danh mục", icon: TagIcon, to: "/admin/categories" },
-    { label: "Môn học", icon: ListBulletIcon, to: "/admin/subjects" },
-    { label: "Quản lý media", icon: PhotoIcon, to: "/admin/media" },
-  ];
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
-        <Spin size="large" />
-      </div>
-    );
-  }
+  const reviewQueueEmpty = reviewQueue.length === 0;
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="min-h-screen bg-[#f4f7fb] dark:bg-slate-950">
       <TeacherHeader />
       <AdminSidebar />
 
@@ -208,179 +292,477 @@ export default function AdminDashboard() {
       >
         <div className="mx-auto max-w-7xl">
           <AppBreadcrumb className="mb-5 mt-3" />
-          {error && (
-            <div className="mb-6 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4">
-              <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+
+          <section className="rounded-[28px] border border-slate-200 bg-white px-6 py-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-8">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+              <div className="max-w-3xl">
+                <p className="m-0 text-xs font-bold uppercase tracking-[0.2em] text-primary">
+                  {t("adminDashboard.header.eyebrow")}
+                </p>
+                <h1 className="m-0 mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
+                  {t("adminDashboard.header.title")}
+                </h1>
+                <p className="m-0 mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                  {t("adminDashboard.header.subtitle")}
+                </p>
+              </div>
+
+              <Button icon={<ArrowPathIcon className="h-4 w-4" />} onClick={loadDashboard}>
+                {t("adminDashboard.actions.refresh")}
+              </Button>
+            </div>
+
+            {stats ? (
+              <div className="mt-5 flex flex-wrap gap-3">
+                <HeaderChip
+                  label={t("adminDashboard.header.studentsLabel")}
+                  value={t("adminDashboard.header.studentsValue", { count: stats.totalStudents })}
+                />
+                <HeaderChip
+                  label={t("adminDashboard.header.subjectsLabel")}
+                  value={t("adminDashboard.header.subjectsValue", { count: stats.totalSubjects })}
+                />
+                <HeaderChip
+                  label={t("adminDashboard.header.pendingLabel")}
+                  value={t("adminDashboard.header.pendingValue", { count: stats.pendingJoinRequests })}
+                />
+              </div>
+            ) : null}
+          </section>
+
+          {error ? (
+            <Alert
+              type="error"
+              showIcon
+              message={t("adminDashboard.errors.alertTitle")}
+              description={error}
+              className="mt-6"
+            />
+          ) : null}
+
+          {loading ? (
+            <DashboardSkeleton />
+          ) : (
+            <div className="mt-6 space-y-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                {statCards.map((item) => (
+                  <MetricCard
+                    key={item.key}
+                    label={item.label}
+                    value={item.value}
+                    icon={item.icon}
+                    tone={item.tone}
+                  />
+                ))}
+              </div>
+
+              {stats ? (
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  <StatusCard
+                    label={t("adminDashboard.classAccess.open")}
+                    value={stats.classStatusCounts.PUBLIC}
+                    hint={t("adminDashboard.classAccess.openHint")}
+                    tone="emerald"
+                  />
+                  <StatusCard
+                    label={t("adminDashboard.classAccess.approval")}
+                    value={stats.classStatusCounts.PRIVATE}
+                    hint={t("adminDashboard.classAccess.approvalHint")}
+                    tone="amber"
+                  />
+                  <StatusCard
+                    label={t("adminDashboard.classAccess.archived")}
+                    value={stats.classStatusCounts.ARCHIVED}
+                    hint={t("adminDashboard.classAccess.archivedHint")}
+                    tone="slate"
+                  />
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_0.85fr]">
+                <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <SectionHeader
+                    title={t("adminDashboard.subjects.title")}
+                    subtitle={t("adminDashboard.subjects.subtitle")}
+                  />
+
+                  {chartData.length === 0 ? (
+                    <div className="mt-6 rounded-2xl border border-dashed border-slate-200 py-16 dark:border-slate-800">
+                      <Empty description={t("adminDashboard.subjects.empty")} />
+                    </div>
+                  ) : (
+                    <div className="mt-6 h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{ left: -10, right: 12, top: 8 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                          <XAxis
+                            dataKey="subject"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "#94a3b8", fontSize: 11 }}
+                            interval={0}
+                            angle={-18}
+                            textAnchor="end"
+                            height={54}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "#94a3b8", fontSize: 12 }}
+                            allowDecimals={false}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "transparent" }}
+                            content={({ active, payload }) => {
+                              if (!active || !payload || !payload.length) {
+                                return null;
+                              }
+
+                              return (
+                                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                                  <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
+                                    {payload[0].payload.subject}
+                                  </p>
+                                  <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                    {t("adminDashboard.subjects.tooltip", { count: payload[0].value })}
+                                  </p>
+                                </div>
+                              );
+                            }}
+                          />
+                          <Bar dataKey="count" fill="#137fec" radius={[6, 6, 0, 0]} barSize={34} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </section>
+
+                <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <SectionHeader
+                    title={t("adminDashboard.attention.title")}
+                    subtitle={t("adminDashboard.attention.subtitle")}
+                  />
+
+                  {stats ? (
+                    <div className="mt-4 space-y-3">
+                      <AttentionTile
+                        title={t("adminDashboard.attention.pendingRequests")}
+                        description={t("adminDashboard.attention.pendingRequestsHint", { count: stats.pendingJoinRequests })}
+                        tone="amber"
+                      />
+                      <AttentionTile
+                        title={t("adminDashboard.attention.waitingFeedback")}
+                        description={t("adminDashboard.attention.waitingFeedbackHint", { count: stats.waitingFeedback })}
+                        tone="rose"
+                      />
+                      <AttentionTile
+                        title={t("adminDashboard.attention.assistants")}
+                        description={t("adminDashboard.attention.assistantsHint", { count: stats.assistants })}
+                        tone="sky"
+                      />
+                    </div>
+                  ) : null}
+                </section>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <SectionHeader
+                    title={t("adminDashboard.topClasses.title")}
+                    subtitle={t("adminDashboard.topClasses.subtitle")}
+                    actionLabel={t("adminDashboard.topClasses.action")}
+                    onAction={() => navigate("/admin/class-sections")}
+                  />
+
+                  {topClasses.length === 0 ? (
+                    <div className="mt-6 rounded-2xl border border-dashed border-slate-200 py-12 dark:border-slate-800">
+                      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("adminDashboard.topClasses.empty")} />
+                    </div>
+                  ) : (
+                    <div className="mt-4 space-y-3">
+                      {topClasses.map((item, index) => (
+                        <button
+                          key={item.id}
+                          onClick={() => navigate(`/admin/class-sections/${item.id}`)}
+                          className="w-full rounded-2xl border border-slate-200 px-4 py-4 text-left transition hover:border-primary/50 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
+                                {index + 1}. {item.title || item.classCode}
+                              </p>
+                              <p className="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                                {item.subjectTitle || t("adminDashboard.defaults.noSubject")} · {item.teacherName || t("adminDashboard.defaults.unknownTeacher")}
+                              </p>
+                            </div>
+                            <Tag color={getClassAccessTone(item.status) === "emerald" ? "green" : getClassAccessTone(item.status) === "amber" ? "gold" : "default"}>
+                              {t(`adminDashboard.classAccessTag.${String(item.status || "PRIVATE").toLowerCase()}`)}
+                            </Tag>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">{t("adminDashboard.topClasses.studentsLabel")}</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-100">
+                              {t("adminDashboard.topClasses.studentsValue", { count: item.totalEnrollments || 0 })}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <SectionHeader
+                    title={t("adminDashboard.teachers.title")}
+                    subtitle={t("adminDashboard.teachers.subtitle")}
+                  />
+
+                  {topTeachers.length === 0 ? (
+                    <div className="mt-6 rounded-2xl border border-dashed border-slate-200 py-12 dark:border-slate-800">
+                      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("adminDashboard.teachers.empty")} />
+                    </div>
+                  ) : (
+                    <div className="mt-4 space-y-3">
+                      {topTeachers.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-2xl border border-slate-200 px-4 py-4 dark:border-slate-800"
+                        >
+                          <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">{item.name}</p>
+                          <div className="mt-3 flex items-center justify-between text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">{t("adminDashboard.teachers.classesLabel")}</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-100">
+                              {t("adminDashboard.teachers.classesValue", { count: item.classes })}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">{t("adminDashboard.teachers.studentsLabel")}</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-100">
+                              {t("adminDashboard.teachers.studentsValue", { count: item.students })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <SectionHeader
+                    title={t("adminDashboard.assistants.title")}
+                    subtitle={t("adminDashboard.assistants.subtitle")}
+                  />
+
+                  {assistants.length === 0 ? (
+                    <div className="mt-6 rounded-2xl border border-dashed border-slate-200 py-12 dark:border-slate-800">
+                      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("adminDashboard.assistants.empty")} />
+                    </div>
+                  ) : (
+                    <div className="mt-4 space-y-3">
+                      {assistants.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-2xl border border-slate-200 px-4 py-4 dark:border-slate-800"
+                        >
+                          <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">{item.name}</p>
+                          <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {t("adminDashboard.assistants.supportingCount", { count: item.classes.length })}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {item.classes.slice(0, 4).map((classItem) => (
+                              <button
+                                key={classItem.id}
+                                onClick={() => navigate(`/admin/class-sections/${classItem.id}`)}
+                                className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                              >
+                                {classItem.title}
+                              </button>
+                            ))}
+                            {item.classes.length > 4 ? (
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                {t("adminDashboard.assistants.moreClasses", { count: item.classes.length - 4 })}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <SectionHeader
+                  title={t("adminDashboard.reviewQueue.title")}
+                  subtitle={t("adminDashboard.reviewQueue.subtitle")}
+                  actionLabel={t("adminDashboard.reviewQueue.action")}
+                  onAction={() => navigate("/admin/assignments")}
+                />
+
+                {reviewQueueEmpty ? (
+                  <div className="mt-6 rounded-2xl border border-dashed border-slate-200 py-12 dark:border-slate-800">
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("adminDashboard.reviewQueue.empty")} />
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {reviewQueue.map((item) => (
+                      <button
+                        key={`${item.type}-${item.submissionId || item.attemptId}`}
+                        onClick={() => {
+                          if (String(item.type).toUpperCase() === "QUIZ" && item.attemptId) {
+                            navigate(`/admin/quiz-attempts/${item.attemptId}`);
+                            return;
+                          }
+                          if (item.classSectionId && item.assignmentId) {
+                            navigate(`/admin/class-sections/${item.classSectionId}/assignments/${item.assignmentId}/submissions`);
+                          }
+                        }}
+                        className="w-full rounded-2xl border border-slate-200 px-4 py-4 text-left transition hover:border-primary/50 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Tag color={String(item.type).toUpperCase() === "QUIZ" ? "blue" : "green"}>
+                                {String(item.type).toUpperCase() === "QUIZ"
+                                  ? t("adminDashboard.reviewQueue.quiz")
+                                  : t("adminDashboard.reviewQueue.assignment")}
+                              </Tag>
+                              {item.late ? (
+                                <Tag color="red">{t("adminDashboard.reviewQueue.late")}</Tag>
+                              ) : null}
+                            </div>
+                            <p className="m-0 mt-2 truncate text-sm font-bold text-slate-900 dark:text-white">
+                              {item.title}
+                            </p>
+                            <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                              {item.classSectionTitle} · {item.studentName}
+                            </p>
+                          </div>
+
+                          <div className="shrink-0 text-sm text-slate-500 dark:text-slate-400 sm:text-right">
+                            <p className="m-0">
+                              {formatTime(item.submittedAt || item.dueAt, i18n.language, t("adminDashboard.defaults.noTime"))}
+                            </p>
+                            <p className="m-0 mt-1 font-semibold text-primary">
+                              {t("adminDashboard.reviewQueue.open")}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
           )}
-
-          {/* Header */}
-          <div className="flex flex-wrap mt-3 items-center justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Bảng quản trị hệ thống
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Quản lý tổng thể tài khoản, lớp học và đăng ký.
-              </p>
-            </div>
-            <button
-              onClick={fetchDashboardData}
-              className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Làm mới
-            </button>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.to}
-                  onClick={() => navigate(action.to)}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 shadow-sm hover:border-primary/50 hover:shadow-md transition-all text-left"
-                >
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                    {action.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <div
-                  key={index}
-                  className="rounded-xl p-6 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 shadow-sm"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        {stat.label}
-                      </p>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                        {stat.value}
-                      </p>
-                    </div>
-                    <div className={`p-3 rounded-lg ${colorMap[stat.color]}`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            {/* Chart: class sections per subject */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-800/50 lg:col-span-3 shadow-sm">
-              <div className="mb-6">
-                <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  Lớp học theo môn học
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Phân bổ lớp học hiện có theo từng môn
-                </p>
-              </div>
-
-              {chartData.length === 0 ? (
-                <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500 text-sm">
-                  Chưa có dữ liệu lớp học.
-                </div>
-              ) : (
-                <div className="w-full h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ left: -10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                      <XAxis
-                        dataKey="subject"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "#9ca3af", fontSize: 11 }}
-                        interval={0}
-                        angle={-20}
-                        textAnchor="end"
-                        height={50}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "#9ca3af", fontSize: 12 }}
-                        allowDecimals={false}
-                      />
-                      <Tooltip
-                        cursor={{ fill: "transparent" }}
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-xl">
-                                <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
-                                  {payload[0].payload.subject}
-                                </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-300">
-                                  Lớp học:{" "}
-                                  <span className="font-bold text-gray-900 dark:text-white">
-                                    {payload[0].value}
-                                  </span>
-                                </p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar dataKey="count" fill="#137fec" radius={[4, 4, 0, 0]} barSize={36} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-
-            {/* Alerts Section */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-800/50 lg:col-span-2 shadow-sm">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-6">
-                Việc cần xử lý
-              </h3>
-              <div className="space-y-4">
-                {alerts.map((alert) => {
-                  const colors = alertColorMap[alert.type] || alertColorMap.info;
-                  return (
-                    <div
-                      key={alert.id}
-                      className={`p-4 rounded-xl ${colors.card}`}
-                    >
-                      <p className={`text-sm font-bold mb-1 ${colors.title}`}>
-                        {alert.title}
-                      </p>
-                      <p className={`text-xs leading-relaxed ${colors.message}`}>
-                        {alert.message}
-                      </p>
-                      {alert.action && (
-                        <button
-                          onClick={alert.action}
-                          className="mt-2 text-xs font-semibold text-primary hover:underline"
-                        >
-                          {alert.actionLabel}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="h-28 animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_0.85fr]">
+        <div className="h-80 animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+        <div className="h-80 animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="h-96 animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+        ))}
+      </div>
+      <div className="h-[28rem] animate-pulse rounded-[24px] bg-white shadow-sm dark:bg-slate-900" />
+    </div>
+  );
+}
+
+function HeaderChip({ label, value }) {
+  return (
+    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/70 dark:text-slate-300">
+      <span className="font-semibold">{label}:</span> {value}
+    </div>
+  );
+}
+
+function SectionHeader({ title, subtitle, actionLabel, onAction }) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h2 className="m-0 text-lg font-black text-slate-950 dark:text-white">{title}</h2>
+        {subtitle ? <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p> : null}
+      </div>
+      {actionLabel && onAction ? (
+        <button
+          onClick={onAction}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+        >
+          {actionLabel}
+          <ArrowRightIcon className="h-4 w-4" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, icon, tone }) {
+  const toneMap = {
+    blue: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300",
+    emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300",
+    amber: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300",
+    sky: "bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300",
+    violet: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300",
+    rose: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300",
+  };
+
+  return (
+    <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="m-0 text-sm font-semibold text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="m-0 mt-3 text-3xl font-black text-slate-950 dark:text-white">{value}</p>
+        </div>
+        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneMap[tone] || toneMap.blue}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusCard({ label, value, hint, tone }) {
+  const toneMap = {
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
+    amber: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
+    slate: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
+  };
+
+  return (
+    <div className={`rounded-[24px] border p-5 ${toneMap[tone] || toneMap.slate}`}>
+      <p className="m-0 text-sm font-bold">{label}</p>
+      <p className="m-0 mt-3 text-3xl font-black">{value}</p>
+      <p className="m-0 mt-2 text-sm opacity-80">{hint}</p>
+    </div>
+  );
+}
+
+function AttentionTile({ title, description, tone }) {
+  const toneMap = {
+    amber: "border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10",
+    rose: "border-rose-200 bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10",
+    sky: "border-sky-200 bg-sky-50 dark:border-sky-500/20 dark:bg-sky-500/10",
+  };
+
+  return (
+    <div className={`rounded-2xl border p-4 ${toneMap[tone] || toneMap.sky}`}>
+      <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">{title}</p>
+      <p className="m-0 mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
     </div>
   );
 }

@@ -14,17 +14,17 @@ import { createAssignment, getAssignmentById, updateAssignment } from "../../api
 import { createStandaloneResource, uploadStandaloneResource, detachResourceFromAssignment } from "../../api/resource";
 import FileItem from "../../components/common/FileItem";
 import ResourceLibrarySelectModal from "../../components/media/ResourceLibrarySelectModal";
+import { buildQuillModules, createQuillTableControl, extendQuillFormats } from "../../utils/quillTable";
 
-const quillModules = {
-  toolbar: [
-    [{ header: [1, 2, 3, false] }],
-    ["bold", "italic", "underline", "strike"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    ["link", "clean"],
-  ],
-};
+const quillModules = buildQuillModules([
+  [{ header: [1, 2, 3, false] }],
+  ["bold", "italic", "underline", "strike"],
+  [{ list: "ordered" }, { list: "bullet" }],
+  [createQuillTableControl()],
+  ["link", "clean"],
+]);
 
-const quillFormats = [
+const quillFormats = extendQuillFormats([
   "header",
   "bold",
   "italic",
@@ -33,7 +33,7 @@ const quillFormats = [
   "list",
   "bullet",
   "link",
-];
+]);
 
 export default function AssignmentDetail({ isAdmin = false }) {
   const { classSectionId, chapterId, assignmentId } = useParams();

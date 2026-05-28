@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { App, Button, Input, Select, Table, Tabs, Tag } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
+import { App, Button, Empty, Input, Table, Tabs, Tag } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { EyeIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { getManagedQuizAttempts } from "../../api/quiz";
 
 const RESULT_TABS = [
@@ -15,14 +17,27 @@ const RESULT_TABS = [
   { key: "PENDING", result: "PENDING" },
 ];
 
-const formatDate = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-");
+const DEFAULT_PAGE_SIZE = 25;
 
-const formatEarnedMarks = (record) => {
+function formatDateTime(value, locale) {
+  if (!value) return "-";
+
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return new Date(value).toLocaleString(locale);
+  }
+}
+
+function formatEarnedMarks(record) {
   if (record.earnedPoints != null && record.totalPoints != null) {
     return `${Number(record.earnedPoints).toFixed(2)} / ${Number(record.totalPoints).toFixed(2)} (${record.grade ?? 0}%)`;
   }
   return `${record.grade ?? 0}%`;
-};
+}
 
 function ResultTag({ record, t }) {
   if (record.gradingStatus === "NEEDS_REVIEW") {
@@ -35,18 +50,32 @@ function ResultTag({ record, t }) {
 }
 
 export default function TeacherQuizAttempts({ isAdmin = false }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [attempts, setAttempts] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [activeTab, setActiveTab] = useState("ALL");
-  const [search, setSearch] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
 
+  const base = isAdmin ? "/admin" : "/teacher";
   const result = RESULT_TABS.find((tab) => tab.key === activeTab)?.result;
+  const locale = useMemo(() => (i18n.language?.toLowerCase().startsWith("vi") ? "vi-VN" : "en-US"), [i18n.language]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedKeyword(searchKeyword.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchKeyword]);
+
+  useEffect(() => {
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [debouncedKeyword, activeTab, pageSize]);
 
   const loadAttempts = async () => {
     try {
@@ -55,13 +84,20 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
         page: page - 1,
         size: pageSize,
         result,
-        search: search.trim() || undefined,
+        search: debouncedKeyword || undefined,
       });
       const payload = response?.data;
-      setAttempts(payload?.pageList || []);
-      setTotal(payload?.totalElements || 0);
+      const pageList = Array.isArray(payload?.pageList) ? payload.pageList : Array.isArray(payload) ? payload : [];
+      const totalElements = payload?.totalElements ?? pageList.length ?? 0;
+      const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+      if (page > totalPages && totalElements > 0) {
+        setPage(totalPages);
+        return;
+      }
+      setAttempts(pageList);
+      setTotal(totalElements);
     } catch (error) {
-      message.error(error?.message || t("quizAttempts.loadFailed"));
+      message.error(error?.response?.data?.message || error?.message || t("quizAttempts.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -69,129 +105,151 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
 
   useEffect(() => {
     loadAttempts();
-  }, [page, pageSize, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, activeTab, debouncedKeyword]);
 
-  const base = isAdmin ? "/admin" : "/teacher";
-
-  const columns = [
-    {
-      title: t("quizAttempts.quizInfo"),
-      dataIndex: "quizTitle",
-      render: (_, record) => (
-        <div>
-          <div className="font-semibold text-slate-900 dark:text-white">{record.quizTitle || `Quiz #${record.quizId}`}</div>
-          <div className="text-xs text-slate-500">{formatDate(record.completedTime || record.startTime)}</div>
-          <div className="text-xs text-slate-500">
-            {t("quizAttempts.student")}: {record.studentName || record.studentEmail || record.studentId}
+  const columns = useMemo(
+    () => [
+      {
+        title: t("quizAttempts.quizInfo"),
+        dataIndex: "quizTitle",
+        width: 360,
+        render: (_, record) => (
+          <div className="min-w-0 space-y-1">
+            <div className="truncate font-semibold text-slate-900 dark:text-white">
+              {record.quizTitle || `Quiz #${record.quizId}`}
+            </div>
+            <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+              {formatDateTime(record.completedTime || record.startTime, locale)}
+            </div>
+            <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+              {t("quizAttempts.student")}: {record.studentName || record.studentEmail || record.studentId}
+            </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      title: t("quizAttempts.course"),
-      dataIndex: "classSectionTitle",
-      render: (value) => value || "-",
-    },
-    {
-      title: t("quizAttempts.questions"),
-      dataIndex: "totalQuestions",
-      width: 100,
-    },
-    {
-      title: t("quizAttempts.correct"),
-      dataIndex: "correctAnswers",
-      width: 120,
-    },
-    {
-      title: t("quizAttempts.incorrect"),
-      dataIndex: "incorrectAnswers",
-      width: 120,
-    },
-    {
-      title: t("quizAttempts.earnedMarks"),
-      render: (_, record) => formatEarnedMarks(record),
-      width: 170,
-    },
-    {
-      title: t("quizAttempts.result"),
-      render: (_, record) => <ResultTag record={record} t={t} />,
-      width: 120,
-    },
-    {
-      title: t("quizAttempts.details"),
-      width: 120,
-      render: (_, record) => (
-        <Button onClick={() => navigate(`${base}/quiz-attempts/${record.id}`)}>
-          {t("quizAttempts.review")}
-        </Button>
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        title: t("quizAttempts.course"),
+        dataIndex: "classSectionTitle",
+        width: 240,
+        render: (value) => <span className="text-slate-700 dark:text-slate-300">{value || "-"}</span>,
+      },
+      {
+        title: t("quizAttempts.questions"),
+        dataIndex: "totalQuestions",
+        width: 110,
+        align: "center",
+      },
+      {
+        title: t("quizAttempts.correct"),
+        dataIndex: "correctAnswers",
+        width: 110,
+        align: "center",
+      },
+      {
+        title: t("quizAttempts.incorrect"),
+        dataIndex: "incorrectAnswers",
+        width: 110,
+        align: "center",
+      },
+      {
+        title: t("quizAttempts.earnedMarks"),
+        render: (_, record) => <span className="font-medium text-slate-700 dark:text-slate-300">{formatEarnedMarks(record)}</span>,
+        width: 170,
+        align: "center",
+      },
+      {
+        title: t("quizAttempts.result"),
+        render: (_, record) => <ResultTag record={record} t={t} />,
+        width: 120,
+        align: "center",
+      },
+      {
+        title: t("quizAttempts.details"),
+        width: 150,
+        align: "right",
+        render: (_, record) => (
+          <Button
+            icon={<EyeIcon className="h-4 w-4" />}
+            onClick={() => navigate(`${base}/quiz-attempts/${record.id}`)}
+          >
+            {t("quizAttempts.review")}
+          </Button>
+        ),
+      },
+    ],
+    [base, locale, navigate, t]
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="teacher-list-page min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-900 dark:text-white">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-        <main className={`flex-1 pt-20 p-6 ${isAdmin ? "lg:pl-72" : "lg:pl-72"}`}>
-          <div className="mx-auto max-w-7xl space-y-5">
-            <AppBreadcrumb className="mb-1" />
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("quizAttempts.title")}</h1>
-                <p className="text-sm text-slate-500">{t("quizAttempts.subtitle")}</p>
-              </div>
-              <div className="flex gap-2">
-                <Input.Search
-                  allowClear
-                  placeholder={t("quizAttempts.search")}
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  onSearch={() => {
-                    setPage(1);
-                    loadAttempts();
-                  }}
-                  className="w-72"
-                />
-                <Select
-                  value={pageSize}
-                  onChange={(value) => {
-                    setPageSize(value);
-                    setPage(1);
-                  }}
-                  options={[10, 20, 50].map((value) => ({ value, label: `${value}/page` }))}
-                  className="w-28"
-                  showSearch
-                  optionFilterProp="label"
-                />
-              </div>
-            </div>
+        <main className="flex-1 pt-16 lg:pl-64">
+          <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+            <AppBreadcrumb className="mb-4" />
 
-            <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
-              <Tabs
-                activeKey={activeTab}
-                onChange={(key) => {
-                  setActiveTab(key);
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
+              <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">{t("quizAttempts.title")}</h1>
+                    <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">{t("quizAttempts.subtitle")}</p>
+                  </div>
+                  <Input
+                    allowClear
+                    value={searchKeyword}
+                    onChange={(event) => setSearchKeyword(event.target.value)}
+                    prefix={<MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />}
+                    placeholder={t("quizAttempts.search")}
+                    className="w-full lg:w-80"
+                  />
+                </div>
+              </div>
+
+              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+                <Tabs
+                  activeKey={activeTab}
+                  onChange={(key) => setActiveTab(key)}
+                  items={RESULT_TABS.map((tab) => ({
+                    key: tab.key,
+                    label: t(`quizAttempts.tabs.${tab.key.toLowerCase()}`),
+                  }))}
+                />
+              </div>
+
+              <div className="px-5 py-4 sm:px-6">
+                <Table
+                  rowKey="id"
+                  loading={loading}
+                  columns={columns}
+                  dataSource={attempts}
+                  pagination={false}
+                  tableLayout="fixed"
+                  scroll={{ x: 1280 }}
+                  sticky
+                  className="teacher-quiz-attempts-table [&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:font-semibold [&_.ant-table-thead_th]:text-slate-600 dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
+                  locale={{
+                    emptyText: <Empty description={t("quizAttempts.empty")} />,
+                  }}
+                />
+              </div>
+
+              <DataPaginationFooter
+                currentPage={page}
+                pageSize={pageSize}
+                total={total}
+                totalLabel={t("quizAttempts.pagination.total", { count: total })}
+                pageSizeLabel={t("quizAttempts.pagination.pageSize")}
+                rangeLabel={t("quizAttempts.pagination.range", {
+                  start: total === 0 ? 0 : (page - 1) * pageSize + 1,
+                  end: Math.min(page * pageSize, total),
+                })}
+                onPageChange={setPage}
+                onPageSizeChange={(nextSize) => {
+                  setPageSize(nextSize);
                   setPage(1);
-                }}
-                items={RESULT_TABS.map((tab) => ({
-                  key: tab.key,
-                  label: t(`quizAttempts.tabs.${tab.key.toLowerCase()}`),
-                }))}
-              />
-              <Table
-                rowKey="id"
-                loading={loading}
-                columns={columns}
-                dataSource={attempts}
-                pagination={{
-                  current: page,
-                  pageSize,
-                  total,
-                  onChange: (nextPage, nextPageSize) => {
-                    setPage(nextPage);
-                    setPageSize(nextPageSize);
-                  },
                 }}
               />
             </div>

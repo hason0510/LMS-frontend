@@ -59,16 +59,41 @@ body {
 /* Keep solid action buttons readable even when parent text color is dark. */
 :is(button, a, .ant-btn).bg-primary,
 :is(button, a, .ant-btn).btn-primary,
-.ant-btn-primary,
-.ant-btn-dangerous {
+.ant-btn-primary {
   color: #ffffff !important;
 }
 
 :is(button, a, .ant-btn).bg-primary :is(span, svg, p),
 :is(button, a, .ant-btn).btn-primary :is(span, svg, p),
-.ant-btn-primary :is(span, svg, p),
-.ant-btn-dangerous :is(span, svg, p) {
+.ant-btn-primary :is(span, svg, p) {
   color: inherit !important;
+}
+
+.ant-btn-dangerous:not(.ant-btn-primary) {
+  color: rgb(220, 38, 38) !important;
+  border-color: rgb(248, 113, 113) !important;
+}
+
+.ant-btn-dangerous:not(.ant-btn-primary):hover {
+  color: rgb(185, 28, 28) !important;
+  background-color: rgb(254, 242, 242) !important;
+  border-color: rgb(239, 68, 68) !important;
+}
+
+.dark .ant-btn-dangerous:not(.ant-btn-primary) {
+  color: rgb(248, 113, 113) !important;
+  border-color: rgb(248, 113, 113) !important;
+  background-color: rgb(17, 24, 39) !important;
+}
+
+.dark .ant-btn-dangerous:not(.ant-btn-primary):hover {
+  color: rgb(252, 165, 165) !important;
+  background-color: rgb(31, 41, 55) !important;
+  border-color: rgb(248, 113, 113) !important;
+}
+
+.ant-btn-dangerous.ant-btn-primary {
+  color: #ffffff !important;
 }
 
 .btn-outline {
@@ -897,4 +922,235 @@ button:hover {
 
 .dark .disabled-form .ant-picker-disabled .ant-picker-input::placeholder {
   color: rgb(156, 163, 175) !important;
+}
+
+/* Report pages */
+.dark .report-page .ant-table,
+.dark .report-page .ant-table-container,
+.dark .report-page .ant-table-content,
+.dark .report-page .ant-table-cell-fix-left,
+.dark .report-page .ant-table-cell-fix-right,
+.dark .report-page .ant-table-thead > tr > th,
+.dark .report-page .ant-table-tbody > tr > td {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(226 232 240) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .report-page .ant-table-thead > tr > th {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .report-page .ant-table-row:hover > td {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .report-page .ant-table-tbody > tr.ant-table-placeholder:hover > td {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark .report-page .ant-empty-description {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .report-page .ant-tabs-tab-btn {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .report-page .ant-tabs-tab:hover .ant-tabs-tab-btn,
+.dark .report-page .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: rgb(248 250 252) !important;
+}
+
+.dark .report-page .ant-tabs-ink-bar {
+  background-color: #60a5fa !important;
+}
+
+.dark .report-page .ant-tabs-nav::before {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .report-page .ant-tag:not(.ant-tag-has-color) {
+  background-color: rgb(30 41 59) !important;
+  border-color: rgb(71 85 105) !important;
+  color: rgb(226 232 240) !important;
+}
+
+.dark .report-page :is(.ant-input-number, .ant-input-number-input, .ant-segmented) {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(226 232 240) !important;
+  border-color: rgb(71 85 105) !important;
+}
+
+.dark .report-page .ant-input-number:hover,
+.dark .report-page .ant-input-number-focused {
+  border-color: rgb(96 165 250) !important;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.12) !important;
+}
+
+.dark .report-page .ant-input-number-input::placeholder {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .report-page .ant-input-number-group-addon {
+  background-color: rgb(30 41 59) !important;
+  color: rgb(203 213 225) !important;
+  border-color: rgb(71 85 105) !important;
+}
+
+.dark .report-page .ant-segmented {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .report-page .ant-segmented .ant-segmented-item {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .report-page .ant-segmented .ant-segmented-item-selected {
+  background-color: rgb(37 99 235) !important;
+  color: rgb(255 255 255) !important;
+}
+
+/* Teacher list pages */
+.dark .teacher-list-page .ant-table,
+.dark .teacher-list-page .ant-table-container,
+.dark .teacher-list-page .ant-table-content,
+.dark .teacher-list-page .ant-table-cell-fix-left,
+.dark .teacher-list-page .ant-table-cell-fix-right,
+.dark .teacher-list-page .ant-table-thead > tr > th,
+.dark .teacher-list-page .ant-table-tbody > tr > td {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(226 232 240) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .teacher-list-page .ant-table-thead > tr > th {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .teacher-list-page .ant-table-row:hover > td {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .teacher-list-page .ant-table-tbody > tr.ant-table-placeholder:hover > td {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark .teacher-list-page .ant-empty-description {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .teacher-list-page :is(.ant-input, .ant-input-affix-wrapper, .ant-picker) {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(226 232 240) !important;
+  border-color: rgb(71 85 105) !important;
+}
+
+.dark .teacher-list-page :is(.ant-input, .ant-input-affix-wrapper, .ant-picker):hover {
+  border-color: rgb(100 116 139) !important;
+}
+
+.dark .teacher-list-page :is(.ant-input, .ant-input-affix-wrapper) input::placeholder,
+.dark .teacher-list-page .ant-picker-input input::placeholder {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .teacher-list-page .ant-picker .ant-picker-suffix,
+.dark .teacher-list-page .ant-picker .ant-picker-clear {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .teacher-list-page .ant-form-item-label > label {
+  color: rgb(226 232 240) !important;
+}
+
+.dark .teacher-list-page .ant-modal-content,
+.dark .teacher-list-page .ant-modal-header {
+  background-color: rgb(15 23 42) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .teacher-list-page .ant-modal-title {
+  color: rgb(248 250 252) !important;
+}
+
+.dark .teacher-list-page .ant-modal-close {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .teacher-list-page .ant-modal-footer {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .teacher-list-page .ant-dropdown-menu {
+  background-color: rgb(31 41 55) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .teacher-list-page .ant-dropdown-menu-item {
+  color: rgb(226 232 240) !important;
+}
+
+.dark .teacher-list-page .ant-dropdown-menu-item:hover {
+  background-color: rgb(55 65 81) !important;
+}
+
+.dark .teacher-list-page .ant-dropdown-menu-item-danger {
+  color: rgb(248 113 113) !important;
+}
+
+.dark .teacher-list-page .ant-tabs-tab-btn {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .teacher-list-page .ant-tabs-tab:hover .ant-tabs-tab-btn,
+.dark .teacher-list-page .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: rgb(248 250 252) !important;
+}
+
+.dark .teacher-list-page .ant-tabs-ink-bar {
+  background-color: #60a5fa !important;
+}
+
+.dark .teacher-list-page .ant-tabs-nav::before {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .teacher-list-page .ant-pagination,
+.dark .teacher-list-page .ant-pagination .ant-pagination-item,
+.dark .teacher-list-page .ant-pagination .ant-pagination-prev,
+.dark .teacher-list-page .ant-pagination .ant-pagination-next,
+.dark .teacher-list-page .ant-pagination .ant-pagination-jump-prev,
+.dark .teacher-list-page .ant-pagination .ant-pagination-jump-next {
+  color: rgb(226 232 240) !important;
+}
+
+.dark .teacher-list-page .ant-pagination .ant-pagination-item,
+.dark .teacher-list-page .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+.dark .teacher-list-page .ant-pagination .ant-pagination-next .ant-pagination-item-link {
+  background-color: rgb(15 23 42) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .teacher-list-page .ant-pagination .ant-pagination-item a,
+.dark .teacher-list-page .ant-pagination .ant-pagination-item-link {
+  color: rgb(226 232 240) !important;
+}
+
+.dark .teacher-list-page .ant-pagination .ant-pagination-item-active {
+  background-color: #137fec !important;
+  border-color: #137fec !important;
+}
+
+.dark .teacher-list-page .ant-pagination .ant-pagination-item-active a {
+  color: rgb(255 255 255) !important;
+}
+
+.dark .teacher-list-page .ant-pagination .ant-pagination-disabled,
+.dark .teacher-list-page .ant-pagination .ant-pagination-disabled .ant-pagination-item-link {
+  color: rgb(100 116 139) !important;
+}
+
+.dark .teacher-list-page .ant-pagination .ant-pagination-options-quick-jumper {
+  color: rgb(203 213 225) !important;
 }

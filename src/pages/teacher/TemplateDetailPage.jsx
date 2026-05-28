@@ -103,6 +103,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
   const [teacherOptions, setTeacherOptions] = useState([]);
   const [teacherLoading, setTeacherLoading] = useState(false);
   const classImageUrl = Form.useWatch("imageUrl", classForm);
+  const classImageResourceId = Form.useWatch("imageResourceId", classForm);
   const currentUserId = user?.id || user?.sub;
 
   const buildOwnerLabel = (account, fallback = "Người dùng") =>
@@ -239,6 +240,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
         title: values.title,
         description: values.description,
         imageUrl: values.imageUrl || null,
+        imageResourceId: values.imageResourceId || null,
         classCode: generatedCode || undefined,
         startDate: values.dates?.[0]?.format("YYYY-MM-DD"),
         endDate: values.dates?.[1]?.format("YYYY-MM-DD"),
@@ -784,6 +786,9 @@ export default function TemplateDetailPage({ isAdmin = false }) {
           <Form.Item name="imageUrl" hidden>
             <Input />
           </Form.Item>
+          <Form.Item name="imageResourceId" hidden>
+            <Input />
+          </Form.Item>
           {isAdmin && (
             <Form.Item
               label="Người đứng lớp"
@@ -811,7 +816,11 @@ export default function TemplateDetailPage({ isAdmin = false }) {
           </Form.Item>
           <ClassCoverField
             imageUrl={classImageUrl}
-            onChange={(value) => classForm.setFieldValue("imageUrl", value)}
+            resourceId={classImageResourceId}
+            onChange={(value) => {
+              classForm.setFieldValue("imageUrl", value?.imageUrl || null);
+              classForm.setFieldValue("imageResourceId", value?.imageResourceId || null);
+            }}
           />
           {/* Teams-style class code display */}
           <div className="mb-4">

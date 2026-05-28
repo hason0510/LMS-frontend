@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import useNotificationStore from "./store/useNotificationStore";
@@ -25,8 +25,6 @@ import TeacherCurriculums from "./pages/teacher/TeacherCurriculums";
 import CreateCurriculumTemplate from "./pages/teacher/CreateCurriculumTemplate";
 import QuestionBanks from "./pages/teacher/QuestionBanks";
 import QuestionBankDetail from "./pages/teacher/QuestionBankDetail";
-import QuestionBankMediaPage from "./pages/teacher/QuestionBankMediaPage";
-import ClassSectionMediaPage from "./pages/teacher/ClassSectionMediaPage";
 import CreateChapter from "./pages/teacher/CreateChapter";
 import LectureDetail from "./pages/teacher/LectureDetail";
 import AssignmentDetail from "./pages/teacher/AssignmentDetail";
@@ -34,7 +32,6 @@ import AssignmentSubmissions from "./pages/teacher/AssignmentSubmissions";
 import TeacherAssignmentsPage from "./pages/teacher/TeacherAssignmentsPage";
 import TeachingClasses from "./pages/teaching/TeachingClasses";
 import TeachingClassDetail from "./pages/teaching/TeachingClassDetail";
-import TeachingClassMediaPage from "./pages/teaching/TeachingClassMediaPage";
 import TeachingQuizContentAttempts from "./pages/teaching/TeachingQuizContentAttempts";
 import TeacherLessonPreview from "./pages/teacher/TeacherLessonPreview";
 import TeacherQuizPreview from "./pages/teacher/TeacherQuizPreview";
@@ -48,6 +45,7 @@ import TeacherProfilePage from "./pages/teacher/TeacherProfilePage";
 import TeacherSettingsPage from "./pages/teacher/TeacherSettingsPage";
 import TeacherStudentManagement from "./pages/teacher/TeacherStudentManagement";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminReport from "./pages/admin/AdminReport";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import AdminProfilePage from "./pages/admin/AdminProfilePage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
@@ -97,6 +95,11 @@ function RootRedirect() {
 
   // Default for STUDENT and others
   return <Navigate to="/home" replace />;
+}
+
+function TeachingMediaRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/teaching/class-sections/${id}` : "/teaching/classes"} replace />;
 }
 
 function AppContent() {
@@ -240,7 +243,7 @@ function AppContent() {
       />
       <Route
         path="/teaching/class-sections/:id/media"
-        element={<ProtectedRoute element={<TeachingClassMediaPage />} allowedRoles={["STUDENT"]} />}
+        element={<ProtectedRoute element={<TeachingMediaRedirect />} allowedRoles={["STUDENT"]} />}
       />
       <Route
         path="/teaching/quiz-attempts/:attemptId"
@@ -286,7 +289,7 @@ function AppContent() {
       />
       <Route
         path="/teacher/class-sections/:id/media"
-        element={<ProtectedRoute element={<ClassSectionMediaPage />} allowedRoles={["TEACHER"]} />}
+        element={<ProtectedRoute element={<Navigate to="/media" replace />} allowedRoles={["TEACHER"]} />}
       />
       <Route
         path="/teacher/class-sections/:classSectionId/lectures/:lectureId"
@@ -402,7 +405,7 @@ function AppContent() {
       />
       <Route
         path="/teacher/question-banks/:id/media"
-        element={<ProtectedRoute element={<QuestionBankMediaPage />} allowedRoles={["TEACHER"]} />}
+        element={<ProtectedRoute element={<Navigate to="/media" replace />} allowedRoles={["TEACHER"]} />}
       />
       <Route
         path="/teacher/students"
@@ -468,7 +471,7 @@ function AppContent() {
       />
       <Route
         path="/admin/class-sections/:id/media"
-        element={<ProtectedRoute element={<ClassSectionMediaPage isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+        element={<ProtectedRoute element={<Navigate to="/media" replace />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/class-sections/:classSectionId/lectures/:lectureId"
@@ -524,7 +527,7 @@ function AppContent() {
       />
       <Route
         path="/admin/question-banks/:id/media"
-        element={<ProtectedRoute element={<QuestionBankMediaPage isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+        element={<ProtectedRoute element={<Navigate to="/media" replace />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/curriculums/create"
@@ -584,7 +587,7 @@ function AppContent() {
       />
       <Route
         path="/admin/reports"
-        element={<ProtectedRoute element={<TeacherReport isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+        element={<ProtectedRoute element={<AdminReport />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/assignments"

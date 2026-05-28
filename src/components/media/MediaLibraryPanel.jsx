@@ -1,23 +1,29 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { App, Button, Drawer, Input, Select, Spin, Tag } from "antd";
+import { App, Button, Input, Select, Spin, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import {
-  deleteResource,
   createStandaloneResource,
+  deleteResource,
   getResourceAuditLogs,
+  getResourceById,
   getResourcePage,
   getResourceReferences,
   getResourceUploadPolicy,
   updateResource,
   uploadStandaloneResource,
 } from "../../api/resource";
+import { getQuestionBanks } from "../../api/questionBank";
+import { getMyTeachingClasses } from "../../api/teaching";
 import { useAuth } from "../../contexts/AuthContext";
+import DataPaginationFooter from "../common/DataPaginationFooter";
+import MediaDetailModal from "./MediaDetailModal";
 import ResourceRenderer from "./ResourceRenderer";
 
-const PAGE_SIZE = 24;
-
+const DEFAULT_PAGE_SIZE = 24;
+const PAGE_SIZE_OPTIONS = [12, 24, 48];
 const RESOURCE_TYPES = ["IMAGE", "VIDEO", "AUDIO", "PDF", "FILE", "LINK"];
 const RESOURCE_SCOPES = ["QUESTION_BANK", "CLASS_SECTION", "PRIVATE_USER", "INSTITUTION_SHARED"];
+const RESOURCE_VISIBILITY = ["PRIVATE", "SHARED", "INSTITUTION"];
 
 const formatBytes = (value) => {
   if (!value) return "-";
@@ -37,6 +43,7 @@ export default function MediaLibraryPanel({
   allowUpload = true,
   allowLinkCreate = false,
   governance = false,
+  showInstitutionScope = false,
 }) {
   const { message, modal } = App.useApp();
   const { t, i18n } = useTranslation();
@@ -51,6 +58,11 @@ export default function MediaLibraryPanel({
   const [status, setStatus] = useState("ACTIVE");
   const [scopeFilter, setScopeFilter] = useState(scopeType);
   const [ownerFilter, setOwnerFilter] = useState("");
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [scopeTargetFilter, setScopeTargetFilter] = useState();
+  const [classScopeOptions, setClassScopeOptions] = useState([]);
+  const [questionBankScopeOptions, setQuestionBankScopeOptions] = useState([]);
+  const [scopeTargetLoading, setScopeTargetLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -62,32 +74,60 @@ export default function MediaLibraryPanel({
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [policy, setPolicy] = useState(null);
   const [pagination, setPagination] = useState({ currentPage: 1, totalPage: 1, totalElements: 0 });
+
   const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
   const typeOptions = RESOURCE_TYPES.map((value) => ({ value, label: t(`mediaManager.types.${value}`) }));
-  const scopeOptions = RESOURCE_SCOPES.map((value) => ({ value, label: t(`mediaManager.scopes.${value}`) }));
+  const allScopeOptions = RESOURCE_SCOPES.map((value) => ({ value, label: t(`mediaManager.scopes.${value}`) }));
+  const scopeOptions = allScopeOptions.filter((item) => showInstitutionScope || item.value !== "INSTITUTION_SHARED");
   const typeLabels = Object.fromEntries(typeOptions.map((item) => [item.value, item.label]));
-  const scopeLabels = Object.fromEntries(scopeOptions.map((item) => [item.value, item.label]));
+  const scopeLabels = Object.fromEntries(allScopeOptions.map((item) => [item.value, item.label]));
+  const visibilityLabels = Object.fromEntries(
+    RESOURCE_VISIBILITY.map((value) => [value, t(`mediaManager.visibility.${value}`)]),
+  );
   const currentUsername = user?.username || user?.userName || "";
   const isAdmin = user?.role === "ADMIN";
   const canManageSelected = Boolean(selected && (isAdmin || (selected.createdBy && selected.createdBy === currentUsername)));
   const isSelectedInUse = Boolean((selected?.usageCount || 0) > 0 || references.length > 0);
   const canDeleteSelected = canManageSelected && !isSelectedInUse;
+  const startItem = pagination.totalElements === 0 ? 0 : (pagination.currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(pagination.currentPage * pageSize, pagination.totalElements);
+  const totalSize = resources.reduce((sum, item) => sum + (item.fileSize || 0), 0);
+  const requiresScopeTarget = !fixedScope && (scopeFilter === "CLASS_SECTION" || scopeFilter === "QUESTION_BANK");
+  const activeScopeTargetOptions = scopeFilter === "CLASS_SECTION" ? classScopeOptions : questionBankScopeOptions;
+  const missingRequiredScopeTarget = requiresScopeTarget && !scopeTargetFilter;
 
   const uploadParams = useMemo(() => {
     const params = {};
-    if (scopeType) params.scopeType = scopeType;
-    if (scopeId) params.scopeId = scopeId;
+    if (fixedScope) {
+      if (scopeType) params.scopeType = scopeType;
+      if (scopeId) params.scopeId = scopeId;
+      return params;
+    }
+    if (!scopeFilter || scopeFilter === "PRIVATE_USER") {
+      return params;
+    }
+    if (scopeFilter === "INSTITUTION_SHARED") {
+      params.scopeType = scopeFilter;
+      return params;
+    }
+    if (requiresScopeTarget && scopeTargetFilter) {
+      params.scopeType = scopeFilter;
+      params.scopeId = scopeTargetFilter;
+    }
     return params;
-  }, [scopeType, scopeId]);
+  }, [fixedScope, requiresScopeTarget, scopeFilter, scopeId, scopeTargetFilter, scopeType]);
 
   const queryParams = useMemo(() => {
     const params = {
-      pageSize: PAGE_SIZE,
+      pageSize,
       sortBy,
     };
     const activeScope = fixedScope ? scopeType : scopeFilter;
     if (activeScope) params.scopeType = activeScope;
     if (fixedScope && scopeId) params.scopeId = scopeId;
+    if (!fixedScope && requiresScopeTarget && scopeTargetFilter) {
+      params.scopeId = scopeTargetFilter;
+    }
     if (type) params.type = type;
     if (status) params.status = status;
     if (createdByMe) params.createdByMe = true;
@@ -103,8 +143,11 @@ export default function MediaLibraryPanel({
     includeCurrentScope,
     ownerFilter,
     ownerLibrary,
+    pageSize,
+    requiresScopeTarget,
     scopeFilter,
     scopeId,
+    scopeTargetFilter,
     scopeType,
     search,
     sortBy,
@@ -112,11 +155,54 @@ export default function MediaLibraryPanel({
     type,
   ]);
 
-  const loadResources = async (pageNumber = 1, append = false) => {
+  const formatScopeDisplay = (resource) => {
+    const scopeLabel = resource?.scopeType
+      ? scopeLabels[resource.scopeType] || resource.scopeType
+      : t("mediaManager.scopes.LEGACY");
+
+    if (!resource?.scopeType) {
+      return scopeLabel;
+    }
+    if (resource.scopeTargetName) {
+      return `${scopeLabel} · ${resource.scopeTargetName}`;
+    }
+    if (
+      resource.scopeId &&
+      (resource.scopeType === "CLASS_SECTION" || resource.scopeType === "QUESTION_BANK")
+    ) {
+      return `${scopeLabel} #${resource.scopeId}`;
+    }
+    return scopeLabel;
+  };
+
+  const formatScopeTarget = (resource) => {
+    if (!resource?.scopeType) {
+      return t("mediaManager.detail.empty");
+    }
+    if (resource.scopeTargetName) {
+      return resource.scopeTargetName;
+    }
+    if (
+      resource.scopeId &&
+      (resource.scopeType === "CLASS_SECTION" || resource.scopeType === "QUESTION_BANK")
+    ) {
+      return `#${resource.scopeId}`;
+    }
+    return t("mediaManager.detail.notApplicable");
+  };
+
+  const formatSourceLabel = (source) => (source ? t(`mediaManager.sources.${source}`, source) : "-");
+
+  const loadResources = async (pageNumber = 1) => {
+    if (missingRequiredScopeTarget) {
+      setResources([]);
+      setPagination({ currentPage: 1, totalPage: 1, totalElements: 0 });
+      return;
+    }
     setLoading(true);
     try {
       const page = await getResourcePage({ ...queryParams, pageNumber });
-      setResources((prev) => (append ? [...prev, ...page.items] : page.items));
+      setResources(page.items || []);
       setPagination({
         currentPage: page.currentPage || pageNumber,
         totalPage: page.totalPage || pageNumber,
@@ -130,8 +216,57 @@ export default function MediaLibraryPanel({
   };
 
   useEffect(() => {
-    loadResources(1, false);
+    loadResources(1);
   }, [queryParams]);
+
+  useEffect(() => {
+    if (!fixedScope) {
+      setScopeTargetFilter(undefined);
+    }
+  }, [fixedScope, scopeFilter]);
+
+  useEffect(() => {
+    if (fixedScope) {
+      return;
+    }
+    if (scopeFilter === "CLASS_SECTION" && classScopeOptions.length === 0) {
+      setScopeTargetLoading(true);
+      getMyTeachingClasses()
+        .then((response) => {
+          const items = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+          setClassScopeOptions(
+            items
+              .filter((item) => item?.id)
+              .map((item) => ({
+                value: item.id,
+                label: item.title || item.classCode || `#${item.id}`,
+              })),
+          );
+        })
+        .catch(() => {
+          setClassScopeOptions([]);
+        })
+        .finally(() => setScopeTargetLoading(false));
+    }
+    if (scopeFilter === "QUESTION_BANK" && questionBankScopeOptions.length === 0) {
+      setScopeTargetLoading(true);
+      getQuestionBanks()
+        .then((items) => {
+          setQuestionBankScopeOptions(
+            (Array.isArray(items) ? items : [])
+              .filter((item) => item?.id)
+              .map((item) => ({
+                value: item.id,
+                label: item.subjectTitle ? `${item.name} · ${item.subjectTitle}` : item.name || `#${item.id}`,
+              })),
+          );
+        })
+        .catch(() => {
+          setQuestionBankScopeOptions([]);
+        })
+        .finally(() => setScopeTargetLoading(false));
+    }
+  }, [classScopeOptions.length, fixedScope, questionBankScopeOptions.length, scopeFilter]);
 
   useEffect(() => {
     getResourceUploadPolicy()
@@ -143,13 +278,17 @@ export default function MediaLibraryPanel({
     const files = Array.from(event.target.files || []);
     event.target.value = "";
     if (!files.length) return;
+    if (requiresScopeTarget && !scopeTargetFilter) {
+      message.warning(t("mediaManager.messages.scopeTargetRequired"));
+      return;
+    }
     setUploading(true);
     try {
       for (const file of files) {
         await uploadStandaloneResource(file, uploadParams);
       }
       message.success(t("mediaManager.messages.uploadSuccess"));
-      await loadResources(1, false);
+      await loadResources(1);
     } catch (error) {
       message.error(error?.response?.data?.message || t("mediaManager.messages.uploadFailed"));
     } finally {
@@ -170,20 +309,24 @@ export default function MediaLibraryPanel({
       message.warning(t("mediaManager.link.invalidUrl"));
       return;
     }
+    if (requiresScopeTarget && !scopeTargetFilter) {
+      message.warning(t("mediaManager.messages.scopeTargetRequired"));
+      return;
+    }
 
     setCreatingLink(true);
     try {
-      const item = await createStandaloneResource({
+      await createStandaloneResource({
         title: linkTitle.trim() || null,
         type: "LINK",
         source: "LINK",
         fileUrl: trimmedUrl,
         ...uploadParams,
       });
-      setResources((prev) => [item, ...prev]);
       setLinkTitle("");
       setLinkUrl("");
       message.success(t("mediaManager.link.success"));
+      await loadResources(1);
     } catch (error) {
       message.error(error?.response?.data?.message || t("mediaManager.link.failed"));
     } finally {
@@ -200,10 +343,14 @@ export default function MediaLibraryPanel({
     if (!resource?.id) return;
     setDetailsLoading(true);
     try {
-      const [referenceResponse, auditResponse] = await Promise.all([
+      const [resourceResponse, referenceResponse, auditResponse] = await Promise.all([
+        getResourceById(resource.id),
         getResourceReferences(resource.id),
         getResourceAuditLogs(resource.id),
       ]);
+      setSelected(resourceResponse);
+      setEditTitle(resourceResponse?.title || "");
+      setEditDescription(resourceResponse?.description || "");
       setReferences(referenceResponse);
       setAuditLogs(auditResponse);
     } catch (error) {
@@ -228,12 +375,19 @@ export default function MediaLibraryPanel({
     }
   };
 
+  const reloadCurrentPageAfterMutation = async () => {
+    const targetPage = resources.length === 1 && pagination.currentPage > 1
+      ? pagination.currentPage - 1
+      : pagination.currentPage;
+    await loadResources(targetPage);
+  };
+
   const handleSetStatus = async (nextStatus) => {
     if (!selected?.id || !canManageSelected) return;
     try {
-      const item = await updateResource(selected.id, { status: nextStatus });
-      setSelected(item);
-      setResources((prev) => prev.filter((resource) => resource.id !== item.id));
+      await updateResource(selected.id, { status: nextStatus });
+      setSelected(null);
+      await reloadCurrentPageAfterMutation();
       message.success(nextStatus === "ARCHIVED" ? t("mediaManager.messages.archiveSuccess") : t("mediaManager.messages.restoreSuccess"));
     } catch (error) {
       message.error(error?.response?.data?.message || t("mediaManager.messages.statusFailed"));
@@ -254,8 +408,8 @@ export default function MediaLibraryPanel({
       onOk: async () => {
         try {
           await deleteResource(selected.id);
-          setResources((prev) => prev.filter((resource) => resource.id !== selected.id));
           setSelected(null);
+          await reloadCurrentPageAfterMutation();
           message.success(t("mediaManager.messages.deleteSuccess"));
         } catch (error) {
           message.error(error?.response?.data?.message || t("mediaManager.messages.deleteFailed"));
@@ -264,8 +418,6 @@ export default function MediaLibraryPanel({
       },
     });
   };
-
-  const totalSize = resources.reduce((sum, item) => sum + (item.fileSize || 0), 0);
 
   return (
     <div className="media-library-panel space-y-5 text-slate-900 dark:text-slate-100">
@@ -362,7 +514,40 @@ export default function MediaLibraryPanel({
             optionFilterProp="label"
           />
         ) : null}
-        <Select allowClear placeholder={t("mediaManager.filters.type")} value={type} onChange={setType} options={typeOptions} className="w-full md:w-40" showSearch optionFilterProp="label" />
+        {requiresScopeTarget ? (
+          <Select
+            allowClear
+            showSearch
+            loading={scopeTargetLoading}
+            placeholder={
+              scopeFilter === "CLASS_SECTION"
+                ? t("mediaManager.filters.scopeTargetClass")
+                : t("mediaManager.filters.scopeTargetQuestionBank")
+            }
+            value={scopeTargetFilter}
+            onChange={setScopeTargetFilter}
+            options={activeScopeTargetOptions}
+            className="w-full md:w-64"
+            optionFilterProp="label"
+            notFoundContent={
+              scopeTargetLoading ? (
+                <div className="py-2 text-center">
+                  <Spin size="small" />
+                </div>
+              ) : undefined
+            }
+          />
+        ) : null}
+        <Select
+          allowClear
+          placeholder={t("mediaManager.filters.type")}
+          value={type}
+          onChange={setType}
+          options={typeOptions}
+          className="w-full md:w-40"
+          showSearch
+          optionFilterProp="label"
+        />
         <Select
           value={status}
           onChange={setStatus}
@@ -388,120 +573,102 @@ export default function MediaLibraryPanel({
         />
       </div>
 
-      {loading && resources.length === 0 ? (
-        <div className="flex justify-center py-16"><Spin /></div>
-      ) : resources.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {resources.map((resource) => (
-            <button
-              key={resource.id}
-              type="button"
-              onClick={() => openDetails(resource)}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500"
-            >
-              <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-slate-50 dark:bg-slate-800">
-                <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
-              </div>
-              <div className="mt-3 truncate text-sm font-semibold text-slate-800 dark:text-white">{resource.title || t("mediaManager.untitled")}</div>
-              <div className="mt-2 flex flex-wrap gap-1">
-                <Tag>{typeLabels[resource.type] || resource.mimeType || t("mediaManager.types.FILE")}</Tag>
-                <Tag>{formatBytes(resource.fileSize)}</Tag>
-                {resource.scopeType ? <Tag color="blue">{scopeLabels[resource.scopeType] || resource.scopeType}</Tag> : null}
-                {(resource.usageCount || 0) > 0 ? <Tag color="green">{t("mediaManager.usedCount", { count: resource.usageCount })}</Tag> : null}
-              </div>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white py-16 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-          {t("mediaManager.empty")}
-        </div>
-      )}
-
-      {pagination.currentPage < pagination.totalPage ? (
-        <div className="flex justify-center">
-          <Button loading={loading} onClick={() => loadResources(pagination.currentPage + 1, true)}>
-            {t("mediaManager.actions.loadMore")}
-          </Button>
-        </div>
-      ) : null}
-
-      <Drawer open={!!selected} onClose={() => setSelected(null)} width={460} title={t("mediaManager.drawer.title")} rootClassName="media-library-drawer">
-        {selected ? (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
-              <ResourceRenderer resource={selected} />
-            </div>
-            <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} placeholder={t("mediaManager.fields.title")} disabled={!canManageSelected} />
-            <Input.TextArea
-              value={editDescription}
-              onChange={(event) => setEditDescription(event.target.value)}
-              placeholder={t("mediaManager.fields.description")}
-              rows={3}
-              disabled={!canManageSelected}
-            />
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.type")}</span><span>{typeLabels[selected.type] || selected.type || "-"}</span>
-              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.size")}</span><span>{formatBytes(selected.fileSize)}</span>
-              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.scope")}</span><span>{scopeLabels[selected.scopeType] || t("mediaManager.scopes.LEGACY")}</span>
-              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.owner")}</span><span>{selected.createdBy || "-"}</span>
-              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.status")}</span><span>{t(`mediaManager.status.${selected.status || "ACTIVE"}`)}</span>
-              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.usageCount")}</span><span>{selected.usageCount || references.length || 0}</span>
-              <span className="text-slate-500 dark:text-slate-400">{t("mediaManager.fields.lastUsedAt")}</span><span>{selected.lastUsedAt ? new Date(selected.lastUsedAt).toLocaleString(locale) : "-"}</span>
-            </div>
-            <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-              <div className="mb-2 text-sm font-semibold text-slate-800 dark:text-white">{t("mediaManager.references.title")}</div>
-              {detailsLoading ? (
-                <Spin size="small" />
-              ) : references.length > 0 ? (
-                <div className="space-y-2">
-                  {references.map((item, index) => (
-                    <div key={`${item.entityType}-${item.entityId}-${index}`} className="rounded border border-slate-200 p-2 text-sm dark:border-slate-700">
-                      <div className="font-medium text-slate-800 dark:text-white">
-                        {item.label || t(`mediaManager.referenceTypes.${item.entityType}`, { id: item.entityId })}
-                      </div>
-                      {item.contextPath ? (
-                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{item.contextPath}</div>
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        {loading && resources.length === 0 ? (
+          <div className="flex justify-center py-16">
+            <Spin />
+          </div>
+        ) : missingRequiredScopeTarget ? (
+          <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
+            {scopeFilter === "CLASS_SECTION"
+              ? t("mediaManager.emptyStates.scopeTargetClass")
+              : t("mediaManager.emptyStates.scopeTargetQuestionBank")}
+          </div>
+        ) : resources.length > 0 ? (
+          <div className="p-4 sm:p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {resources.map((resource) => (
+                <button
+                  key={resource.id}
+                  type="button"
+                  onClick={() => openDetails(resource)}
+                  className="overflow-hidden rounded-lg border border-slate-200 bg-white text-left transition hover:border-blue-400 hover:shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:hover:border-blue-500"
+                >
+                  <div className="flex h-44 items-center justify-center overflow-hidden bg-slate-50 p-3 dark:bg-slate-900">
+                    <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
+                  </div>
+                  <div className="space-y-3 p-4">
+                    <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-slate-800 dark:text-white">
+                      {resource.title || t("mediaManager.untitled")}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Tag>{typeLabels[resource.type] || resource.mimeType || t("mediaManager.types.FILE")}</Tag>
+                      <Tag>{formatBytes(resource.fileSize)}</Tag>
+                      <Tag color="blue">{formatScopeDisplay(resource)}</Tag>
+                      {resource.visibility ? (
+                        <Tag color={resource.visibility === "INSTITUTION" ? "gold" : resource.visibility === "SHARED" ? "blue" : "default"}>
+                          {visibilityLabels[resource.visibility] || resource.visibility}
+                        </Tag>
                       ) : null}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-slate-500 dark:text-slate-400">{t("mediaManager.references.empty")}</div>
-              )}
-            </div>
-            <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-              <div className="mb-2 text-sm font-semibold text-slate-800 dark:text-white">{t("mediaManager.audit.title")}</div>
-              {detailsLoading ? (
-                <Spin size="small" />
-              ) : auditLogs.length > 0 ? (
-                <div className="space-y-2">
-                  {auditLogs.map((item) => (
-                    <div key={item.id} className="text-sm text-slate-600 dark:text-slate-300">
-                      <span className="font-medium text-slate-800 dark:text-white">{t(`mediaManager.auditActions.${item.actionType}`, item.actionType)}</span>
-                      {item.actorUsername ? t("mediaManager.audit.byActor", { actor: item.actorUsername }) : ""}
-                      {item.createdDate ? ` · ${new Date(item.createdDate).toLocaleDateString(locale)}` : ""}
+                    <div className="flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="truncate">{resource.createdBy || "-"}</span>
+                      <span className="whitespace-nowrap">
+                        {(resource.usageCount || 0) > 0 ? t("mediaManager.usedCount", { count: resource.usageCount }) : t("mediaManager.unused")}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-slate-500 dark:text-slate-400">{t("mediaManager.audit.empty")}</div>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {canManageSelected ? <Button type="primary" onClick={handleSaveMetadata}>{t("mediaManager.actions.save")}</Button> : null}
-              {canManageSelected ? (
-                selected.status === "ARCHIVED" ? (
-                  <Button onClick={() => handleSetStatus("ACTIVE")}>{t("mediaManager.actions.restore")}</Button>
-                ) : (
-                  <Button onClick={() => handleSetStatus("ARCHIVED")}>{t("mediaManager.actions.archive")}</Button>
-                )
-              ) : null}
-              {canManageSelected ? <Button danger onClick={handleDelete}>{t("mediaManager.actions.delete")}</Button> : null}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
-        ) : null}
-      </Drawer>
+        ) : (
+          <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
+            {t("mediaManager.empty")}
+          </div>
+        )}
+
+        <DataPaginationFooter
+          currentPage={pagination.currentPage}
+          pageSize={pageSize}
+          total={pagination.totalElements}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          totalLabel={t("mediaManager.pagination.total", { count: pagination.totalElements })}
+          pageSizeLabel={t("mediaManager.pagination.pageSize")}
+          rangeLabel={t("mediaManager.pagination.range", {
+            start: startItem,
+            end: endItem,
+            total: pagination.totalElements,
+          })}
+          onPageChange={(page) => loadResources(page)}
+          onPageSizeChange={(value) => setPageSize(value)}
+        />
+      </div>
+
+      <MediaDetailModal
+        open={!!selected}
+        resource={selected}
+        editTitle={editTitle}
+        editDescription={editDescription}
+        onClose={() => setSelected(null)}
+        onEditTitleChange={setEditTitle}
+        onEditDescriptionChange={setEditDescription}
+        onSave={handleSaveMetadata}
+        onToggleStatus={handleSetStatus}
+        onDelete={handleDelete}
+        canManage={canManageSelected}
+        canDelete={canDeleteSelected}
+        detailsLoading={detailsLoading}
+        references={references}
+        auditLogs={auditLogs}
+        locale={locale}
+        typeLabels={typeLabels}
+        visibilityLabels={visibilityLabels}
+        formatBytes={formatBytes}
+        formatScopeDisplay={formatScopeDisplay}
+        formatScopeTarget={formatScopeTarget}
+        formatSourceLabel={formatSourceLabel}
+      />
     </div>
   );
 }

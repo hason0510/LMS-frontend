@@ -30,6 +30,10 @@ export async function getCourseGradeBook(courseId = null, classSectionId = null)
     return response.data;
 }
 
+export async function getClassSectionGradeBook(classSectionId) {
+    return getCourseGradeBook(null, classSectionId);
+}
+
 /**
  * Get quiz attempts for a specific class content item
  */
@@ -61,6 +65,10 @@ export async function getApprovedStudents(courseId = null, classSectionId = null
     return response.data;
 }
 
+export async function getClassSectionApprovedStudents(classSectionId, pageNumber = 1, pageSize = 100) {
+    return getApprovedStudents(null, classSectionId, pageNumber, pageSize);
+}
+
 /**
  * Get pending enrollment requests for a course or class section
  */
@@ -76,6 +84,10 @@ export async function getPendingRequests(courseId = null, classSectionId = null,
         params: { pageNumber, pageSize }
     });
     return response.data;
+}
+
+export async function getClassSectionPendingRequests(classSectionId, pageNumber = 1, pageSize = 100) {
+    return getPendingRequests(null, classSectionId, pageNumber, pageSize);
 }
 
 // Aliases for legacy course naming

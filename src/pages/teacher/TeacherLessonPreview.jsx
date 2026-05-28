@@ -205,7 +205,7 @@ export default function TeacherLessonPreview() {
               )}
             </div>
 
-            <LessonComments lectureId={lectureId} />
+            <LessonComments lectureId={lectureId} previewMode />
           </div>
         </main>
       </div>

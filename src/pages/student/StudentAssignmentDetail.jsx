@@ -10,17 +10,17 @@ import { getAssignmentById } from "../../api/assignment";
 import { getMySubmission, submitAssignment } from "../../api/submission";
 import { uploadStandaloneResource } from "../../api/resource";
 import FileItem from "../../components/common/FileItem";
+import { buildQuillModules, createQuillTableControl, extendQuillFormats } from "../../utils/quillTable";
 
-const quillModules = {
-  toolbar: [
-    [{ header: [2, 3, false] }],
-    ["bold", "italic", "underline"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    ["link", "clean"],
-  ],
-};
+const quillModules = buildQuillModules([
+  [{ header: [2, 3, false] }],
+  ["bold", "italic", "underline"],
+  [{ list: "ordered" }, { list: "bullet" }],
+  [createQuillTableControl()],
+  ["link", "clean"],
+]);
 
-const quillFormats = ["header", "bold", "italic", "underline", "list", "bullet", "link"];
+const quillFormats = extendQuillFormats(["header", "bold", "italic", "underline", "list", "bullet", "link"]);
 
 const SUBMISSION_STATUS_META = {
   NOT_SUBMITTED: {

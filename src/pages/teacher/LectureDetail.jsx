@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import TeacherHeader from "../../components/layout/TeacherHeader";
@@ -19,8 +20,8 @@ import {
   PencilIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
-import { Form, Input, Button, Spin, Alert, Modal, App } from "antd";
-import { getCourseById, createClassContentItem } from "../../api/classSection";
+import { Form, Input, Button, Spin, Alert, Modal, App, Segmented, Empty } from "antd";
+import { getCourseById, createClassContentItem, getClassChapters, getClassContentItems, getClassContentCompletion } from "../../api/classSection";
 import { getLessonById, updateLesson, deleteLesson, createLesson } from "../../api/lesson";
 import { attachResourceToLesson, createResource, uploadVideoResource, uploadSlideResource, getResourcesByLessonId, deleteResource, detachResourceFromLesson } from "../../api/resource";
 import { getResourceTypeFromFile, isVideoFile } from "../../utils/fileUtils";
@@ -34,8 +35,10 @@ import {
   getLessonTemplateById,
   updateLessonTemplate,
 } from "../../api/curriculumTemplate";
+import { buildQuillModules, createQuillTableControl, extendQuillFormats } from "../../utils/quillTable";
 
 export default function LectureDetail({ isAdmin = false }) {
+  const { t, i18n } = useTranslation();
   const { classSectionId, lectureId, chapterId } = useParams();
   const location = useLocation();
   const [course, setCourse] = useState(null);
@@ -64,6 +67,12 @@ export default function LectureDetail({ isAdmin = false }) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef(null);
 
+  const [lessonCompletionModalOpen, setLessonCompletionModalOpen] = useState(false);
+  const [lessonCompletionLoading, setLessonCompletionLoading] = useState(false);
+  const [lessonCompletionRows, setLessonCompletionRows] = useState([]);
+  const [lessonCompletionFilter, setLessonCompletionFilter] = useState("ALL");
+  const [lessonCompletionKeyword, setLessonCompletionKeyword] = useState("");
+
   // Video upload state
   const [videoSourceType, setVideoSourceType] = useState("embed"); // "embed" | "upload"
   const [videoResource, setVideoResource] = useState(null);
@@ -79,6 +88,111 @@ export default function LectureDetail({ isAdmin = false }) {
   const classResourceScope = !isTemplateMode && classSectionId
     ? { scopeType: "CLASS_SECTION", scopeId: Number(classSectionId) }
     : {};
+
+  const closeLessonCompletionModal = () => {
+    setLessonCompletionModalOpen(false);
+    setLessonCompletionRows([]);
+    setLessonCompletionFilter("ALL");
+    setLessonCompletionKeyword("");
+  };
+
+  const resolveLessonClassContentItemId = async () => {
+    if (location.state?.classContentItemId) {
+      return location.state.classContentItemId;
+    }
+
+    if (!classSectionId || !lectureId) {
+      return null;
+    }
+
+    const chaptersResponse = await getClassChapters(classSectionId);
+    const chapters = Array.isArray(chaptersResponse) ? chaptersResponse : chaptersResponse?.data || [];
+
+    for (const chapter of chapters) {
+      const itemsResponse = await getClassContentItems(classSectionId, chapter.id);
+      const items = Array.isArray(itemsResponse) ? itemsResponse : itemsResponse?.data || [];
+      const matchedItem = items.find((item) => {
+        const lessonKey = Number(item.lessonId || item.id);
+        return item.itemType === "LESSON" && lessonKey === Number(lectureId);
+      });
+      if (matchedItem) {
+        return matchedItem.id;
+      }
+    }
+
+    return null;
+  };
+
+  const handleOpenLessonCompletion = async () => {
+    try {
+      setLessonCompletionModalOpen(true);
+      setLessonCompletionLoading(true);
+      setLessonCompletionFilter("ALL");
+      setLessonCompletionKeyword("");
+
+      const classContentItemId = await resolveLessonClassContentItemId();
+      if (!classContentItemId) {
+        throw new Error(t("classContent.lessonCompletion.messages.cannotResolveItem"));
+      }
+
+      const response = await getClassContentCompletion(classSectionId, classContentItemId);
+      setLessonCompletionRows(Array.isArray(response) ? response : []);
+    } catch (err) {
+      messageApi.error(err?.response?.data?.message || err.message || t("classContent.lessonCompletion.messages.loadFailed"));
+      setLessonCompletionRows([]);
+      setLessonCompletionModalOpen(false);
+    } finally {
+      setLessonCompletionLoading(false);
+    }
+  };
+
+  const canOpenLessonCompletion = !isAdmin && !isTemplateMode && classSectionId && lectureId;
+
+  const lessonCompletionCounts = lessonCompletionRows.reduce(
+    (acc, row) => {
+      if (row.completed) {
+        acc.completed += 1;
+      } else {
+        acc.notCompleted += 1;
+      }
+      return acc;
+    },
+    { completed: 0, notCompleted: 0 }
+  );
+
+  const filteredLessonCompletionRows = lessonCompletionRows.filter((row) => {
+    const matchesStatus =
+      lessonCompletionFilter === "ALL" ||
+      (lessonCompletionFilter === "COMPLETED" && row.completed) ||
+      (lessonCompletionFilter === "NOT_COMPLETED" && !row.completed);
+    if (!matchesStatus) return false;
+
+    const keyword = lessonCompletionKeyword.trim().toLowerCase();
+    if (!keyword) return true;
+
+    return [row.studentName, row.studentNumber, row.email]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(keyword));
+  });
+
+  const formatLessonCompletionTime = (value) => {
+    if (!value) {
+      return t("classContent.lessonCompletion.defaults.notCompletedTime");
+    }
+
+    try {
+      const locale = i18n.resolvedLanguage?.startsWith("vi") ? "vi-VN" : "en-US";
+      return new Intl.DateTimeFormat(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value));
+    } catch (error) {
+      return value;
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -139,19 +253,18 @@ export default function LectureDetail({ isAdmin = false }) {
   const videoInfo = extractVideoId(videoUrl);
   const videoEmbedUrl = getVideoEmbedUrl(videoInfo);
 
-  const modules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      [{ align: [] }],
-      [{ color: [] }, { background: [] }],
-      ["link", "image"],
-      ["clean"],
-    ],
-  };
+  const modules = buildQuillModules([
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    [createQuillTableControl()],
+    [{ align: [] }],
+    [{ color: [] }, { background: [] }],
+    ["link", "image"],
+    ["clean"],
+  ]);
 
-  const formats = [
+  const formats = extendQuillFormats([
     "header",
     "bold",
     "italic",
@@ -164,7 +277,7 @@ export default function LectureDetail({ isAdmin = false }) {
     "background",
     "link",
     "image",
-  ];
+  ]);
 
   useEffect(() => {
     const init = async () => {
@@ -745,27 +858,36 @@ export default function LectureDetail({ isAdmin = false }) {
                           Chỉnh sửa
                         </Button>
                       )}
-                      {!isAdmin && !isTemplateMode && classSectionId && lectureId && (
-                        <Button
-                          onClick={() => {
-                            const doNavigate = () => navigate(`/teacher/class-sections/${classSectionId}/lectures/${lectureId}/preview`);
-                            if (isEditMode) {
-                              modalApi.confirm({
-                                title: "Xem trước bài giảng",
-                                content: "Trang xem trước hiển thị phiên bản đã lưu. Các thay đổi chưa lưu sẽ không xuất hiện.",
-                                okText: "Xem trước",
-                                cancelText: "Hủy",
-                                onOk: doNavigate,
-                              });
-                            } else {
-                              doNavigate();
-                            }
-                          }}
-                          className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
-                          icon={<EyeIcon className="h-4 w-4" />}
-                        >
-                          Xem như học viên
-                        </Button>
+                      {canOpenLessonCompletion && (
+                        <>
+                          <Button
+                            onClick={handleOpenLessonCompletion}
+                            className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2 border-emerald-400 text-emerald-600 hover:border-emerald-500 hover:text-emerald-700"
+                            icon={<CheckCircleIcon className="h-4 w-4" />}
+                          >
+                            {t("classContent.lessonCompletion.actions.open")}
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              const doNavigate = () => navigate(`/teacher/class-sections/${classSectionId}/lectures/${lectureId}/preview`);
+                              if (isEditMode) {
+                                modalApi.confirm({
+                                  title: "Xem trước bài giảng",
+                                  content: "Trang xem trước hiển thị phiên bản đã lưu. Các thay đổi chưa lưu sẽ không xuất hiện.",
+                                  okText: "Xem trước",
+                                  cancelText: "Hủy",
+                                  onOk: doNavigate,
+                                });
+                              } else {
+                                doNavigate();
+                              }
+                            }}
+                            className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
+                            icon={<EyeIcon className="h-4 w-4" />}
+                          >
+                            Xem như học viên
+                          </Button>
+                        </>
                       )}
                     </div>
                   )}
@@ -1192,6 +1314,127 @@ export default function LectureDetail({ isAdmin = false }) {
                       onChange={(e) => setNotes(e.target.value)}
                     ></textarea>
                   </div>
+
+                  <Modal
+                    title={t("classContent.lessonCompletion.title")}
+                    open={lessonCompletionModalOpen}
+                    onCancel={closeLessonCompletionModal}
+                    footer={null}
+                    width={860}
+                    centered
+                  >
+                    <div className="space-y-5">
+                      <p className="m-0 text-sm text-slate-500 dark:text-slate-400">
+                        {t("classContent.lessonCompletion.subtitle")}
+                      </p>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70">
+                          <p className="m-0 text-xs text-slate-500 dark:text-slate-400">{t("classContent.lessonCompletion.summary.students")}</p>
+                          <p className="m-0 mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{lessonCompletionRows.length}</p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                          <p className="m-0 text-xs text-emerald-700 dark:text-emerald-300">{t("classContent.lessonCompletion.summary.completed")}</p>
+                          <p className="m-0 mt-1 text-2xl font-semibold text-emerald-700 dark:text-emerald-200">{lessonCompletionCounts.completed}</p>
+                        </div>
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+                          <p className="m-0 text-xs text-amber-700 dark:text-amber-300">{t("classContent.lessonCompletion.summary.notCompleted")}</p>
+                          <p className="m-0 mt-1 text-2xl font-semibold text-amber-700 dark:text-amber-200">{lessonCompletionCounts.notCompleted}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <Segmented
+                          value={lessonCompletionFilter}
+                          onChange={setLessonCompletionFilter}
+                          options={[
+                            { label: t("classContent.lessonCompletion.filters.status.all"), value: "ALL" },
+                            { label: t("classContent.lessonCompletion.filters.status.completed"), value: "COMPLETED" },
+                            { label: t("classContent.lessonCompletion.filters.status.notCompleted"), value: "NOT_COMPLETED" },
+                          ]}
+                        />
+                        <Input.Search
+                          allowClear
+                          value={lessonCompletionKeyword}
+                          onChange={(event) => setLessonCompletionKeyword(event.target.value)}
+                          placeholder={t("classContent.lessonCompletion.filters.searchPlaceholder")}
+                          className="w-full lg:max-w-sm"
+                        />
+                      </div>
+                      {lessonCompletionLoading ? (
+                        <div className="flex min-h-56 items-center justify-center">
+                          <Spin size="large" />
+                        </div>
+                      ) : filteredLessonCompletionRows.length > 0 ? (
+                        <div className="space-y-3">
+                          {filteredLessonCompletionRows.map((row) => (
+                            <div
+                              key={row.studentId}
+                              className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 md:flex-row md:items-center md:justify-between"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                {row.avatarUrl ? (
+                                  <img
+                                    src={row.avatarUrl}
+                                    alt={row.studentName || t("classContent.lessonCompletion.table.student")}
+                                    className="h-11 w-11 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                                  />
+                                ) : (
+                                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                                    {(row.studentName || "U").trim().charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
+                                    {row.studentName || t("reportsPage.shared.defaults.noName")}
+                                  </p>
+                                  <p className="m-0 truncate text-xs text-slate-500 dark:text-slate-400">
+                                    {row.studentNumber || row.email || t("classContent.lessonCompletion.defaults.noStudentInfo")}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="grid gap-3 md:grid-cols-[140px_180px] md:items-center">
+                                <div>
+                                  <p className="m-0 text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                                    {t("classContent.lessonCompletion.table.status")}
+                                  </p>
+                                  <span
+                                    className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                                      row.completed
+                                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
+                                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+                                    }`}
+                                  >
+                                    {row.completed
+                                      ? t("classContent.lessonCompletion.status.completed")
+                                      : t("classContent.lessonCompletion.status.notCompleted")}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="m-0 text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                                    {t("classContent.lessonCompletion.table.completedAt")}
+                                  </p>
+                                  <p className="m-0 mt-1 text-sm text-slate-700 dark:text-slate-300">
+                                    {formatLessonCompletionTime(row.completedAt)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 dark:border-slate-700 dark:bg-slate-800/60">
+                          <Empty
+                            description={
+                              <span className="text-slate-500 dark:text-slate-400">
+                                {lessonCompletionRows.length > 0
+                                  ? t("classContent.lessonCompletion.empty.filtered")
+                                  : t("classContent.lessonCompletion.empty.default")}
+                              </span>
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </Modal>
                 </div>
               </Form>
             </>

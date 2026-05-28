@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Alert, Spin } from "antd";
+import { useTranslation } from "react-i18next";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
 import LessonComments from "../../components/lesson/LessonComments";
@@ -9,8 +10,11 @@ import VideoPlayer from "../../components/common/VideoPlayer";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getLessonById } from "../../api/lesson";
 import { getResourcesByLessonId } from "../../api/resource";
+import { getClassSectionById } from "../../api/classSection";
+import { completeClassContentItem } from "../../api/enrollment";
 
 export default function StudentLectureDetail() {
+  const { t } = useTranslation();
   const { classSectionId, lectureId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -20,6 +24,7 @@ export default function StudentLectureDetail() {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isArchived, setIsArchived] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -29,6 +34,23 @@ export default function StudentLectureDetail() {
         const lessonResponse = await getLessonById(lectureId, classContentItemId);
         const lessonData = lessonResponse.data || lessonResponse;
         setLesson(lessonData);
+        if (classContentItemId) {
+          try {
+            await completeClassContentItem(classContentItemId);
+          } catch (completionErr) {
+            console.warn("Could not mark lesson complete:", completionErr);
+          }
+        }
+
+        if (classSectionId) {
+          try {
+            const classSectionResponse = await getClassSectionById(classSectionId);
+            const classSectionData = classSectionResponse?.data || classSectionResponse;
+            setIsArchived(classSectionData?.status === "ARCHIVED");
+          } catch {
+            setIsArchived(false);
+          }
+        }
 
         try {
           const resourcesResponse = await getResourcesByLessonId(lectureId);
@@ -213,7 +235,10 @@ export default function StudentLectureDetail() {
             </div>
           </div>
 
-          <LessonComments lectureId={lectureId} />
+          <LessonComments
+            lectureId={lectureId}
+            readOnlyReason={isArchived ? t("lessonComments.archivedReadOnly") : null}
+          />
         </div>
       </div>
     </div>

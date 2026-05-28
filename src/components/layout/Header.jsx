@@ -93,11 +93,11 @@ export default function Header({ menuItems }) {
   };
 
   const defaultMenuItems = [
+    { label: t("header.tongQuan"), path: "/home", icon: HomeIcon },
     { label: t("header.classes"), path: "/classes", icon: BookOpenIcon },
     ...(user?.role === "STUDENT"
       ? [{ label: t("assignments.studentTitle"), path: "/student/assignments", icon: ClipboardDocumentListIcon }]
       : []),
-    { label: t("header.gioiThieu"), path: "/home", icon: HomeIcon },
     // { label: "Liên hệ", path: "#" },
     { label: t("header.trangCaNhan"), path: "/student/profile", icon: UserCircleIcon },
   ];

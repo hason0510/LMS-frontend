@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import {
@@ -12,7 +12,9 @@ import {
   ChatBubbleLeftRightIcon,
   ChatBubbleLeftEllipsisIcon,
   XMarkIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
+import { CheckCircleIcon as CheckCircleSolidIcon } from "@heroicons/react/24/solid";
 import LessonComments from "../lesson/LessonComments";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -23,17 +25,18 @@ import {
   createClassChapter,
   overrideClassChapter,
   overrideClassContentItem,
+  getClassContentCompletion,
   updateClassChapter,
   updateClassContentItem,
 } from "../../api/classSection";
-import { App, Spin, Alert, Dropdown, Modal, Form, Input, DatePicker, Switch } from "antd";
+import { App, Spin, Alert, Dropdown, Modal, Form, Input, DatePicker, Switch, Segmented, Empty, Button } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const canManageRole = (role) => role === "TEACHER" || role === "ADMIN";
 
-export default function CourseContent({ enrollmentStatus = null, workspaceMode = "default", capabilities = [] }) {
-  const { t } = useTranslation();
+export default function CourseContent({ enrollmentStatus = null, workspaceMode = "default", capabilities = [], archived = false }) {
+  const { t, i18n } = useTranslation();
   const { message } = App.useApp();
   const { user } = useAuth();
   const { id: classSectionId } = useParams();
@@ -41,10 +44,12 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
   const userRole = user?.role;
   const canManage = canManageRole(userRole);
+  const canMutateContent = canManage && !archived;
   const isStudentNotApproved = userRole === "STUDENT" && enrollmentStatus !== "APPROVED";
   const isTeachingWorkspace = workspaceMode === "teaching";
   const canReviewQuizzes = capabilities.includes("REVIEW_QUIZZES");
   const canGradeAssignments = capabilities.includes("GRADE_ASSIGNMENTS");
+  const canViewStudentProgress = capabilities.includes("VIEW_PROGRESS");
 
   // Chapter list state
   const [chapters, setChapters] = useState([]);
@@ -80,6 +85,18 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
   const [commentDrawer, setCommentDrawer] = useState({ open: false, lessonId: null, title: "" });
   const closeCommentDrawer = () => setCommentDrawer({ open: false, lessonId: null, title: "" });
 
+  // Lesson completion modal
+  const [lessonCompletionModal, setLessonCompletionModal] = useState({ open: false, itemId: null, title: "" });
+  const [lessonCompletionRows, setLessonCompletionRows] = useState([]);
+  const [lessonCompletionLoading, setLessonCompletionLoading] = useState(false);
+  const [lessonCompletionFilter, setLessonCompletionFilter] = useState("ALL");
+  const [lessonCompletionKeyword, setLessonCompletionKeyword] = useState("");
+  const [lessonProgressPickerOpen, setLessonProgressPickerOpen] = useState(false);
+  const [lessonProgressPickerLoading, setLessonProgressPickerLoading] = useState(false);
+  const [lessonProgressPickerRows, setLessonProgressPickerRows] = useState([]);
+  const [lessonProgressPickerKeyword, setLessonProgressPickerKeyword] = useState("");
+  const tc = (key, options) => t(`classContent.${key}`, options);
+
   const resolveItemAccessMessage = (item) => {
     if (item?.accessMessageKey) {
       return t(item.accessMessageKey);
@@ -90,6 +107,17 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
       });
     }
     return item?.accessMessage || t("classContent.access.unavailable");
+  };
+
+  const closeLessonCompletionModal = () => {
+    setLessonCompletionModal({ open: false, itemId: null, title: "" });
+    setLessonCompletionFilter("ALL");
+    setLessonCompletionKeyword("");
+  };
+
+  const closeLessonProgressPicker = () => {
+    setLessonProgressPickerOpen(false);
+    setLessonProgressPickerKeyword("");
   };
 
   useEffect(() => {
@@ -122,9 +150,138 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
         : [];
       setChapterItems((prev) => ({ ...prev, [chapterId]: sorted }));
     } catch (err) {
-      message.error("Lỗi khi tải danh sách nội dung: " + err.message);
+      message.error(tc("messages.loadItemsFailed", { error: err.message }));
     } finally {
       setLoadingItems((prev) => ({ ...prev, [chapterId]: false }));
+    }
+  };
+
+  const openLessonCompletionModal = async (item) => {
+    try {
+      setLessonCompletionModal({
+        open: true,
+        itemId: item.id,
+        title: item.displayTitle || item.title || t("classContent.unknownItem"),
+      });
+      setLessonCompletionLoading(true);
+      setLessonCompletionFilter("ALL");
+      setLessonCompletionKeyword("");
+      const response = await getClassContentCompletion(classSectionId, item.id);
+      setLessonCompletionRows(Array.isArray(response) ? response : []);
+    } catch (err) {
+      message.error(err?.response?.data?.message || t("classContent.lessonCompletion.messages.loadFailed"));
+      setLessonCompletionRows([]);
+    } finally {
+      setLessonCompletionLoading(false);
+    }
+  };
+
+  const openLessonProgressPicker = async () => {
+    try {
+      setLessonProgressPickerOpen(true);
+      setLessonProgressPickerLoading(true);
+      setLessonProgressPickerKeyword("");
+
+      const chapterRows = await Promise.all(
+        chapters.map(async (chapter) => {
+          const chapterItemsList =
+            chapterItems[chapter.id] ||
+            (await (async () => {
+              const response = await getClassContentItems(classSectionId, chapter.id);
+              return Array.isArray(response) ? response : response?.data || [];
+            })());
+
+          return (Array.isArray(chapterItemsList) ? chapterItemsList : [])
+            .filter((item) => item.itemType === "LESSON")
+            .map((item) => ({
+              ...item,
+              chapterTitle: chapter.title,
+              chapterOrderIndex: chapter.orderIndex ?? 0,
+              itemOrderIndex: item.orderIndex ?? 0,
+            }));
+        })
+      );
+
+      const flattened = chapterRows.flat().sort(
+        (a, b) =>
+          (a.chapterOrderIndex ?? 0) - (b.chapterOrderIndex ?? 0) ||
+          (a.itemOrderIndex ?? 0) - (b.itemOrderIndex ?? 0)
+      );
+
+      setLessonProgressPickerRows(flattened);
+    } catch (err) {
+      message.error(err?.response?.data?.message || t("classContent.lessonCompletionPicker.messages.loadFailed"));
+      setLessonProgressPickerRows([]);
+    } finally {
+      setLessonProgressPickerLoading(false);
+    }
+  };
+
+  const lessonCompletionCounts = useMemo(() => {
+    return lessonCompletionRows.reduce(
+      (acc, row) => {
+        if (row.completed) {
+          acc.completed += 1;
+        } else {
+          acc.notCompleted += 1;
+        }
+        return acc;
+      },
+      { completed: 0, notCompleted: 0 }
+    );
+  }, [lessonCompletionRows]);
+
+  const filteredLessonCompletionRows = useMemo(() => {
+    const keyword = lessonCompletionKeyword.trim().toLowerCase();
+    return lessonCompletionRows.filter((row) => {
+      const matchesFilter =
+        lessonCompletionFilter === "ALL" ||
+        (lessonCompletionFilter === "COMPLETED" && row.completed) ||
+        (lessonCompletionFilter === "NOT_COMPLETED" && !row.completed);
+
+      if (!matchesFilter) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      return [row.studentName, row.studentNumber, row.email]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword));
+    });
+  }, [lessonCompletionFilter, lessonCompletionKeyword, lessonCompletionRows]);
+
+  const filteredLessonProgressPickerRows = useMemo(() => {
+    const keyword = lessonProgressPickerKeyword.trim().toLowerCase();
+    if (!keyword) {
+      return lessonProgressPickerRows;
+    }
+
+    return lessonProgressPickerRows.filter((item) => {
+      return [item.displayTitle, item.title, item.chapterTitle]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword));
+    });
+  }, [lessonProgressPickerKeyword, lessonProgressPickerRows]);
+
+  const formatCompletionTime = (value) => {
+    if (!value) {
+      return t("classContent.lessonCompletion.defaults.notCompletedTime");
+    }
+
+    try {
+      const locale = i18n.resolvedLanguage?.startsWith("vi") ? "vi-VN" : "en-US";
+      return new Intl.DateTimeFormat(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value));
+    } catch (error) {
+      return value;
     }
   };
 
@@ -158,7 +315,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
         overrideClassChapter(classSectionId, newChapters[swapIndex].id, { orderIndex: swapIndex }),
       ]);
     } catch (err) {
-      message.error("Lỗi khi sắp xếp chương");
+      message.error(tc("messages.reorderChapterFailed"));
       fetchChapters();
     } finally {
       setReorderingChapter(false);
@@ -182,7 +339,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
         overrideClassContentItem(classSectionId, newItems[swapIndex].id, { orderIndex: swapIndex }),
       ]);
     } catch (err) {
-      message.error("Lỗi khi sắp xếp nội dung");
+      message.error(tc("messages.reorderItemFailed"));
       fetchChapterItems(chapterId);
     } finally {
       setReorderingItem(false);
@@ -205,7 +362,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
     if (isTeachingWorkspace && item.itemType === "QUIZ") {
       if (!canReviewQuizzes) {
-        message.warning("Bạn không có quyền rà soát bài quiz trong lớp này");
+        message.warning(tc("messages.noQuizReviewPermission"));
         return;
       }
       const quizId = item.quizId || item.id;
@@ -220,7 +377,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
     if (isTeachingWorkspace && item.itemType === "ASSIGNMENT") {
       if (!canGradeAssignments) {
-        message.warning("Bạn không có quyền chấm bài tập trong lớp này");
+        message.warning(tc("messages.noAssignmentGradePermission"));
         return;
       }
       const currentAssignmentId = item.assignmentId || item.id;
@@ -274,10 +431,10 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
       return null;
     }
     if (item.itemType === "QUIZ" && !canReviewQuizzes) {
-      return "Không có quyền rà soát quiz";
+      return tc("messages.noQuizReviewPermission");
     }
     if (item.itemType === "ASSIGNMENT" && !canGradeAssignments) {
-      return "Không có quyền chấm bài tập";
+      return tc("messages.noAssignmentGradePermission");
     }
     return null;
   };
@@ -291,12 +448,12 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
         description: values.description || "",
         orderIndex: chapters.length,
       });
-      message.success("Thêm chương thành công");
+      message.success(tc("messages.createChapterSuccess"));
       setCreateChapterModal(false);
       createChapterForm.resetFields();
       fetchChapters();
     } catch (err) {
-      message.error(err.response?.data?.message || "Lỗi khi thêm chương");
+      message.error(err.response?.data?.message || tc("messages.createChapterFailed"));
     } finally {
       setCreatingChapter(false);
     }
@@ -319,11 +476,11 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
         title: values.title,
         description: values.description,
       });
-      message.success("Cập nhật chương thành công");
+      message.success(tc("messages.updateChapterSuccess"));
       setEditChapterModal({ visible: false, chapter: null });
       fetchChapters();
     } catch (err) {
-      message.error(err.response?.data?.message || "Lỗi khi cập nhật chương");
+      message.error(err.response?.data?.message || tc("messages.updateChapterFailed"));
     } finally {
       setSavingChapter(false);
     }
@@ -350,13 +507,13 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
         availableFrom: values.availableFrom?.toISOString() || null,
         availableTo: values.availableTo?.toISOString() || null,
       });
-      message.success("Cập nhật nội dung thành công");
+      message.success(tc("messages.updateContentSuccess"));
       setEditItemModal({ visible: false, item: null, chapterId: null });
       if (editItemModal.chapterId) {
         fetchChapterItems(editItemModal.chapterId);
       }
     } catch (err) {
-      message.error(err.response?.data?.message || "Lỗi khi cập nhật nội dung");
+      message.error(err.response?.data?.message || tc("messages.updateContentFailed"));
     } finally {
       setSavingItem(false);
     }
@@ -367,10 +524,10 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     try {
       setDeletingItem(itemId);
       await deleteClassContentItem(classSectionId, itemId);
-      message.success("Xóa nội dung thành công");
+      message.success(tc("messages.deleteContentSuccess"));
       fetchChapterItems(chapterId);
     } catch (err) {
-      message.error(err.message || "Lỗi khi xóa nội dung");
+      message.error(err.message || tc("messages.deleteContentFailed"));
     } finally {
       setDeletingItem(null);
     }
@@ -380,11 +537,11 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     try {
       setDeleting(true);
       await deleteClassChapter(classSectionId, deleteChapterId);
-      message.success("Xóa chương thành công");
+      message.success(tc("messages.deleteChapterSuccess"));
       setDeleteChapterId(null);
       fetchChapters();
     } catch (err) {
-      message.error(err.message || "Lỗi khi xóa chương");
+      message.error(err.message || tc("messages.deleteChapterFailed"));
     } finally {
       setDeleting(false);
     }
@@ -396,33 +553,33 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     return [
       {
         key: "edit",
-        label: "Chỉnh sửa chương",
+        label: tc("menu.editChapter"),
         icon: <PencilSquareIcon className="h-4 w-4" />,
         onClick: ({ domEvent }) => handleOpenEditChapter(domEvent, chapter),
       },
       { type: "divider" },
       {
         key: "add-lecture",
-        label: "Thêm bài giảng",
+        label: t("classContent.actions.addLesson"),
         onClick: () =>
           navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/lectures/create`),
       },
       {
         key: "add-quiz",
-        label: "Thêm bài kiểm tra",
+        label: t("classContent.actions.addQuiz"),
         onClick: () =>
           navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/quizzes/create`),
       },
       {
         key: "add-assignment",
-        label: "Thêm bài tập",
+        label: t("classContent.actions.addAssignment"),
         onClick: () =>
           navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/assignments/create`),
       },
       { type: "divider" },
       {
         key: "delete",
-        label: "Xóa chương",
+        label: tc("menu.deleteChapter"),
         danger: true,
         icon: <TrashIcon className="h-4 w-4" />,
         onClick: () => setDeleteChapterId(chapter.id),
@@ -435,33 +592,64 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     switch (itemType) {
       case "LESSON":
         return {
-          label: "Bài giảng",
+          label: tc("types.lesson"),
           icon: "description",
           bg: "bg-blue-100 dark:bg-blue-900/30",
           text: "text-blue-600 dark:text-blue-400",
         };
       case "QUIZ":
         return {
-          label: "Bài kiểm tra",
+          label: tc("types.quiz"),
           icon: "quiz",
           bg: "bg-orange-100 dark:bg-orange-900/30",
           text: "text-orange-600 dark:text-orange-400",
         };
       case "ASSIGNMENT":
         return {
-          label: "Bài tập",
+          label: tc("types.assignment"),
           icon: "assignment",
           bg: "bg-green-100 dark:bg-green-900/30",
           text: "text-green-600 dark:text-green-400",
         };
       default:
         return {
-          label: itemType || "Nội dung",
+          label: itemType || tc("types.default"),
           icon: "article",
           bg: "bg-gray-100 dark:bg-gray-700",
           text: "text-gray-600 dark:text-gray-400",
         };
     }
+  };
+
+  const getStudentCompletionMeta = (item) => {
+    if (userRole !== "STUDENT") {
+      return null;
+    }
+
+    if (item.itemType === "ASSIGNMENT") {
+      const isCompleted = item.completed === true;
+      const assignmentStatus = item.assignmentStatus || "NOT_SUBMITTED";
+      const statusLabelMap = {
+        NOT_SUBMITTED: tc("assignmentStatus.notSubmitted"),
+        SUBMITTED: tc("assignmentStatus.submitted"),
+        LATE_SUBMITTED: tc("assignmentStatus.lateSubmitted"),
+        GRADED: tc("assignmentStatus.graded"),
+        RETURNED: tc("assignmentStatus.returned"),
+      };
+      return {
+        completed: isCompleted,
+        label: statusLabelMap[assignmentStatus] || tc("types.assignment"),
+      };
+    }
+
+    if (item.progressEligible) {
+      return {
+        completed: item.completed === true,
+        label: item.completed ? tc("completionStatus.completed") : tc("completionStatus.notCompleted"),
+      };
+    }
+
+    return null;
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -475,26 +663,47 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
   if (error) {
     return (
-      <Alert message="Không thể tải nội dung" description={error} type="error" showIcon className="my-4" />
+      <Alert message={tc("errors.loadContent")} description={error} type="error" showIcon className="my-4" />
     );
   }
 
   return (
     <div className="space-y-4">
+      {archived && (
+        <Alert
+          type="info"
+          showIcon
+          message={t("classContent.archived.title")}
+          description={t("classContent.archived.description")}
+        />
+      )}
       {/* ── Section header ── */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="text-[22px] font-bold leading-tight tracking-[-0.015em] text-[#111418] dark:text-white">
-          Nội dung lớp học
+          {tc("pageTitle")}
         </h2>
-        {canManage && (
-          <button
-            onClick={() => setCreateChapterModal(true)}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm active:scale-95"
-          >
-            <PlusIcon className="h-4 w-4" />
-            <span>Thêm chương</span>
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {canManage && chapters.length > 0 && (
+            <button
+              onClick={openLessonProgressPicker}
+              disabled={!canMutateContent}
+              className="flex items-center gap-2 rounded-lg border border-emerald-400 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:bg-emerald-950/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <CheckCircleSolidIcon className="h-4 w-4" />
+              <span>{t("classContent.lessonCompletionPicker.actions.open")}</span>
+            </button>
+          )}
+          {canManage && (
+            <button
+              onClick={() => setCreateChapterModal(true)}
+              disabled={!canMutateContent}
+              className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm active:scale-95"
+            >
+              <PlusIcon className="h-4 w-4" />
+              <span>{t("classContent.actions.addChapter")}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Chapter list ── */}
@@ -543,7 +752,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
                   {/* Right: reorder + menu + expand */}
                   <div className="flex items-center gap-1 shrink-0 ml-2">
-                    {canManage && (
+                    {canMutateContent && (
                       <div className="flex items-center gap-0.5">
                         <button
                           onClick={(e) => {
@@ -552,7 +761,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                           }}
                           disabled={chapterIndex === 0 || reorderingChapter}
                           className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                          title="Di chuyển lên"
+                          title={tc("tooltips.moveUp")}
                         >
                           <ChevronUpIcon className="h-4 w-4" />
                         </button>
@@ -563,14 +772,14 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                           }}
                           disabled={chapterIndex === chapters.length - 1 || reorderingChapter}
                           className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                          title="Di chuyển xuống"
+                          title={tc("tooltips.moveDown")}
                         >
                           <ChevronDownIcon className="h-4 w-4" />
                         </button>
                       </div>
                     )}
 
-                    {canManage && (
+                    {canMutateContent && (
                       <Dropdown
                         menu={{ items: getChapterMenuItems(chapter) }}
                         trigger={["click"]}
@@ -605,11 +814,12 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                     ) : items.length > 0 ? (
                       <div className="space-y-2">
                         {items.map((item, itemIndex) => {
-                          const tc = getTypeConfig(item.itemType);
+                          const typeConfig = getTypeConfig(item.itemType);
                           const isStudentBlocked =
                             isStudentNotApproved || (userRole === "STUDENT" && item.accessible === false);
                           const teachingRestrictionMessage = getTeachingRestrictionMessage(item);
                           const isTeachingBlocked = Boolean(teachingRestrictionMessage);
+                          const completionMeta = getStudentCompletionMeta(item);
                           return (
                             <div
                               key={item.id}
@@ -621,9 +831,9 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                               onClick={() => handleClickItem(item)}
                             >
                               {/* Type icon */}
-                              <div className={`p-2 rounded-lg shrink-0 ${tc.bg}`}>
-                                <span className={`material-symbols-outlined text-lg leading-none ${tc.text}`}>
-                                  {tc.icon}
+                              <div className={`p-2 rounded-lg shrink-0 ${typeConfig.bg}`}>
+                                <span className={`material-symbols-outlined text-lg leading-none ${typeConfig.text}`}>
+                                  {typeConfig.icon}
                                 </span>
                               </div>
 
@@ -633,7 +843,16 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                   {item.displayTitle || item.title || t("classContent.unknownItem")}
                                 </p>
                                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">{tc.label}</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">{typeConfig.label}</span>
+                                  {completionMeta?.label && (
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                                      completionMeta.completed
+                                        ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-300"
+                                        : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                                    }`}>
+                                      {completionMeta.label}
+                                    </span>
+                                  )}
                                   {teachingRestrictionMessage && (
                                     <span className="text-[10px] font-medium bg-rose-100 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 rounded-full">
                                       {teachingRestrictionMessage}
@@ -662,12 +881,42 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                 </div>
                               </div>
 
+                              {userRole === "STUDENT" && (
+                                <div className="flex shrink-0 items-center justify-center">
+                                  {completionMeta?.completed ? (
+                                      <div className="flex h-9 w-9 items-center justify-center">
+                                        <CheckCircleSolidIcon className="h-7 w-7 text-green-500 dark:text-green-400" />
+                                      </div>
+                                  ) : item.accessible === false ? (
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                                      <LockClosedIcon className="h-4 w-4" />
+                                    </span>
+                                  ) : (
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-500">
+                                      <span className="h-2.5 w-2.5 rounded-full bg-current" />
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
                               {/* Actions (teacher/admin only) */}
                               {canManage && (
                                 <div
                                   className="flex items-center gap-0.5 shrink-0"
                                   onClick={(e) => e.stopPropagation()}
                                 >
+                                  {isTeachingWorkspace && item.itemType === "LESSON" && canViewStudentProgress && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openLessonCompletionModal(item);
+                                      }}
+                                      className="p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-500 transition-colors"
+                                      title={t("classContent.lessonCompletion.actions.open")}
+                                    >
+                                      <CheckCircleSolidIcon className="h-4 w-4" />
+                                    </button>
+                                  )}
                                   {item.itemType === "LESSON" && (
                                     <button
                                       onClick={(e) => {
@@ -679,7 +928,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                         });
                                       }}
                                       className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500 transition-colors"
-                                      title="Xem bình luận học sinh"
+                                      title={t("classContent.lessonComments.actions.open")}
                                     >
                                       <ChatBubbleLeftRightIcon className="h-4 w-4" />
                                     </button>
@@ -688,28 +937,29 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleMoveItem(chapter.id, itemIndex, "up");
-                                    }}
-                                    disabled={itemIndex === 0 || reorderingItem}
-                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                                    title="Di chuyển lên"
-                                  >
-                                    <ChevronUpIcon className="h-4 w-4" />
-                                  </button>
+                                      }}
+                                      disabled={!canMutateContent || itemIndex === 0 || reorderingItem}
+                                      className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                      title={tc("tooltips.moveUp")}
+                                    >
+                                      <ChevronUpIcon className="h-4 w-4" />
+                                    </button>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleMoveItem(chapter.id, itemIndex, "down");
-                                    }}
-                                    disabled={itemIndex === items.length - 1 || reorderingItem}
-                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                                    title="Di chuyển xuống"
-                                  >
-                                    <ChevronDownIcon className="h-4 w-4" />
-                                  </button>
+                                      }}
+                                      disabled={!canMutateContent || itemIndex === items.length - 1 || reorderingItem}
+                                      className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                      title={tc("tooltips.moveDown")}
+                                    >
+                                      <ChevronDownIcon className="h-4 w-4" />
+                                    </button>
                                   <button
                                     onClick={(e) => handleOpenEditItem(e, chapter.id, item)}
+                                    disabled={!canMutateContent}
                                     className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-colors"
-                                    title="Chỉnh sửa"
+                                    title={tc("tooltips.edit")}
                                   >
                                     <PencilSquareIcon className="h-4 w-4" />
                                   </button>
@@ -717,18 +967,20 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       Modal.confirm({
-                                        title: "Xác nhận xóa nội dung",
+                                        title: tc("confirmations.deleteContent.title"),
                                         icon: <ExclamationCircleOutlined />,
-                                        content: `Xóa "${item.displayTitle || item.title}"?`,
-                                        okText: "Xóa",
-                                        cancelText: "Hủy",
+                                        content: tc("confirmations.deleteContent.content", {
+                                          title: item.displayTitle || item.title,
+                                        }),
+                                        okText: tc("buttons.delete"),
+                                        cancelText: tc("buttons.cancel"),
                                         okButtonProps: { danger: true },
                                         onOk: () => handleDeleteItem(chapter.id, item.id),
                                       });
                                     }}
-                                    disabled={deletingItem === item.id}
+                                    disabled={!canMutateContent || deletingItem === item.id}
                                     className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors disabled:opacity-50"
-                                    title="Xóa"
+                                    title={tc("tooltips.delete")}
                                   >
                                     {deletingItem === item.id ? (
                                       <Spin size="small" />
@@ -743,11 +995,11 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                         })}
                       </div>
                     ) : (
-                      <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                          Chương này chưa có nội dung nào
+                    <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                          {tc("empty.chapterHasNoContent")}
                         </p>
-                        {canManage && (
+                        {canMutateContent && (
                           <div className="flex justify-center gap-3 flex-wrap">
                             <button
                               onClick={() =>
@@ -757,7 +1009,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                               }
                               className="text-xs text-primary hover:underline font-medium"
                             >
-                              + Thêm bài giảng
+                              {tc("actions.addLesson")}
                             </button>
                             <button
                               onClick={() =>
@@ -767,7 +1019,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                               }
                               className="text-xs text-primary hover:underline font-medium"
                             >
-                              + Thêm bài kiểm tra
+                              {tc("actions.addQuiz")}
                             </button>
                           </div>
                         )}
@@ -782,45 +1034,108 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
           <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
             <AcademicCapIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <p className="text-gray-600 dark:text-gray-400 font-semibold text-base mb-1">
-              Chưa có chương nào
+              {tc("empty.noChapters")}
             </p>
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {canManage
-                ? 'Nhấn "Thêm chương" để bắt đầu thiết lập nội dung lớp học.'
-                : "Giáo viên chưa thiết lập nội dung cho lớp học này."}
+                ? tc("empty.noChaptersAdminHint")
+                : tc("empty.noChaptersTeacherHint")}
             </p>
           </div>
         )}
       </div>
 
+      <Modal
+        title={t("classContent.lessonCompletionPicker.title")}
+        open={lessonProgressPickerOpen}
+        onCancel={closeLessonProgressPicker}
+        footer={null}
+        width={860}
+        centered
+      >
+        <div className="space-y-5">
+          <p className="m-0 text-sm text-slate-500 dark:text-slate-400">
+            {t("classContent.lessonCompletionPicker.subtitle")}
+          </p>
+          <Input.Search
+            allowClear
+            value={lessonProgressPickerKeyword}
+            onChange={(event) => setLessonProgressPickerKeyword(event.target.value)}
+            placeholder={t("classContent.lessonCompletionPicker.filters.searchPlaceholder")}
+          />
+          {lessonProgressPickerLoading ? (
+            <div className="flex min-h-48 items-center justify-center">
+              <Spin size="large" />
+            </div>
+          ) : filteredLessonProgressPickerRows.length > 0 ? (
+            <div className="space-y-3">
+              {filteredLessonProgressPickerRows.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
+                      {item.displayTitle || item.title || t("classContent.unknownItem")}
+                    </p>
+                    <p className="m-0 truncate text-xs text-slate-500 dark:text-slate-400">
+                      {item.chapterTitle || t("classContent.lessonCompletionPicker.defaults.noChapter")}
+                    </p>
+                  </div>
+                  <Button
+                    type="primary"
+                    onClick={async () => {
+                      closeLessonProgressPicker();
+                      await openLessonCompletionModal(item);
+                    }}
+                  >
+                    {t("classContent.lessonCompletionPicker.table.action")}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty
+              description={
+                <span className="text-slate-500 dark:text-slate-400">
+                  {lessonProgressPickerRows.length > 0
+                    ? t("classContent.lessonCompletionPicker.empty.filtered")
+                    : t("classContent.lessonCompletionPicker.empty.default")}
+                </span>
+              }
+            />
+          )}
+        </div>
+      </Modal>
+
       {/* ── Create Chapter Modal ── */}
       <Modal
-        title="Thêm chương mới"
+        title={tc("modals.createChapter.title")}
         open={createChapterModal}
         onCancel={() => { setCreateChapterModal(false); createChapterForm.resetFields(); }}
         onOk={() => createChapterForm.submit()}
         confirmLoading={creatingChapter}
-        okText="Thêm chương"
-        cancelText="Hủy"
+        okText={tc("buttons.addChapter")}
+        cancelText={tc("buttons.cancel")}
         centered
       >
         <Form form={createChapterForm} layout="vertical" onFinish={handleCreateChapter} className="mt-4">
           <Form.Item
-            label="Tên chương"
+            label={tc("forms.chapterTitle.label")}
             name="title"
-            rules={[{ required: true, message: "Vui lòng nhập tên chương" }]}
+            rules={[{ required: true, message: tc("forms.chapterTitle.required") }]}
           >
-            <Input placeholder="Ví dụ: Chương 1 - Giới thiệu" />
+            <Input placeholder={tc("forms.chapterTitle.placeholder")} />
           </Form.Item>
-          <Form.Item label="Mô tả" name="description">
-            <Input.TextArea rows={3} placeholder="Nhập mô tả chương (tùy chọn)..." />
+          <Form.Item label={tc("forms.description.label")} name="description">
+            <Input.TextArea rows={3} placeholder={tc("forms.description.placeholder")} />
           </Form.Item>
         </Form>
       </Modal>
 
       {/* ── Delete Chapter Modal ── */}
       <Modal
-        title="Xác nhận xóa chương"
+        title={tc("modals.deleteChapter.title")}
         open={deleteChapterId !== null}
         onCancel={() => setDeleteChapterId(null)}
         footer={null}
@@ -828,7 +1143,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
       >
         <div className="py-2">
           <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-            Bạn có chắc chắn muốn xóa chương này? Tất cả nội dung bên trong cũng sẽ bị xóa.
+            {tc("modals.deleteChapter.description")}
           </p>
           <div className="flex justify-end gap-3">
             <button
@@ -836,7 +1151,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
               disabled={deleting}
               className="px-5 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition-colors font-medium"
             >
-              Hủy
+              {tc("buttons.cancel")}
             </button>
             <button
               onClick={confirmDeleteChapter}
@@ -844,7 +1159,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
               className="px-5 py-2 rounded-lg bg-red-600 text-white flex items-center gap-2 hover:bg-red-700 transition-colors font-medium shadow-sm disabled:opacity-70"
             >
               {deleting ? <Spin size="small" /> : <TrashIcon className="h-4 w-4" />}
-              Xóa chương
+              {tc("buttons.deleteChapter")}
             </button>
           </div>
         </div>
@@ -852,67 +1167,215 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
       {/* ── Edit Chapter Modal ── */}
       <Modal
-        title="Chỉnh sửa chương"
+        title={tc("modals.editChapter.title")}
         open={editChapterModal.visible}
         onCancel={() => setEditChapterModal({ visible: false, chapter: null })}
         onOk={() => editChapterForm.submit()}
         confirmLoading={savingChapter}
-        okText="Lưu thay đổi"
-        cancelText="Hủy"
+        okText={tc("buttons.saveChanges")}
+        cancelText={tc("buttons.cancel")}
         centered
       >
         <Form form={editChapterForm} layout="vertical" onFinish={handleSaveChapter} className="mt-4">
           <Form.Item
-            label="Tên chương"
+            label={tc("forms.chapterTitle.label")}
             name="title"
-            rules={[{ required: true, message: "Vui lòng nhập tên chương" }]}
+            rules={[{ required: true, message: tc("forms.chapterTitle.required") }]}
           >
-            <Input placeholder="Nhập tên chương..." />
+            <Input placeholder={tc("forms.chapterTitle.editPlaceholder")} />
           </Form.Item>
-          <Form.Item label="Mô tả" name="description">
-            <Input.TextArea rows={3} placeholder="Nhập mô tả chương (tùy chọn)..." />
+          <Form.Item label={tc("forms.description.label")} name="description">
+            <Input.TextArea rows={3} placeholder={tc("forms.description.placeholder")} />
           </Form.Item>
         </Form>
       </Modal>
 
       {/* ── Edit Content Item Modal ── */}
       <Modal
-        title="Chỉnh sửa nội dung"
+        title={tc("modals.editContent.title")}
         open={editItemModal.visible}
         onCancel={() => setEditItemModal({ visible: false, item: null, chapterId: null })}
         onOk={() => editItemForm.submit()}
         confirmLoading={savingItem}
-        okText="Lưu thay đổi"
-        cancelText="Hủy"
+        okText={tc("buttons.saveChanges")}
+        cancelText={tc("buttons.cancel")}
         centered
         width={480}
       >
         <Form form={editItemForm} layout="vertical" onFinish={handleSaveItem} className="mt-4">
           <div className="grid grid-cols-2 gap-4">
-            <Form.Item label="Ẩn với học sinh" name="hidden" valuePropName="checked">
+            <Form.Item label={tc("forms.editContent.hidden")} name="hidden" valuePropName="checked">
               <Switch />
             </Form.Item>
-            <Form.Item label="Khóa truy cập" name="locked" valuePropName="checked">
+            <Form.Item label={tc("forms.editContent.locked")} name="locked" valuePropName="checked">
               <Switch />
             </Form.Item>
           </div>
-          <Form.Item label="Mở từ ngày" name="availableFrom">
+          <Form.Item label={tc("forms.editContent.availableFrom")} name="availableFrom">
             <DatePicker
               className="w-full"
               showTime
               format="DD/MM/YYYY HH:mm"
-              placeholder="Chọn ngày bắt đầu (tùy chọn)"
+              placeholder={tc("forms.editContent.availableFromPlaceholder")}
             />
           </Form.Item>
-          <Form.Item label="Đến ngày" name="availableTo">
+          <Form.Item label={tc("forms.editContent.availableTo")} name="availableTo">
             <DatePicker
               className="w-full"
               showTime
               format="DD/MM/YYYY HH:mm"
-              placeholder="Chọn ngày kết thúc (tùy chọn)"
+              placeholder={tc("forms.editContent.availableToPlaceholder")}
             />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={null}
+        open={lessonCompletionModal.open}
+        onCancel={closeLessonCompletionModal}
+        footer={null}
+        width={860}
+        centered
+      >
+        <div className="space-y-5">
+          <div className="space-y-1">
+            <p className="m-0 text-xs font-medium uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+              {t("classContent.lessonCompletion.title")}
+            </p>
+            <h3 className="m-0 text-lg font-semibold text-slate-900 dark:text-white">
+              {lessonCompletionModal.title}
+            </h3>
+            <p className="m-0 text-sm text-slate-500 dark:text-slate-400">
+              {t("classContent.lessonCompletion.subtitle")}
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70">
+              <p className="m-0 text-xs text-slate-500 dark:text-slate-400">
+                {t("classContent.lessonCompletion.summary.students")}
+              </p>
+              <p className="m-0 mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
+                {lessonCompletionRows.length}
+              </p>
+            </div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+              <p className="m-0 text-xs text-emerald-700 dark:text-emerald-300">
+                {t("classContent.lessonCompletion.summary.completed")}
+              </p>
+              <p className="m-0 mt-1 text-2xl font-semibold text-emerald-700 dark:text-emerald-200">
+                {lessonCompletionCounts.completed}
+              </p>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+              <p className="m-0 text-xs text-amber-700 dark:text-amber-300">
+                {t("classContent.lessonCompletion.summary.notCompleted")}
+              </p>
+              <p className="m-0 mt-1 text-2xl font-semibold text-amber-700 dark:text-amber-200">
+                {lessonCompletionCounts.notCompleted}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <Segmented
+              value={lessonCompletionFilter}
+              onChange={setLessonCompletionFilter}
+              options={[
+                { label: t("classContent.lessonCompletion.filters.status.all"), value: "ALL" },
+                { label: t("classContent.lessonCompletion.filters.status.completed"), value: "COMPLETED" },
+                { label: t("classContent.lessonCompletion.filters.status.notCompleted"), value: "NOT_COMPLETED" },
+              ]}
+            />
+            <Input.Search
+              allowClear
+              value={lessonCompletionKeyword}
+              onChange={(event) => setLessonCompletionKeyword(event.target.value)}
+              placeholder={t("classContent.lessonCompletion.filters.searchPlaceholder")}
+              className="w-full lg:max-w-sm"
+            />
+          </div>
+
+          {lessonCompletionLoading ? (
+            <div className="flex min-h-56 items-center justify-center">
+              <Spin size="large" />
+            </div>
+          ) : filteredLessonCompletionRows.length > 0 ? (
+            <div className="space-y-3">
+              {filteredLessonCompletionRows.map((row) => {
+                const initials = (row.studentName || "U").trim().charAt(0).toUpperCase();
+                return (
+                  <div
+                    key={row.studentId}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      {row.avatarUrl ? (
+                        <img
+                          src={row.avatarUrl}
+                          alt={row.studentName || t("classContent.lessonCompletion.table.student")}
+                          className="h-11 w-11 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                          {initials}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
+                          {row.studentName || t("reportsPage.shared.defaults.noName")}
+                        </p>
+                        <p className="m-0 truncate text-xs text-slate-500 dark:text-slate-400">
+                          {row.studentNumber || row.email || t("classContent.lessonCompletion.defaults.noStudentInfo")}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-[140px_180px] md:items-center">
+                      <div>
+                        <p className="m-0 text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                          {t("classContent.lessonCompletion.table.status")}
+                        </p>
+                        <span
+                          className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                            row.completed
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+                          }`}
+                        >
+                          {row.completed
+                            ? t("classContent.lessonCompletion.status.completed")
+                            : t("classContent.lessonCompletion.status.notCompleted")}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="m-0 text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                          {t("classContent.lessonCompletion.table.completedAt")}
+                        </p>
+                        <p className="m-0 mt-1 text-sm text-slate-700 dark:text-slate-300">
+                          {formatCompletionTime(row.completedAt)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 dark:border-slate-700 dark:bg-slate-800/60">
+              <Empty
+                description={
+                  <span className="text-slate-500 dark:text-slate-400">
+                    {lessonCompletionRows.length > 0
+                      ? t("classContent.lessonCompletion.empty.filtered")
+                      : t("classContent.lessonCompletion.empty.default")}
+                  </span>
+                }
+              />
+            </div>
+          )}
+        </div>
       </Modal>
 
       {/* ── Comment Drawer ── */}
@@ -922,7 +1385,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
             <div className="flex items-center gap-2 min-w-0">
               <ChatBubbleLeftEllipsisIcon className="h-5 w-5 text-indigo-500 shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mb-0.5">Bình luận bài học</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mb-0.5">{t("classContent.lessonComments.title")}</p>
                 <h3 className="font-semibold text-sm text-[#111418] dark:text-white truncate">{commentDrawer.title}</h3>
               </div>
             </div>
@@ -934,7 +1397,10 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-4">
-            <LessonComments lectureId={commentDrawer.lessonId} />
+            <LessonComments
+              lectureId={commentDrawer.lessonId}
+              readOnlyReason={archived ? t("lessonComments.archivedReadOnly") : null}
+            />
           </div>
         </div>
       )}

@@ -2,26 +2,43 @@ import React from "react";
 import { PhotoIcon, TrashIcon } from "@heroicons/react/24/outline";
 import MediaAttachButton from "./MediaAttachButton";
 
-const toPreviewResource = (imageUrl) => {
+const toPreviewResource = (imageUrl, resourceId) => {
   if (!imageUrl) return null;
   return {
+    id: resourceId || null,
     type: "IMAGE",
     fileUrl: imageUrl,
     title: "Class cover",
   };
 };
 
-const toImageUrl = (resource) => {
-  if (!resource) return null;
-  return resource.fileUrl || resource.embedUrl || resource.hlsUrl || null;
+const toImagePatch = (resource) => ({
+  imageUrl: resource ? (resource.fileUrl || resource.embedUrl || resource.hlsUrl || null) : null,
+  imageResourceId: resource?.id || null,
+});
+
+const normalizeValue = (value) => {
+  if (value && typeof value === "object" && ("imageUrl" in value || "imageResourceId" in value)) {
+    return {
+      imageUrl: value.imageUrl || null,
+      imageResourceId: value.imageResourceId || null,
+    };
+  }
+  return {
+    imageUrl: typeof value === "string" ? value : null,
+    imageResourceId: null,
+  };
 };
 
 export default function ClassCoverField({
   imageUrl,
+  resourceId,
   onChange,
   title = "Ảnh lớp học",
   description = "Chọn ảnh từ kho media, dán link ảnh, hoặc tải ảnh mới lên.",
 }) {
+  const previewResource = toPreviewResource(imageUrl, resourceId);
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
       <div className="mb-3">
@@ -52,15 +69,15 @@ export default function ClassCoverField({
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <MediaAttachButton
-          resource={toPreviewResource(imageUrl)}
+          resource={previewResource}
           allowedTypes={["IMAGE"]}
           label={imageUrl ? "Đổi ảnh" : "Chọn ảnh"}
-          onChange={(mediaPatch) => onChange?.(toImageUrl(mediaPatch?.resource))}
+          onChange={(mediaPatch) => onChange?.(normalizeValue(toImagePatch(mediaPatch?.resource)))}
         />
         {imageUrl ? (
           <button
             type="button"
-            onClick={() => onChange?.(null)}
+            onClick={() => onChange?.(normalizeValue(null))}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-slate-600 dark:bg-slate-800 dark:text-red-400 dark:hover:bg-red-900/20"
           >
             <TrashIcon className="h-4 w-4" />

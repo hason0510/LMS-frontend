@@ -162,7 +162,6 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
     const values = new Set();
     items.forEach((item) => {
       if (item.assignmentTitle) values.add(item.assignmentTitle);
-      if (item.classSectionTitle) values.add(item.classSectionTitle);
     });
     return Array.from(values).slice(0, 12).map((value) => ({ value }));
   }, [items]);
@@ -262,14 +261,6 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
     [basePath, navigate, t]
   );
 
-  const courseSelectOptions = useMemo(
-    () => [
-      { label: t("assignments.allCourses"), value: undefined },
-      ...classOptions,
-    ],
-    [classOptions, t]
-  );
-
   const sortOptions = [
     { label: t("assignments.sortDesc"), value: "DESC" },
     { label: t("assignments.sortAsc"), value: "ASC" },
@@ -321,14 +312,16 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
                       <Input prefix={<SearchOutlined />} placeholder={t("assignments.searchPlaceholder")} />
                     </AutoComplete>
                     <Select
+                      allowClear
                       loading={loadingClasses}
                       showSearch
                       optionFilterProp="label"
                       value={classSectionId}
                       onChange={(v) => setClassSectionId(v)}
-                      options={courseSelectOptions}
+                      options={classOptions}
                       className="w-full"
                       popupMatchSelectWidth={false}
+                      placeholder={t("assignments.classFilterPlaceholder")}
                     />
                     <Select
                       value={sortOrder}

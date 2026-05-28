@@ -116,6 +116,11 @@ export const getClassContentItems = async (classSectionId, chapterId) => {
   return response.data;
 };
 
+export const getClassContentCompletion = async (classSectionId, classContentItemId) => {
+  const response = await axiosClient.get(`class-sections/${classSectionId}/content-items/${classContentItemId}/completion`);
+  return unwrapPayload(response);
+};
+
 export const getApprovedClassSections = async () => {
   const response = await axiosClient.get('class-sections/approved');
   return response.data;

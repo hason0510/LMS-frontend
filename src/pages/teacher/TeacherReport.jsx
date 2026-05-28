@@ -1,121 +1,147 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Alert, App, Button, Spin } from "antd";
+import { CheckOutlined, CloseOutlined, ReloadOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
+import {
+  ChartBarIcon,
+  DocumentChartBarIcon,
+  PresentationChartLineIcon,
+} from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
-import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
-import { getTeacherCourses, getAdminCourses } from "../../api/classSection";
-import { 
-  approveEnrollment, 
-  rejectEnrollment 
-} from "../../api/enrollment";
+import ClassSectionReportContent from "../../components/report/ClassSectionReportContent";
+import { getClassPeople, getMyTeachingClasses } from "../../api/teaching";
+import { approveEnrollment, rejectEnrollment } from "../../api/enrollment";
+import { getTeachingAssignments } from "../../api/assignment";
+import { getManagedQuizAttempts } from "../../api/quiz";
 import {
-  getCourseGradeBook,
-  getCourseApprovedStudents,
-  getCoursePendingRequests,
+  getClassSectionGradeBook,
+  getClassSectionPendingRequests,
 } from "../../api/statistics";
-import { Spin, Alert, Table, Tabs, Statistic, Row, Col, Card, Select, App, Space, Button } from "antd";
-import {
-  CheckOutlined,
-  CloseOutlined,
-} from "@ant-design/icons";
-import {
-  AcademicCapIcon,
-  UserGroupIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  TrophyIcon,
-  ArrowRightIcon,
-} from "@heroicons/react/24/outline";
+import { collectAllPagedItems, unwrapApiData, unwrapPageItems } from "../../utils/reporting";
 
-export default function TeacherReport({ isAdmin = false }) {
-  const navigate = useNavigate();
+export default function TeacherReport() {
   const { message: messageApi, modal: modalApi } = App.useApp();
-  const [courses, setCourses] = useState([]);
-  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [classSections, setClassSections] = useState([]);
   const [gradeBook, setGradeBook] = useState([]);
-  const [approvedStudents, setApprovedStudents] = useState([]);
+  const [peopleRows, setPeopleRows] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [assignmentOverviews, setAssignmentOverviews] = useState([]);
+  const [quizAttempts, setQuizAttempts] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  useEffect(() => {
-    const handleResize = () => {
-      setSidebarCollapsed(window.innerWidth < 1024);
-    };
+  const selectedClassSectionId = Number(searchParams.get("classSectionId")) || null;
+  const activeTab = searchParams.get("tab") || "overview";
 
+  useEffect(() => {
+    const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    fetchCourses();
+    loadClassSections();
   }, []);
 
   useEffect(() => {
-    if (selectedCourseId && activeTab) {
-      fetchCourseData();
+    if (!selectedClassSectionId) {
+      return;
     }
-  }, [selectedCourseId, activeTab]);
+    loadReportData(selectedClassSectionId);
+  }, [selectedClassSectionId]);
 
-  const fetchCourses = async () => {
+  const updateSearchState = (classSectionId, tab = activeTab) => {
+    const nextParams = new URLSearchParams();
+    if (classSectionId) {
+      nextParams.set("classSectionId", String(classSectionId));
+    }
+    if (tab && tab !== "overview") {
+      nextParams.set("tab", tab);
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const loadClassSections = async () => {
     try {
-      setLoading(true);
-      // Use different API based on role (admin gets all courses, teacher gets only their courses)
-      const res = isAdmin ? await getAdminCourses(1, 100) : await getTeacherCourses(1, 100);
-      
-      // res is ApiResponse, res.data is the actual list (since getClassSections returns List<...>)
-      const coursesList = res.data || [];
-      setCourses(coursesList);
-      if (coursesList.length > 0) {
-        setSelectedCourseId(coursesList[0].id);
+      setLoadingClasses(true);
+      setError(null);
+      const response = await getMyTeachingClasses();
+      const items = Array.isArray(response) ? response : response?.data || [];
+      setClassSections(items);
+
+      if (!items.length) {
+        return;
+      }
+
+      const hasSelectedClass = items.some((item) => item.id === selectedClassSectionId);
+      if (!hasSelectedClass) {
+        updateSearchState(items[0].id, activeTab);
       }
     } catch (err) {
-      setError(err.message || "Lỗi khi tải khóa học");
+      setError(err?.response?.data?.message || err.message || t("reportsPage.teacher.errors.loadClasses"));
     } finally {
-      setLoading(false);
+      setLoadingClasses(false);
     }
   };
 
-  const fetchCourseData = async () => {
+  const loadReportData = async (classSectionId = selectedClassSectionId) => {
+    if (!classSectionId) {
+      return;
+    }
+
     try {
-      setLoading(true);
-      const [gradeBookRes, approvedRes, pendingRes] = await Promise.all([
-        getCourseGradeBook(null, selectedCourseId),
-        getCourseApprovedStudents(null, selectedCourseId, 1, 100),
-        getCoursePendingRequests(null, selectedCourseId, 1, 100),
+      setLoadingReport(true);
+      setError(null);
+      const [gradeBookResponse, peopleResponse, pendingRequestsItems, assignmentsResponse, quizAttemptItems] = await Promise.all([
+        getClassSectionGradeBook(classSectionId),
+        getClassPeople(classSectionId, { status: "APPROVED" }),
+        collectAllPagedItems(
+          (pageNumber) => getClassSectionPendingRequests(classSectionId, pageNumber, 250),
+          { startPage: 1, maxPages: 8 }
+        ),
+        getTeachingAssignments({ classSectionId, tab: "ALL" }),
+        collectAllPagedItems(
+          (page) => getManagedQuizAttempts({ classSectionId, page, size: 250 }),
+          { startPage: 0, maxPages: 12, zeroBased: true }
+        ),
       ]);
 
-      // All Res are now ApiResponse objects { code, message, data }
-      setGradeBook(gradeBookRes.data || []);
-      
-      // approvedRes.data is PageResponse { pageList, ... } or List depending on backend
-      // Looking at enrollment/statistics API, it's usually PageResponse for these
-      setApprovedStudents(approvedRes.data?.pageList || []);
-      setPendingRequests(pendingRes.data?.pageList || []);
+      setGradeBook(Array.isArray(unwrapApiData(gradeBookResponse)) ? unwrapApiData(gradeBookResponse) : []);
+      setPeopleRows(Array.isArray(peopleResponse) ? peopleResponse : peopleResponse?.data || []);
+      setPendingRequests(pendingRequestsItems);
+      setAssignmentOverviews(unwrapPageItems(assignmentsResponse));
+      setQuizAttempts(quizAttemptItems);
     } catch (err) {
-      setError(err.message || "Lỗi khi tải dữ liệu");
+      setError(err?.response?.data?.message || err.message || t("reportsPage.teacher.errors.loadReport"));
     } finally {
-      setLoading(false);
+      setLoadingReport(false);
     }
   };
+
+  const currentClassSection = classSections.find((item) => item.id === selectedClassSectionId) || null;
 
   const handleApprove = (record) => {
     modalApi.confirm({
-      title: "Phê duyệt tham gia lớp học",
-      content: `Bạn có chắc muốn phê duyệt cho học viên "${record.fullName}" tham gia lớp học này?`,
-      okText: "Duyệt",
-      cancelText: "Hủy",
+      title: t("reportsPage.shared.modals.approve.title"),
+      content: t("reportsPage.teacher.modals.approve.content", { name: record.fullName }),
+      okText: t("reportsPage.shared.actions.approve"),
+      cancelText: t("common.huyBo"),
+      okButtonProps: { icon: <CheckOutlined /> },
       async onOk() {
         try {
-          await approveEnrollment(record.studentId, record.courseId, record.classSectionId);
-          messageApi.success("Đã duyệt học viên thành công");
-          fetchCourseData();
+          await approveEnrollment(record.studentId, null, record.classSectionId);
+          messageApi.success(t("reportsPage.shared.messages.approveSuccess"));
+          loadReportData();
         } catch (err) {
-          messageApi.error("Phê duyệt thất bại: " + err.message);
+          messageApi.error(err?.response?.data?.message || err.message || t("reportsPage.shared.errors.approveFailed"));
         }
       },
     });
@@ -123,346 +149,123 @@ export default function TeacherReport({ isAdmin = false }) {
 
   const handleReject = (record) => {
     modalApi.confirm({
-      title: "Từ chối yêu cầu tham gia",
-      content: `Yêu cầu tham gia của "${record.fullName}" sẽ bị từ chối. Bạn có chắc chắn không?`,
-      okText: "Từ chối",
-      cancelText: "Hủy",
-      okButtonProps: { danger: true },
+      title: t("reportsPage.shared.modals.reject.title"),
+      content: t("reportsPage.teacher.modals.reject.content", { name: record.fullName }),
+      okText: t("reportsPage.shared.actions.reject"),
+      cancelText: t("common.huyBo"),
+      okButtonProps: { danger: true, icon: <CloseOutlined /> },
       async onOk() {
         try {
-          await rejectEnrollment(record.studentId, record.courseId, record.classSectionId);
-          messageApi.success("Đã từ chối yêu cầu thành công");
-          fetchCourseData();
+          await rejectEnrollment(record.studentId, null, record.classSectionId);
+          messageApi.success(t("reportsPage.shared.messages.rejectSuccess"));
+          loadReportData();
         } catch (err) {
-          messageApi.error("Thao tác thất bại: " + err.message);
+          messageApi.error(err?.response?.data?.message || err.message || t("reportsPage.shared.errors.rejectFailed"));
         }
       },
     });
   };
 
-  const currentCourse = courses.find((c) => c.id === selectedCourseId);
-
-  // Tính toán statistics
-  const calculateStats = () => {
-    const totalStudents = approvedStudents?.length || 0;
-    const pendingCount = pendingRequests?.length || 0;
-    
-    // Tính tổng số bài kiểm tra và điểm trung bình từ gradeBook
-    let totalQuizzes = 0;
-    let totalGrade = 0;
-    let uniqueStudents = new Set();
-
-    if (gradeBook && gradeBook.length > 0) {
-      gradeBook.forEach((item) => {
-        uniqueStudents.add(item.studentId);
-        totalQuizzes += item.maxGrade || 0;
-        totalGrade += item.maxGrade || 0;
-      });
-    }
-
-    const avgScore = totalQuizzes > 0 ? (totalGrade / gradeBook.length).toFixed(2) : 0;
-    const completionRate = gradeBook.length > 0 ? "100" : "0"; // Mỗi hàng là một attempt hoàn thành
-
-    return { totalStudents, pendingCount, avgScore, completionRate };
-  };
-
-  const stats = calculateStats();
-
-  // Table columns for grade book
-  const gradeBookColumns = [
-    {
-      title: "Sinh viên",
-      dataIndex: "studentName",
-      key: "studentName",
-      sorter: (a, b) => (a.studentName || "").localeCompare(b.studentName || ""),
-    },
-    {
-      title: "Mã sinh viên",
-      dataIndex: "studentNumber",
-      key: "studentNumber",
-      sorter: (a, b) => (a.studentNumber || "").localeCompare(b.studentNumber || ""),
-    },
-    {
-      title: "Tên bài kiểm tra",
-      dataIndex: "quizTitle",
-      key: "quizTitle",
-      sorter: (a, b) => (a.quizTitle || "").localeCompare(b.quizTitle || ""),
-    },
-    {
-      title: "Điểm cao nhất",
-      dataIndex: "maxGrade",
-      key: "maxGrade",
-      sorter: (a, b) => (a.maxGrade || 0) - (b.maxGrade || 0),
-    },
-  ];
-
-  const approvedColumns = [
-    {
-      title: "Tên học viên",
-      dataIndex: "fullName",
-      key: "fullName",
-      sorter: (a, b) => (a.fullName || "").localeCompare(b.fullName || ""),
-    },
-    {
-      title: "Mã sinh viên",
-      dataIndex: "studentNumber",
-      key: "studentNumber",
-      sorter: (a, b) => (a.studentNumber || "").localeCompare(b.studentNumber || ""),
-    },
-    // {
-    //   title: "Tên đăng nhập",
-    //   dataIndex: "userName",
-    //   key: "userName",
-    // },
-    {
-      title: "Tiến độ",
-      dataIndex: "progress",
-      key: "progress",
-      render: (progress) => `${progress || 0}%`,
-      sorter: (a, b) => (a.progress || 0) - (b.progress || 0),
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "approvalStatus",
-      key: "approvalStatus",
-      render: (status) => (
-        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
-          {status === "APPROVED" ? "Đã duyệt" : status}
-        </span>
-      ),
-    },
-  ];
-
-  const pendingColumns = [
-    {
-      title: "Tên học viên",
-      dataIndex: "fullName",
-      key: "fullName",
-      sorter: (a, b) => (a.fullName || "").localeCompare(b.fullName || ""),
-    },
-    {
-      title: "Mã sinh viên",
-      dataIndex: "studentNumber",
-      key: "studentNumber",
-      sorter: (a, b) => (a.studentNumber || "").localeCompare(b.studentNumber || ""),
-    },
-    // {
-    //   title: "Tên đăng nhập",
-    //   dataIndex: "userName",
-    //   key: "userName",
-    // },
-    {
-      title: "Tiến độ",
-      dataIndex: "progress",
-      key: "progress",
-      render: (progress) => `${progress || 0}%`,
-      sorter: (a, b) => (a.progress || 0) - (b.progress || 0),
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "approvalStatus",
-      key: "approvalStatus",
-      render: (status) => (
-        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm">
-          {status === "PENDING" ? "Chờ duyệt" : status}
-        </span>
-      ),
-    },
-    {
-      title: "Hành động",
-      key: "action",
-      align: "right",
-      render: (_, record) => (
-        <Space size="middle">
-          <Button
-            type="link"
-            icon={<CheckOutlined />}
-            size="small"
-            className="text-green-600 hover:text-green-700 p-0"
-            onClick={() => handleApprove(record)}
-          >
-            Duyệt
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<CloseOutlined />}
-            size="small"
-            className="p-0"
-            onClick={() => handleReject(record)}
-          >
-            Từ chối
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  const tabItems = [
-    {
-      key: "overview",
-      label: "Tổng quan",
-      children: (
-        <div>
-          {selectedCourseId && (
-            <Row gutter={[16, 16]} className="mb-6">
-              <Col xs={24} sm={12} md={6}>
-                <Card variant="borderless" className="shadow-sm">
-                  <Statistic
-                    title="Tổng học viên"
-                    value={stats.totalStudents}
-                    prefix={<AcademicCapIcon className="h-5 w-5 text-blue-500" />}
-                  />
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card variant="borderless" className="shadow-sm">
-                  <Statistic
-                    title="Yêu cầu chờ duyệt"
-                    value={stats.pendingCount}
-                    styles={{ content: { color: "#faad14" } }}
-                    prefix={<ClockIcon className="h-5 w-5 text-yellow-500" />}
-                  />
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card variant="borderless" className="shadow-sm">
-                  <Statistic
-                    title="Điểm trung bình"
-                    value={stats.avgScore}
-                    suffix="/ 100"
-                    styles={{ content: { color: "#52c41a" } }}
-                    prefix={<TrophyIcon className="h-5 w-5 text-green-500" />}
-                  />
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card variant="borderless" className="shadow-sm">
-                  <Statistic
-                    title="Tỉ lệ hoàn thành"
-                    value={stats.completionRate}
-                    suffix="%"
-                    styles={{ content: { color: "#1890ff" } }}
-                    prefix={<CheckCircleIcon className="h-5 w-5 text-blue-500" />}
-                  />
-                </Card>
-              </Col>
-            </Row>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "grades",
-      label: "Bảng điểm",
-      children: (
-        <Table
-          columns={gradeBookColumns}
-          dataSource={gradeBook.map((item, idx) => ({ ...item, key: idx }))}
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          bordered
-          size="small"
-        />
-      ),
-    },
-    {
-      key: "approved",
-      label: `Học viên đã duyệt (${approvedStudents.length})`,
-      children: (
-        <Table
-          columns={approvedColumns}
-          dataSource={approvedStudents.map((item, idx) => ({ ...item, key: item.id || idx }))}
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          bordered
-          size="small"
-        />
-      ),
-    },
-    {
-      key: "pending",
-      label: `Yêu cầu chờ duyệt (${pendingRequests.length})`,
-      children: (
-        <Table
-          columns={pendingColumns}
-          dataSource={pendingRequests.map((item, idx) => ({ ...item, key: item.id || idx }))}
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          bordered
-          size="small"
-        />
-      ),
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
+    <div className="teacher-report-page report-page min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <TeacherHeader />
-
       <div className="flex">
-        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-
-        <main className={`flex-1 bg-slate-50 dark:bg-slate-900 pt-16 transition-all duration-300 ${
-          sidebarCollapsed ? "pl-20" : "pl-64"
-        }`}>
-          <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl mx-auto">
+        <TeacherSidebar />
+        <main
+          className={`flex-1 pt-16 transition-all duration-300 ${
+            sidebarCollapsed ? "pl-20" : "pl-64"
+          }`}
+        >
+          <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <AppBreadcrumb className="mb-5" />
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-              <div>
-                <h1 className="text-2xl md:text-3xl text-[#111418] dark:text-white font-bold leading-tight tracking-[-0.015em]">
-                  Báo cáo & Thống kê
+
+            <section className="overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#0f766e_0%,#1d4ed8_100%)] p-6 text-white shadow-xl sm:p-8">
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                <div className="max-w-3xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-white/80">
+                  <DocumentChartBarIcon className="h-4 w-4" />
+                  {t("reportsPage.teacher.hero.badge")}
+                </div>
+                <h1 className="m-0 mt-4 text-3xl font-black tracking-tight sm:text-4xl">
+                  {t("reportsPage.teacher.hero.title")}
                 </h1>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Theo dõi tiến độ học viên và kết quả bài kiểm tra.
+                <p className="m-0 mt-3 max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
+                  {t("reportsPage.teacher.hero.subtitle")}
                 </p>
               </div>
-            </div>
 
-            {error && <Alert message="Lỗi" description={error} type="error" showIcon className="mb-6" />}
-
-            {loading && courses.length === 0 ? (
-              <div className="flex justify-center py-12">
-                <Spin size="large" />
-              </div>
-            ) : courses.length === 0 ? (
-              <Alert
-                message="Không có khóa học"
-                description="Bạn chưa tạo khóa học nào. Hãy tạo khóa học để xem báo cáo."
-                type="info"
-                showIcon
-              />
-            ) : (
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-[#111418] dark:text-white mb-2">
-                    Chọn khóa học
-                  </label>
-                  <Select
-                    value={selectedCourseId}
-                    onChange={setSelectedCourseId}
-                    style={{ width: "100%", minWidth: 300 }}
-                    showSearch
-                    optionFilterProp="label"
-                    options={courses.map((course) => ({
-                      value: course.id,
-                      label: course.title,
-                    }))}
-                    className="h-10"
-                  />
-                </div>
-
-                <Tabs
-                  activeKey={activeTab}
-                  onChange={setActiveTab}
-                  items={tabItems}
-                  className="mb-6"
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <HeroInsight
+                  icon={<ChartBarIcon className="h-5 w-5" />}
+                  label={t("reportsPage.teacher.hero.scopeLabel")}
+                  value={currentClassSection?.title || t("reportsPage.teacher.hero.scopeValue")}
+                />
+                <HeroInsight
+                  icon={<PresentationChartLineIcon className="h-5 w-5" />}
+                  label={t("reportsPage.teacher.hero.sourceLabel")}
+                  value={t("reportsPage.teacher.hero.sourceValue")}
                 />
               </div>
+            </div>
+          </section>
+
+          <div className="mt-6">
+            {error ? <Alert type="error" showIcon message={t("reportsPage.shared.alertTitle")} description={error} className="mb-6" /> : null}
+
+            {loadingClasses ? (
+              <div className="flex min-h-[320px] items-center justify-center">
+                <Spin size="large" />
+              </div>
+            ) : (
+              <ClassSectionReportContent
+                classSections={classSections}
+                selectedClassSectionId={selectedClassSectionId}
+                onSelectClassSection={(classSectionId) => updateSearchState(classSectionId, activeTab)}
+                currentClassSection={currentClassSection}
+                loading={loadingReport}
+                gradeBook={gradeBook}
+                peopleRows={peopleRows}
+                pendingRequests={pendingRequests}
+                assignmentOverviews={assignmentOverviews}
+                quizAttempts={quizAttempts}
+                activeTab={activeTab}
+                onTabChange={(tab) => updateSearchState(selectedClassSectionId, tab)}
+                onApproveRequest={handleApprove}
+                onRejectRequest={handleReject}
+                workspaceBasePath="/teacher"
+                selectorLabel={t("reportsPage.teacher.selectorLabel")}
+                emptyMessage={t("reportsPage.teacher.emptyMessage")}
+                extendedInsights
+              />
             )}
           </div>
-        </main>
+
+          {!loadingClasses && classSections.length > 0 ? (
+            <div className="mt-6 flex justify-end">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => loadReportData()}
+                loading={loadingReport}
+              >
+                {t("reportsPage.teacher.actions.reload")}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </main>
       </div>
+    </div>
+  );
+}
+
+function HeroInsight({ icon, label, value }) {
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+      <div className="flex items-center gap-2 text-white/80">
+        {icon}
+        <span className="text-xs font-bold uppercase tracking-[0.18em]">{label}</span>
+      </div>
+      <p className="m-0 mt-3 text-lg font-black text-white">{value}</p>
     </div>
   );
 }

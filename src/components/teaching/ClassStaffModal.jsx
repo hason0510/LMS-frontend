@@ -177,13 +177,13 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
       <div className="space-y-6 pt-4">
         {/* Info Alerts */}
         <div className="space-y-3">
-          <Alert
+{/*          <Alert
             type="info"
             showIcon
             message={<span className="font-semibold">{t("teaching.staff.roleRuleTitle")}</span>}
             description={<span className="text-sm text-gray-600 dark:text-gray-300">{t("teaching.staff.roleRuleDescription")}</span>}
             className="rounded-xl border-blue-100 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-900/30"
-          />
+          />*/}
           {!canManageStaff && (
             <Alert
               type="warning"

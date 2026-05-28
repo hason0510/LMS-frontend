@@ -1,423 +1,449 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { App, Button, Empty, Input, Modal, Select, Table, Tag } from "antd";
+import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
-import { Table, Input, Select, Button, Space, Tag, Modal, Breadcrumb, Spin, message } from "antd";
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import CustomAvatar from "../../components/common/Avatar";
-import {
-  SearchOutlined,
-  EyeOutlined,
-  MessageOutlined,
-  CheckOutlined,
-  CloseOutlined,
-  DeleteOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
-import {
-  getAllTeacherEnrollments,
-  getAllEnrollments,
-  approveEnrollment,
-  rejectEnrollment,
-  deleteStudentsFromClassSection
-} from "../../api/enrollment";
-import { getTeacherCourses, getAllCourses } from "../../api/classSection";
 import AddStudentModal from "../../components/teacher/AddStudentModal";
 import StudentDetailModal from "../../components/teacher/StudentDetailModal";
+import {
+  approveEnrollment,
+  deleteStudentsFromClassSection,
+  getAllEnrollments,
+  getAllTeacherEnrollments,
+  rejectEnrollment,
+} from "../../api/enrollment";
+import { getAllCourses, getTeacherCourses } from "../../api/classSection";
+
+const DEFAULT_PAGE_SIZE = 10;
+const ACTION_BUTTON_CLASS =
+  "border-slate-300! bg-white! text-slate-700! dark:border-slate-600! dark:bg-slate-800! dark:text-slate-200! hover:border-blue-500! hover:text-blue-500! dark:hover:border-blue-400! dark:hover:text-blue-300!";
+const DANGER_ACTION_BUTTON_CLASS =
+  "border-red-200! bg-white! text-red-600! dark:border-red-900/70! dark:bg-slate-800! dark:text-red-300! hover:border-red-500! hover:text-red-500! dark:hover:border-red-400! dark:hover:text-red-200!";
+
+function normalizeClasses(payload) {
+  const items = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+  return items.map((item) => ({
+    id: item.id,
+    name: item.title || item.classSectionName || item.name || "N/A",
+  }));
+}
 
 export default function TeacherStudentManagement({ isAdmin = false }) {
-  const [selectedRows, setSelectedRows] = useState([]);
-  const [searchText, setSearchText] = useState("");
-  const [classFilter, setClassFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const { message } = App.useApp();
+  const { t } = useTranslation();
+
   const [enrollments, setEnrollments] = useState([]);
-  const [totalEnrollments, setTotalEnrollments] = useState(0);
   const [classes, setClasses] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [displayLoading, setDisplayLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState(undefined);
+  const [selectedStatus, setSelectedStatus] = useState(undefined);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const pageSize = 10;
 
   useEffect(() => {
-    const handleResize = () => {
-      setSidebarCollapsed(window.innerWidth < 1024);
-    };
+    const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
-    if (loading) {
-      const timer = setTimeout(() => {
-        setDisplayLoading(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    } else {
-      setDisplayLoading(false);
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        setError(null);
+        const [enrollmentResponse, classesResponse] = await Promise.all([
+          isAdmin ? getAllEnrollments(1, 1000) : getAllTeacherEnrollments(1, 1000),
+          isAdmin ? getAllCourses(1, 1000) : getTeacherCourses(1, 1000),
+        ]);
 
-        // Fetch enrollments
-        const res = isAdmin
-          ? await getAllEnrollments(currentPage, pageSize)
-          : await getAllTeacherEnrollments(currentPage, pageSize, statusFilter || null);
-
-        console.log("Enrollment Data Response:", res);
-
-        const enrollmentList = (res?.data?.pageList || []).map((enrollment, index) => ({
-          key: enrollment.id || index,
-          id: enrollment.id,
-          studentId: enrollment.studentId,
-          name: enrollment.fullName || enrollment.studentName || "N/A",
-          username: enrollment.userName || enrollment.studentUsername || "N/A",
-          email: enrollment.email || enrollment.gmail || "N/A",
-          avatar: enrollment.studentAvatar || enrollment.avatar || "",
-          classSectionName: enrollment.classSectionTitle || enrollment.className || "N/A",
-          classSectionId: enrollment.classSectionId,
-          courseId: enrollment.courseId,
-          progress: enrollment.progress || 0,
-          approvalStatus: enrollment.approvalStatus || "APPROVED",
-          enrollmentDate: enrollment.createdAt || enrollment.enrolledAt || new Date().toISOString(),
-          studentNumber: enrollment.studentNumber,
-          phoneNumber: enrollment.phoneNumber,
-          birthday: enrollment.birthday,
-          address: enrollment.address,
-        }));
-        setEnrollments(enrollmentList);
-        setTotalEnrollments(res?.totalElements || res?.data?.totalElements || enrollmentList.length);
-
-        try {
-          // Fetch ClassSections for filter
-          const classesRes = isAdmin
-            ? await getAllCourses(1, 1000)
-            : await getTeacherCourses(1, 1000);
-
-          // Backend GET /class-sections returns List, not PageResponse
-          // After ApiResponse wrapping: { code, message, data: [...] }
-          const classListRaw = classesRes?.data || [];
-          const classList = (Array.isArray(classListRaw) ? classListRaw : []).map(cls => ({
-            id: cls.id,
-            name: cls.title || cls.classSectionName || cls.name || "N/A"
-          }));
-          setClasses(classList);
-        } catch (err) {
-          console.error("Failed to fetch classes:", err);
-        }
-      } catch (err) {
-        setError(err.message);
-        message.error("Không thể tải dữ liệu học viên");
+        const rawEnrollmentItems = enrollmentResponse?.data?.pageList || [];
+        setEnrollments(
+          rawEnrollmentItems.map((enrollment, index) => ({
+            key: enrollment.id || index,
+            id: enrollment.id,
+            studentId: enrollment.studentId,
+            name: enrollment.fullName || enrollment.studentName || "N/A",
+            username: enrollment.userName || enrollment.studentUsername || "N/A",
+            email: enrollment.email || enrollment.gmail || "N/A",
+            avatar: enrollment.studentAvatar || enrollment.avatar || "",
+            classSectionName: enrollment.classSectionTitle || enrollment.className || "N/A",
+            classSectionId: enrollment.classSectionId,
+            courseId: enrollment.courseId,
+            progress: enrollment.progress || 0,
+            approvalStatus: enrollment.approvalStatus || "APPROVED",
+            enrollmentDate: enrollment.createdAt || enrollment.enrolledAt || null,
+            studentNumber: enrollment.studentNumber,
+            phoneNumber: enrollment.phoneNumber,
+            birthday: enrollment.birthday,
+            address: enrollment.address,
+          }))
+        );
+        setClasses(normalizeClasses(classesResponse));
+      } catch (error) {
+        console.error(error);
+        message.error(t("teacherLists.students.messages.loadFailed"));
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [classFilter, statusFilter, currentPage, isAdmin, refreshTrigger]);
+    loadData();
+  }, [isAdmin, message, refreshKey, t]);
 
-  const handleApprove = (enrollmentId, studentId, courseId, classSectionId) => {
-    Modal.confirm({
-      title: "Phê duyệt tham gia lớp học",
-      content: "Bạn có chắc muốn cho phép học viên này tham gia lớp học?",
-      okText: "Duyệt",
-      cancelText: "Hủy",
-      async onOk() {
-        try {
-          await approveEnrollment(studentId, courseId, classSectionId);
-          setEnrollments(prev =>
-            prev.map(item => item.id === enrollmentId ? { ...item, approvalStatus: "APPROVED" } : item)
-          );
-          message.success("Đã duyệt học viên!");
-        } catch (err) {
-          message.error("Lỗi: " + err.message);
-        }
-      },
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedClassId, selectedStatus, pageSize]);
+
+  const filteredItems = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    return enrollments.filter((item) => {
+      const matchesKeyword =
+        !keyword ||
+        [item.name, item.username, item.email, item.studentNumber, item.classSectionName]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(keyword));
+      const matchesClass = !selectedClassId || item.classSectionId === selectedClassId;
+      const matchesStatus = !selectedStatus || item.approvalStatus === selectedStatus;
+      return matchesKeyword && matchesClass && matchesStatus;
     });
-  };
+  }, [enrollments, searchQuery, selectedClassId, selectedStatus]);
 
-  const handleReject = (enrollmentId, studentId, courseId, classSectionId) => {
-    Modal.confirm({
-      title: "Từ chối yêu cầu",
-      content: "Học viên này sẽ không được tham gia lớp học. Bạn có chắc không?",
-      okText: "Từ chối",
-      cancelText: "Hủy",
-      okButtonProps: { danger: true },
-      async onOk() {
-        try {
-          await rejectEnrollment(studentId, courseId, classSectionId);
-          setEnrollments(prev =>
-            prev.map(item => item.id === enrollmentId ? { ...item, approvalStatus: "REJECTED" } : item)
-          );
-          message.success("Đã từ chối yêu cầu!");
-        } catch (err) {
-          message.error("Lỗi: " + err.message);
-        }
-      },
-    });
-  };
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, page, pageSize]);
 
-  const handleViewDetail = (record) => {
+  const selectedRows = useMemo(
+    () => filteredItems.filter((item) => selectedRowKeys.includes(item.key)),
+    [filteredItems, selectedRowKeys]
+  );
+
+  const classOptions = useMemo(
+    () => classes.map((item) => ({ value: item.id, label: item.name })),
+    [classes]
+  );
+
+  const statusOptions = [
+    { value: "PENDING", label: t("teacherLists.students.status.pending") },
+    { value: "APPROVED", label: t("teacherLists.students.status.approved") },
+    { value: "REJECTED", label: t("teacherLists.students.status.rejected") },
+  ];
+
+  const openStudentDetail = (record) => {
     setSelectedStudent(record);
     setIsDetailModalVisible(true);
   };
 
-  const handleDeleteSingle = (record) => {
+  const handleApprove = (record) => {
     Modal.confirm({
-      title: "Xóa học viên",
-      content: `Bạn có chắc muốn xóa học viên ${record.name} khỏi lớp học này?`,
-      okText: "Xóa",
-      cancelText: "Hủy",
-      okButtonProps: { danger: true },
+      title: t("teacherLists.students.confirm.approveTitle"),
+      content: t("teacherLists.students.confirm.approveDescription", { name: record.name }),
+      okText: t("teacherLists.students.actions.approve"),
+      cancelText: t("teacherLists.shared.cancel"),
       async onOk() {
         try {
-          await deleteStudentsFromClassSection(record.classSectionId, [record.studentId]);
-          message.success("Đã xóa học viên thành công!");
-          setRefreshTrigger(prev => prev + 1);
-        } catch (err) {
-          message.error("Lỗi: " + err.message);
+          await approveEnrollment(record.studentId, record.courseId, record.classSectionId);
+          message.success(t("teacherLists.students.messages.approveSuccess"));
+          setRefreshKey((prev) => prev + 1);
+        } catch (error) {
+          console.error(error);
+          message.error(error?.message || t("teacherLists.students.messages.approveFailed"));
         }
       },
     });
   };
 
-  const handleDeleteSelected = () => {
+  const handleReject = (record) => {
     Modal.confirm({
-      title: "Xóa học viên đã chọn",
-      content: `Bạn có chắc muốn xóa ${selectedRows.length} học viên khỏi lớp học?`,
-      okText: "Xóa",
-      cancelText: "Hủy",
+      title: t("teacherLists.students.confirm.rejectTitle"),
+      content: t("teacherLists.students.confirm.rejectDescription", { name: record.name }),
+      okText: t("teacherLists.students.actions.reject"),
+      cancelText: t("teacherLists.shared.cancel"),
       okButtonProps: { danger: true },
       async onOk() {
         try {
-          const groupedByClass = {};
-          selectedRows.forEach(row => {
-            if (!groupedByClass[row.classSectionId]) {
-              groupedByClass[row.classSectionId] = [];
+          await rejectEnrollment(record.studentId, record.courseId, record.classSectionId);
+          message.success(t("teacherLists.students.messages.rejectSuccess"));
+          setRefreshKey((prev) => prev + 1);
+        } catch (error) {
+          console.error(error);
+          message.error(error?.message || t("teacherLists.students.messages.rejectFailed"));
+        }
+      },
+    });
+  };
+
+  const handleDeleteStudents = (rows) => {
+    if (!rows.length) return;
+
+    Modal.confirm({
+      title: t("teacherLists.students.confirm.deleteTitle"),
+      content: t("teacherLists.students.confirm.deleteDescription", { count: rows.length }),
+      okText: t("teacherLists.shared.delete"),
+      cancelText: t("teacherLists.shared.cancel"),
+      okButtonProps: { danger: true },
+      async onOk() {
+        try {
+          const grouped = rows.reduce((accumulator, row) => {
+            if (!accumulator[row.classSectionId]) {
+              accumulator[row.classSectionId] = [];
             }
-            groupedByClass[row.classSectionId].push(row.studentId);
-          });
+            accumulator[row.classSectionId].push(row.studentId);
+            return accumulator;
+          }, {});
 
-          const promises = Object.entries(groupedByClass).map(([classId, studentIds]) =>
-            deleteStudentsFromClassSection(classId, studentIds)
+          await Promise.all(
+            Object.entries(grouped).map(([classSectionId, studentIds]) =>
+              deleteStudentsFromClassSection(classSectionId, studentIds)
+            )
           );
-
-          await Promise.all(promises);
-          message.success("Đã xóa học viên thành công!");
-          setSelectedRows([]);
-          setRefreshTrigger(prev => prev + 1);
-        } catch (err) {
-          message.error("Lỗi: " + err.message);
+          message.success(t("teacherLists.students.messages.deleteSuccess"));
+          setSelectedRowKeys([]);
+          setRefreshKey((prev) => prev + 1);
+        } catch (error) {
+          console.error(error);
+          message.error(error?.message || t("teacherLists.students.messages.deleteFailed"));
         }
       },
     });
-  };
-
-  const statusTags = {
-    APPROVED: <Tag color="success" className="rounded-full px-3">Đã duyệt</Tag>,
-    PENDING: <Tag color="warning" className="rounded-full px-3">Chờ duyệt</Tag>,
-    REJECTED: <Tag color="error" className="rounded-full px-3">Bị từ chối</Tag>,
   };
 
   const columns = [
     {
-      title: "Học viên",
+      title: t("teacherLists.students.columns.student"),
       key: "student",
       render: (_, record) => (
         <div className="flex items-center gap-3">
-          <CustomAvatar src={record.avatar} className="w-10 h-10 shadow-sm" />
-          <div>
-            <p className="font-bold text-gray-900 dark:text-white mb-0">{record.name}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">@{record.username}</p>
+          <CustomAvatar src={record.avatar} className="h-10 w-10" />
+          <div className="min-w-0">
+            <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">{record.name}</p>
+            <p className="m-0 truncate text-xs text-slate-500 dark:text-slate-400">
+              @{record.username} {record.email ? `· ${record.email}` : ""}
+            </p>
           </div>
         </div>
       ),
     },
     {
-      title: "Lớp học",
+      title: t("teacherLists.students.columns.classSection"),
       dataIndex: "classSectionName",
       key: "classSectionName",
-      render: (text) => <span className="font-medium text-primary">{text}</span>,
+      render: (value) => <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{value}</span>,
     },
     {
-      title: "Trạng thái",
+      title: t("teacherLists.students.columns.status"),
       dataIndex: "approvalStatus",
       key: "approvalStatus",
-      render: (status) => statusTags[status] || status,
+      width: 140,
+      align: "center",
+      render: (value) => (
+        <Tag color={value === "APPROVED" ? "green" : value === "PENDING" ? "gold" : "red"}>
+          {t(`teacherLists.students.status.${String(value || "").toLowerCase()}`)}
+        </Tag>
+      ),
     },
     {
-      title: "Ngày tham gia",
+      title: t("teacherLists.students.columns.enrolledAt"),
       dataIndex: "enrollmentDate",
       key: "enrollmentDate",
-      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
+      width: 140,
+      render: (value) =>
+        value ? (
+          <span className="text-sm text-slate-700 dark:text-slate-300">{new Date(value).toLocaleDateString("vi-VN")}</span>
+        ) : (
+          <span className="text-slate-400">—</span>
+        ),
     },
     {
-      title: "Hành động",
+      title: t("teacherLists.students.columns.action"),
       key: "action",
+      width: 230,
       align: "right",
-      render: (_, record) => (
-        <Space size="middle">
-          {record.approvalStatus === "PENDING" ? (
-            <>
-              <Button 
-                type="link" 
-                icon={<CheckOutlined />} 
-                className="text-green-600 hover:text-green-700 p-0"
-                onClick={() => handleApprove(record.id, record.studentId, record.courseId, record.classSectionId)}
-              >
-                Duyệt
-              </Button>
-              <Button 
-                type="link" 
-                danger 
-                icon={<CloseOutlined />} 
-                className="p-0"
-                onClick={() => handleReject(record.id, record.studentId, record.courseId, record.classSectionId)}
-              >
-                Từ chối
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button type="text" icon={<EyeOutlined />} className="dark:text-gray-400 hover:text-blue-500" onClick={() => handleViewDetail(record)} />
-              <Button
-                type="text"
-                icon={<DeleteOutlined />}
-                className="!text-red-600 hover:!text-red-700"
-                onClick={() => handleDeleteSingle(record)}
-              />
-            </>
-          )}
-        </Space>
-      ),
+      render: (_, record) =>
+        record.approvalStatus === "PENDING" ? (
+          <div className="flex justify-end gap-2">
+                            <Button className={ACTION_BUTTON_CLASS} onClick={() => handleApprove(record)}>
+                              {t("teacherLists.students.actions.approve")}
+                            </Button>
+                            <Button danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleReject(record)}>
+                              {t("teacherLists.students.actions.reject")}
+                            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-end gap-2">
+                            <Button className={ACTION_BUTTON_CLASS} onClick={() => openStudentDetail(record)}>
+                              {t("teacherLists.shared.view")}
+                            </Button>
+                            <Button danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleDeleteStudents([record])}>
+                              {t("teacherLists.shared.delete")}
+                            </Button>
+          </div>
+        ),
     },
   ];
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="teacher-list-page min-h-screen bg-slate-50 dark:bg-slate-900">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-          <div className="p-6 max-w-7xl mx-auto">
-            <AppBreadcrumb className="mb-5" />
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Quản lý Học viên</h1>
-                <p className="text-gray-500 mt-1">Duyệt và xem danh sách học viên trong các lớp học của bạn.</p>
-              </div>
-              <Space>
-                {selectedRows.length > 0 && (
-                  <Button 
-                    type="primary"
-                    danger
-                    size="large" 
-                    icon={<DeleteOutlined />}
-                    className="h-11 rounded-xl shadow-sm px-6 font-bold"
-                    onClick={handleDeleteSelected}
-                  >
-                    Xóa {selectedRows.length} học viên
-                  </Button>
-                )}
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  icon={<UserOutlined />}
-                  className="h-11 rounded-xl shadow-md px-6 font-bold"
-                  onClick={() => setIsAddModalVisible(true)}
-                >
-                  Thêm học viên
-                </Button>
-              </Space>
-            </div>
+          <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+            <AppBreadcrumb className="mb-4" />
 
-            <div className="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-2">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Tìm kiếm</p>
-                  <Input
-                    placeholder="Tên học viên hoặc @username..."
-                    prefix={<SearchOutlined className="text-gray-400" />}
-                    className="h-11 rounded-xl border-gray-200 dark:border-gray-700"
-                    value={searchText}
-                    onChange={e => setSearchText(e.target.value)}
-                  />
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+              <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
+                      {t("teacherLists.students.title")}
+                    </h1>
+                    <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {t("teacherLists.students.subtitle")}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRows.length > 0 && (
+                      <Button danger onClick={() => handleDeleteStudents(selectedRows)}>
+                        {t("teacherLists.students.actions.deleteSelected", { count: selectedRows.length })}
+                      </Button>
+                    )}
+                    <Button type="primary" onClick={() => setIsAddModalVisible(true)}>
+                      {t("teacherLists.students.actions.add")}
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Lớp học</p>
-                  <Select
-                  placeholder="Tất cả lớp học"
-                  className="w-full h-11"
-                  status="primary"
-                  value={classFilter || undefined}
-                  onChange={setClassFilter}
-                  showSearch
-                  optionFilterProp="label"
-                  options={[
-                      { label: "Tất cả lớp học", value: "" },
-                      ...classes.map(c => ({ label: c.name, value: c.id }))
-                    ]}
+              </div>
+
+              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.2fr)_260px_180px]">
+                  <Input.Search
+                    allowClear
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder={t("teacherLists.students.filters.searchPlaceholder")}
                   />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Trạng thái</p>
                   <Select
-                  placeholder="Tất cả trạng thái"
-                  className="w-full h-11"
-                  value={statusFilter || undefined}
-                  onChange={setStatusFilter}
-                  showSearch
-                  optionFilterProp="label"
-                  options={[
-                      { label: "Tất cả trạng thái", value: "" },
-                      { label: "Chờ duyệt", value: "PENDING" },
-                      { label: "Đã duyệt", value: "APPROVED" },
-                      { label: "Bị từ chối", value: "REJECTED" },
-                    ]}
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    value={selectedClassId}
+                    onChange={(value) => setSelectedClassId(value || undefined)}
+                    placeholder={t("teacherLists.students.filters.classPlaceholder")}
+                    options={classOptions}
+                  />
+                  <Select
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    value={selectedStatus}
+                    onChange={(value) => setSelectedStatus(value || undefined)}
+                    placeholder={t("teacherLists.students.filters.statusPlaceholder")}
+                    options={statusOptions}
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-              <Spin spinning={displayLoading}>
-                <Table
-                  rowSelection={{
-                    selectedRowKeys: selectedRows.map(r => r.key),
-                    onChange: (selectedRowKeys, selectedRowsData) => {
-                      setSelectedRows(selectedRowsData);
-                    },
-                    getCheckboxProps: (record) => ({
-                      disabled: record.approvalStatus === 'PENDING' || record.approvalStatus === 'REJECTED',
-                    }),
+              <div className="px-5 py-4 sm:px-6">
+                <div className="hidden md:block">
+                  <Table
+                    rowSelection={{
+                      selectedRowKeys,
+                      onChange: (nextKeys) => setSelectedRowKeys(nextKeys),
+                      getCheckboxProps: (record) => ({
+                        disabled: record.approvalStatus !== "APPROVED",
+                      }),
+                    }}
+                    columns={columns}
+                    dataSource={pageItems}
+                    rowKey="key"
+                    loading={loading}
+                    pagination={false}
+                    locale={{ emptyText: <Empty description={t("teacherLists.students.empty")} /> }}
+                    className="[&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:font-semibold [&_.ant-table-thead_th]:text-slate-600 dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
+                    scroll={{ x: 960 }}
+                  />
+                </div>
+
+                <div className="space-y-3 md:hidden">
+                  {!loading && pageItems.length === 0 && <Empty description={t("teacherLists.students.empty")} />}
+                  {pageItems.map((record) => (
+                    <article
+                      key={record.key}
+                      className="rounded-lg border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/40"
+                    >
+                      <div className="flex items-start gap-3">
+                        <CustomAvatar src={record.avatar} className="h-10 w-10" />
+                        <div className="min-w-0 flex-1">
+                          <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">{record.name}</p>
+                          <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            @{record.username} {record.email ? `· ${record.email}` : ""}
+                          </p>
+                          <p className="m-0 mt-2 text-sm text-slate-700 dark:text-slate-300">{record.classSectionName}</p>
+                          <div className="mt-2">
+                            <Tag color={record.approvalStatus === "APPROVED" ? "green" : record.approvalStatus === "PENDING" ? "gold" : "red"}>
+                              {t(`teacherLists.students.status.${String(record.approvalStatus || "").toLowerCase()}`)}
+                            </Tag>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {record.approvalStatus === "PENDING" ? (
+                          <>
+            <Button className={ACTION_BUTTON_CLASS} onClick={() => handleApprove(record)}>
+              {t("teacherLists.students.actions.approve")}
+            </Button>
+            <Button danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleReject(record)}>
+              {t("teacherLists.students.actions.reject")}
+            </Button>
+                          </>
+                        ) : (
+                          <>
+            <Button className={ACTION_BUTTON_CLASS} onClick={() => openStudentDetail(record)}>
+              {t("teacherLists.shared.view")}
+            </Button>
+            <Button danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleDeleteStudents([record])}>
+              {t("teacherLists.shared.delete")}
+            </Button>
+                          </>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              {!loading && filteredItems.length > 0 && (
+                <DataPaginationFooter
+                  currentPage={page}
+                  pageSize={pageSize}
+                  total={filteredItems.length}
+                  totalLabel={t("teacherLists.shared.pagination.total", { count: filteredItems.length })}
+                  pageSizeLabel={t("teacherLists.shared.pagination.pageSize")}
+                  rangeLabel={t("teacherLists.shared.pagination.range", {
+                    start: (page - 1) * pageSize + 1,
+                    end: Math.min(page * pageSize, filteredItems.length),
+                  })}
+                  onPageChange={setPage}
+                  onPageSizeChange={(nextSize) => {
+                    setPageSize(nextSize);
+                    setPage(1);
                   }}
-                  columns={columns}
-                  dataSource={enrollments.filter(e => 
-                    e.name.toLowerCase().includes(searchText.toLowerCase()) || 
-                    e.username.toLowerCase().includes(searchText.toLowerCase())
-                  )}
-                  pagination={{
-                    current: currentPage,
-                    pageSize: pageSize,
-                    onChange: setCurrentPage,
-                    total: totalEnrollments,
-                    showSizeChanger: false,
-                    placement: "bottomCenter",
-                  }}
-                  className="custom-table"
                 />
-              </Spin>
+              )}
             </div>
           </div>
         </main>
@@ -428,9 +454,9 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
         onClose={() => setIsAddModalVisible(false)}
         onSuccess={() => {
           setIsAddModalVisible(false);
-          currentPage === 1 ? message.success("Đã cập nhật danh sách") : setCurrentPage(1);
+          setRefreshKey((prev) => prev + 1);
         }}
-        courses={classes} // Still named courses in modal prop but using ClassSections
+        courses={classes}
       />
 
       <StudentDetailModal
