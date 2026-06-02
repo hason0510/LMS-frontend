@@ -140,14 +140,16 @@ function OptionRow({
             {option.explanation ? t("quizBuilder.editExplanation") : t("quizBuilder.addExplanation")}
           </button>
         )}
-        <MediaAttachButton
-          compact
-          variant="question-slot"
-          resource={option.resource}
-          allowedTypes={["IMAGE"]}
-          mediaContext={mediaContext}
-          onChange={onChangeResource}
-        />
+        {!option.resource && (
+          <MediaAttachButton
+            compact
+            variant="question-slot"
+            resource={option.resource}
+            allowedTypes={["IMAGE"]}
+            mediaContext={mediaContext}
+            onChange={onChangeResource}
+          />
+        )}
         <button
           type="button"
           onClick={onDelete}
@@ -188,10 +190,15 @@ function OptionRow({
         </div>
       )}
       {isImageResource(option.resource) && (
-        <div className="px-3 pb-3">
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
-            <ResourceRenderer resource={option.resource} compact />
-          </div>
+        <div className="px-3 pb-3 max-w-xs">
+          <MediaAttachButton
+            allowedTypes={["IMAGE"]}
+            resource={option.resource}
+            variant="answer-image-frame"
+            previewImage={true}
+            mediaContext={mediaContext}
+            onChange={onChangeResource}
+          />
         </div>
       )}
     </div>

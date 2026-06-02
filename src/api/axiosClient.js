@@ -3,6 +3,7 @@ import useUserStore from "../store/useUserStore";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8081';
 const API_BASE = `${BACKEND_URL}/api/v1/lms`;
+const ACCOUNT_LOCKED_ERROR = "ACCOUNT_LOCKED";
 
 const AUTH_HEADER_SKIP_PATHS = [
   '/auth/login',
@@ -29,6 +30,8 @@ const axiosClient = axios.create({
 
 let isRefreshing = false;
 let failedQueue = [];
+
+const getErrorMessage = (error) => error?.response?.data?.message || error?.message;
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
@@ -65,6 +68,15 @@ axiosClient.interceptors.response.use(
       return Promise.reject(error);
     }
     const requestUrl = originalRequest?.url || '';
+    const errorMessage = getErrorMessage(error);
+
+    if (errorMessage === ACCOUNT_LOCKED_ERROR) {
+      if (window.location.pathname !== '/login') {
+        useUserStore.getState().clearUser();
+        window.location.href = '/login?locked=1';
+      }
+      return Promise.reject(error);
+    }
 
     // Skip interceptor if:
     // 1. It's an authentication request (login/refresh/register/verify-otp)

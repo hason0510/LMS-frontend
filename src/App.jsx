@@ -257,6 +257,14 @@ function AppContent() {
         path="/teaching/class-sections/:classSectionId/assignments/:assignmentId/submissions"
         element={<ProtectedRoute element={<AssignmentSubmissions teachingMode={true} />} allowedRoles={["STUDENT"]} />}
       />
+      <Route
+        path="/teaching/class-sections/:classSectionId/chapters/:chapterId/assignments/create"
+        element={<ProtectedRoute element={<AssignmentDetail teachingMode={true} />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:classSectionId/assignments/:assignmentId"
+        element={<ProtectedRoute element={<AssignmentDetail teachingMode={true} />} allowedRoles={["STUDENT"]} />}
+      />
 
       {/* Teacher Routes */}
       <Route

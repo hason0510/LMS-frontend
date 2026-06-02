@@ -752,22 +752,22 @@ function MatchingPairs({ question, onChange, mediaContext }) {
             <div className="border border-dashed border-gray-300 rounded-lg p-3">
               <div className="text-xs text-gray-400 mb-1">{t("quizBuilder.question")}</div>
               {isImage ? (
-                <div className="space-y-2">
-                  {isImageResource(prompts[i]?.resource) ? (
-                    <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
-                      <ResourceRenderer resource={prompts[i].resource} compact />
-                    </div>
-                  ) : null}
-                  <div className="flex justify-center py-1">
-                    <MediaAttachButton
-                      allowedTypes={["IMAGE"]}
-                      resource={prompts[i]?.resource}
-                      variant="question-slot"
-                      mediaContext={mediaContext}
-                      deferUpload
-                      onChange={(mediaPatch) => updatePrompt(prompts[i].localId, mediaPatch)}
-                    />
-                  </div>
+                <div className="py-1 space-y-2">
+                  <MediaAttachButton
+                    allowedTypes={["IMAGE"]}
+                    resource={prompts[i]?.resource}
+                    variant="answer-image-frame"
+                    previewImage={true}
+                    mediaContext={mediaContext}
+                    deferUpload
+                    onChange={(mediaPatch) => updatePrompt(prompts[i].localId, mediaPatch)}
+                  />
+                  <Input
+                    value={prompts[i]?.content}
+                    onChange={(e) => updatePrompt(prompts[i].localId, { content: e.target.value })}
+                    placeholder="Chú thích ảnh (không bắt buộc)"
+                    className="text-sm"
+                  />
                 </div>
               ) : (
                 <Input
@@ -781,22 +781,22 @@ function MatchingPairs({ question, onChange, mediaContext }) {
             <div className="border border-dashed border-gray-300 rounded-lg p-3 relative">
               <div className="text-xs text-gray-400 mb-1">{t("quizBuilder.answer")}</div>
               {isImage ? (
-                <div className="space-y-2">
-                  {isImageResource(matches[i]?.resource) ? (
-                    <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
-                      <ResourceRenderer resource={matches[i].resource} compact />
-                    </div>
-                  ) : null}
-                  <div className="flex justify-center py-1">
-                    <MediaAttachButton
-                      allowedTypes={["IMAGE"]}
-                      resource={matches[i]?.resource}
-                      variant="question-slot"
-                      mediaContext={mediaContext}
-                      deferUpload
-                      onChange={(mediaPatch) => updateMatch(matches[i].localId, mediaPatch)}
-                    />
-                  </div>
+                <div className="py-1 space-y-2">
+                  <MediaAttachButton
+                    allowedTypes={["IMAGE"]}
+                    resource={matches[i]?.resource}
+                    variant="answer-image-frame"
+                    previewImage={true}
+                    mediaContext={mediaContext}
+                    deferUpload
+                    onChange={(mediaPatch) => updateMatch(matches[i].localId, mediaPatch)}
+                  />
+                  <Input
+                    value={matches[i]?.content}
+                    onChange={(e) => updateMatch(matches[i].localId, { content: e.target.value })}
+                    placeholder="Chú thích ảnh (không bắt buộc)"
+                    className="text-sm"
+                  />
                 </div>
               ) : (
                 <Input

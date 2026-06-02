@@ -48,8 +48,10 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
   const isStudentNotApproved = userRole === "STUDENT" && enrollmentStatus !== "APPROVED";
   const isTeachingWorkspace = workspaceMode === "teaching";
   const canReviewQuizzes = capabilities.includes("REVIEW_QUIZZES");
-  const canGradeAssignments = capabilities.includes("GRADE_ASSIGNMENTS");
+  const canManageAssignments = capabilities.includes("MANAGE_ASSIGNMENTS") || capabilities.includes("GRADE_ASSIGNMENTS");
+  const canManageAssignmentContent = isTeachingWorkspace && canManageAssignments && !archived;
   const canViewStudentProgress = capabilities.includes("VIEW_PROGRESS");
+  const contentRoutePrefix = isTeachingWorkspace ? "teaching" : userRole?.toLowerCase();
 
   // Chapter list state
   const [chapters, setChapters] = useState([]);
@@ -376,7 +378,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     }
 
     if (isTeachingWorkspace && item.itemType === "ASSIGNMENT") {
-      if (!canGradeAssignments) {
+      if (!canManageAssignments) {
         message.warning(tc("messages.noAssignmentGradePermission"));
         return;
       }
@@ -433,7 +435,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     if (item.itemType === "QUIZ" && !canReviewQuizzes) {
       return tc("messages.noQuizReviewPermission");
     }
-    if (item.itemType === "ASSIGNMENT" && !canGradeAssignments) {
+    if (item.itemType === "ASSIGNMENT" && !canManageAssignments) {
       return tc("messages.noAssignmentGradePermission");
     }
     return null;
@@ -549,7 +551,19 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
   // ── Chapter dropdown menu ─────────────────────────────────────────────────
   const getChapterMenuItems = (chapter) => {
-    const role = userRole?.toLowerCase();
+    if (!canMutateContent && !canManageAssignmentContent) {
+      return [];
+    }
+    if (!canMutateContent) {
+      return [
+        {
+          key: "add-assignment",
+          label: t("classContent.actions.addAssignment"),
+          onClick: () =>
+            navigate(`/${contentRoutePrefix}/class-sections/${classSectionId}/chapters/${chapter.id}/assignments/create`),
+        },
+      ];
+    }
     return [
       {
         key: "edit",
@@ -562,19 +576,19 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
         key: "add-lecture",
         label: t("classContent.actions.addLesson"),
         onClick: () =>
-          navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/lectures/create`),
+          navigate(`/${contentRoutePrefix}/class-sections/${classSectionId}/chapters/${chapter.id}/lectures/create`),
       },
       {
         key: "add-quiz",
         label: t("classContent.actions.addQuiz"),
         onClick: () =>
-          navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/quizzes/create`),
+          navigate(`/${contentRoutePrefix}/class-sections/${classSectionId}/chapters/${chapter.id}/quizzes/create`),
       },
       {
         key: "add-assignment",
         label: t("classContent.actions.addAssignment"),
         onClick: () =>
-          navigate(`/${role}/class-sections/${classSectionId}/chapters/${chapter.id}/assignments/create`),
+          navigate(`/${contentRoutePrefix}/class-sections/${classSectionId}/chapters/${chapter.id}/assignments/create`),
       },
       { type: "divider" },
       {
@@ -779,7 +793,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                       </div>
                     )}
 
-                    {canMutateContent && (
+                    {(canMutateContent || canManageAssignmentContent) && (
                       <Dropdown
                         menu={{ items: getChapterMenuItems(chapter) }}
                         trigger={["click"]}
@@ -820,6 +834,10 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                           const teachingRestrictionMessage = getTeachingRestrictionMessage(item);
                           const isTeachingBlocked = Boolean(teachingRestrictionMessage);
                           const completionMeta = getStudentCompletionMeta(item);
+                          const canManageThisItem =
+                            canMutateContent || (canManageAssignmentContent && item.itemType === "ASSIGNMENT");
+                          const canEditAssignmentDefinition =
+                            isTeachingWorkspace && canManageAssignmentContent && item.itemType === "ASSIGNMENT";
                           return (
                             <div
                               key={item.id}
@@ -899,13 +917,13 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                 </div>
                               )}
 
-                              {/* Actions (teacher/admin only) */}
-                              {canManage && (
+                              {/* Actions */}
+                              {(canManage || canManageThisItem) && (
                                 <div
                                   className="flex items-center gap-0.5 shrink-0"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  {isTeachingWorkspace && item.itemType === "LESSON" && canViewStudentProgress && (
+                                  {canManage && isTeachingWorkspace && item.itemType === "LESSON" && canViewStudentProgress && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -917,7 +935,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                       <CheckCircleSolidIcon className="h-4 w-4" />
                                     </button>
                                   )}
-                                  {item.itemType === "LESSON" && (
+                                  {canManage && item.itemType === "LESSON" && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -938,7 +956,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                       e.stopPropagation();
                                       handleMoveItem(chapter.id, itemIndex, "up");
                                       }}
-                                      disabled={!canMutateContent || itemIndex === 0 || reorderingItem}
+                                      disabled={!canManageThisItem || itemIndex === 0 || reorderingItem}
                                       className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
                                       title={tc("tooltips.moveUp")}
                                     >
@@ -949,15 +967,24 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                       e.stopPropagation();
                                       handleMoveItem(chapter.id, itemIndex, "down");
                                       }}
-                                      disabled={!canMutateContent || itemIndex === items.length - 1 || reorderingItem}
+                                      disabled={!canManageThisItem || itemIndex === items.length - 1 || reorderingItem}
                                       className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
                                       title={tc("tooltips.moveDown")}
                                     >
                                       <ChevronDownIcon className="h-4 w-4" />
                                     </button>
                                   <button
-                                    onClick={(e) => handleOpenEditItem(e, chapter.id, item)}
-                                    disabled={!canMutateContent}
+                                    onClick={(e) => {
+                                      if (canEditAssignmentDefinition) {
+                                        e.stopPropagation();
+                                        navigate(`/${contentRoutePrefix}/class-sections/${classSectionId}/assignments/${item.assignmentId || item.id}`, {
+                                          state: { classContentItemId: item.id },
+                                        });
+                                        return;
+                                      }
+                                      handleOpenEditItem(e, chapter.id, item);
+                                    }}
+                                    disabled={!canManageThisItem}
                                     className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-colors"
                                     title={tc("tooltips.edit")}
                                   >
@@ -978,7 +1005,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                         onOk: () => handleDeleteItem(chapter.id, item.id),
                                       });
                                     }}
-                                    disabled={!canMutateContent || deletingItem === item.id}
+                                    disabled={!canManageThisItem || deletingItem === item.id}
                                     className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors disabled:opacity-50"
                                     title={tc("tooltips.delete")}
                                   >
@@ -999,27 +1026,41 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                           {tc("empty.chapterHasNoContent")}
                         </p>
-                        {canMutateContent && (
+                        {(canMutateContent || canManageAssignmentContent) && (
                           <div className="flex justify-center gap-3 flex-wrap">
+                            {canMutateContent && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    navigate(
+                                      `/${contentRoutePrefix}/class-sections/${classSectionId}/chapters/${chapter.id}/lectures/create`
+                                    )
+                                  }
+                                  className="text-xs text-primary hover:underline font-medium"
+                                >
+                                  {tc("actions.addLesson")}
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    navigate(
+                                      `/${contentRoutePrefix}/class-sections/${classSectionId}/chapters/${chapter.id}/quizzes/create`
+                                    )
+                                  }
+                                  className="text-xs text-primary hover:underline font-medium"
+                                >
+                                  {tc("actions.addQuiz")}
+                                </button>
+                              </>
+                            )}
                             <button
                               onClick={() =>
                                 navigate(
-                                  `/${userRole.toLowerCase()}/class-sections/${classSectionId}/chapters/${chapter.id}/lectures/create`
+                                  `/${contentRoutePrefix}/class-sections/${classSectionId}/chapters/${chapter.id}/assignments/create`
                                 )
                               }
                               className="text-xs text-primary hover:underline font-medium"
                             >
-                              {tc("actions.addLesson")}
-                            </button>
-                            <button
-                              onClick={() =>
-                                navigate(
-                                  `/${userRole.toLowerCase()}/class-sections/${classSectionId}/chapters/${chapter.id}/quizzes/create`
-                                )
-                              }
-                              className="text-xs text-primary hover:underline font-medium"
-                            >
-                              {tc("actions.addQuiz")}
+                              {tc("actions.addAssignment")}
                             </button>
                           </div>
                         )}

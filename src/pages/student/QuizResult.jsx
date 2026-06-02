@@ -22,16 +22,28 @@ const sortByOrder = (items = []) =>
 const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
 const itemLabel = (item, fallback) => item?.content || (item?.resource || item?.resourceId ? "Ảnh" : fallback);
 const getBlankLabel = (_, index) => `Blank ${index + 1}`;
+const hasExplanation = (item) => typeof item?.explanation === "string" && item.explanation.trim().length > 0;
 
 const HtmlAnswerList = ({ items = [] }) => (
   <div className="space-y-2">
     {items.map((item, index) => (
-      <div key={`${index}-${item?.id || "html"}`} className="space-y-2">
+      <div
+        key={`${index}-${item?.id || "html"}`}
+        className="space-y-2 rounded-lg border border-slate-200 bg-white/70 p-3 dark:border-slate-700 dark:bg-slate-900/30"
+      >
         <QuizRichText
           html={item?.content || ""}
           className="font-medium text-[#111418] dark:text-white"
         />
         <ResourcePreview resource={item?.resource} />
+        {hasExplanation(item) && (
+          <div className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:bg-slate-800/80 dark:text-slate-300">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Giải thích
+            </p>
+            <QuizRichText html={item.explanation} className="text-sm text-slate-600 dark:text-slate-300" />
+          </div>
+        )}
       </div>
     ))}
   </div>
@@ -231,6 +243,37 @@ export default function QuizResult() {
       <span className="font-medium text-[#111418] dark:text-white max-w-2xl break-words">
         {formatInteractiveAnswer(attemptAnswer) || "Không có câu trả lời"}
       </span>
+    );
+  };
+
+  const canShowCorrectAnswerDetails = (attemptAnswer) =>
+    (attemptAnswer.quizQuestion?.answers || []).some(
+      (answer) => answer?.isCorrect !== null && answer?.isCorrect !== undefined
+    );
+
+  const getCorrectAnswerOptions = (attemptAnswer) =>
+    (attemptAnswer.quizQuestion?.answers || []).filter((answer) => answer?.isCorrect === true);
+
+  const renderCorrectAnswerReview = (attemptAnswer) => {
+    if (!canShowCorrectAnswerDetails(attemptAnswer)) {
+      return null;
+    }
+
+    const correctAnswers = getCorrectAnswerOptions(attemptAnswer);
+    if (correctAnswers.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 dark:border-emerald-900/30 dark:bg-emerald-900/10">
+        <div className="mb-2 flex items-center gap-2">
+          <CheckCircleIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+            Đáp án đúng
+          </span>
+        </div>
+        <HtmlAnswerList items={correctAnswers} />
+      </div>
     );
   };
 
@@ -500,6 +543,7 @@ export default function QuizResult() {
                             )}
                           </div>
                         </div>
+                        {renderCorrectAnswerReview(attemptAnswer)}
                       </div>
                     </div>
                   );

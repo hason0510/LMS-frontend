@@ -17,6 +17,7 @@ import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { parseBlankOptions, parseClozeTokenOptions, splitClozeContent } from "../../utils/cloze";
 import { getQuizPreviewSample } from "../../api/quiz";
 import { getQuizTemplatePreviewSample } from "../../api/curriculumTemplate";
+import DndMatchingQuestion from "../../components/student/DndMatchingQuestion";
 
 const DEFAULT_PREVIEW_SEED = 20260506;
 
@@ -302,6 +303,14 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
     }));
   };
 
+  const handleDndMatchingChange = (question, nextMatches) => {
+    const current = answers[question.id] || { matches: {} };
+    setAnswers((prev) => ({
+      ...prev,
+      [question.id]: { ...current, matches: nextMatches },
+    }));
+  };
+
   const handleDragMove = (question, itemId, direction) => {
     const defaultOrder = getItemsByRole(question, "ORDER_ITEM").map((item) => item.id);
     const currentOrder = answers[question.id]?.order || defaultOrder;
@@ -419,7 +428,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
   };
 
   const renderInteractionAnswer = (question) => {
-    if (isMatchingQuestion(question.type)) {
+    if (question.type === "MATCHING") {
       const prompts = getItemsByRole(question, "PROMPT");
       const matches = getItemsByRole(question, "MATCH");
       const current = answers[question.id] || { matches: {} };
@@ -429,7 +438,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
           {!item?.resource && item?.resourceId && (
             <img
               src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/lms/resources/${item.resourceId}/view`}
-              className="max-h-40 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 object-contain"
+              className="max-h-24 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 object-contain"
               alt=""
             />
           )}
@@ -444,9 +453,8 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
         <div className="space-y-3">
           {prompts.map((prompt, index) => (
             <div key={prompt.id} className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-3 items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50">
-              <div className="font-medium text-slate-700 dark:text-slate-200">
-                <span>{index + 1}. </span>
-                {renderItem(prompt, `Ảnh ${index + 1}`)}
+              <div className="font-medium text-slate-700 dark:text-slate-200 flex flex-row items-center gap-2">
+                {renderItem(prompt, `Nội dung ${index + 1}`)}
               </div>
               <Select
                 value={current.matches?.[prompt.id]}
@@ -463,6 +471,22 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
             </div>
           ))}
         </div>
+      );
+    }
+
+    if (question.type === "IMAGE_MATCHING") {
+      const prompts = getItemsByRole(question, "PROMPT");
+      const matches = getItemsByRole(question, "MATCH");
+      const current = answers[question.id] || { matches: {} };
+      
+      return (
+        <DndMatchingQuestion
+          question={question}
+          prompts={prompts}
+          matches={matches}
+          currentMatches={current.matches}
+          onMatchChange={handleDndMatchingChange}
+        />
       );
     }
 

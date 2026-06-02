@@ -245,24 +245,6 @@ export default function AdminUserModal({
               disabled={mode === "view"}
             />
           </div>
-          {mode !== "create" && (
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Trạng thái</label>
-              <Select
-                size="large"
-              className="w-full"
-              value={formData.status}
-              onChange={(value) => handleChange("status", value)}
-              disabled={mode === "view"}
-              showSearch
-              optionFilterProp="label"
-              options={[
-                  { label: "Hoạt động", value: "active" },
-                  { label: "Khóa tài khoản", value: "inactive" },
-                ]}
-              />
-            </div>
-          )}
         </div>
 
         {/* Footer Actions */}

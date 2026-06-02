@@ -22,6 +22,7 @@ import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
 import { parseBlankOptions, parseClozeTokenOptions, splitClozeContent } from "../../utils/cloze";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import DndMatchingQuestion from "../../components/student/DndMatchingQuestion";
 
 const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATCHING";
 const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
@@ -100,6 +101,13 @@ export default function QuizAttempt() {
   const questionRefs = useRef([]);
   const isOnePageMode = (quizInfo?.displayMode || "PAGINATION") === "ONE_PAGE";
 
+  const navigateToResult = (attemptId) => {
+    navigate(
+      `/class-sections/${classSectionId}/quizzes/${id}/result?classContentItemId=${classContentItemId}`,
+      { state: { attemptId, classContentItemId } }
+    );
+  };
+
   useEffect(() => {
     if (!classContentItemId) {
       console.warn("Missing classContentItemId");
@@ -134,6 +142,11 @@ export default function QuizAttempt() {
           }
 
           if (attemptData) {
+            if (attemptData.completedTime) {
+              navigateToResult(attemptData.id);
+              return;
+            }
+
             setAttempt(attemptData);
             
             // Map questions from attempt answers
@@ -395,6 +408,16 @@ export default function QuizAttempt() {
     saveInteractionAnswer(question, next);
   };
 
+  const handleDndMatchingChange = (question, nextMatches) => {
+    const current = answers[question.id] || { matches: {} };
+    const next = {
+      ...current,
+      matches: nextMatches,
+    };
+    setAnswers({ ...answers, [question.id]: next });
+    saveInteractionAnswer(question, next);
+  };
+
   const handleDragMove = (question, itemId, direction) => {
     const defaultOrder = getItemsByRole(question, "ORDER_ITEM").map((item) => item.id);
     const currentOrder = answers[question.id]?.order || defaultOrder;
@@ -436,7 +459,7 @@ export default function QuizAttempt() {
           const submitRes = await submitQuiz(attempt.id);
           const result = submitRes?.data || submitRes;
           message.success(t("quizAttempt.messages.submitted"));
-          navigate(`/class-sections/${classSectionId}/quizzes/${id}/result?classContentItemId=${classContentItemId}`, { state: { attemptId: result.id || attempt.id, classContentItemId } });
+          navigateToResult(result.id || attempt.id);
       } catch (err) {
           message.error(err?.response?.data?.message || err.message || t("quizAttempt.errors.submitFailed"));
           setSubmitting(false);
@@ -500,7 +523,7 @@ export default function QuizAttempt() {
   };
 
   const renderInteractionAnswer = (question) => {
-    if (isMatchingQuestion(question.type)) {
+    if (question.type === "MATCHING") {
       const prompts = getItemsByRole(question, "PROMPT");
       const matches = getItemsByRole(question, "MATCH");
       const current = answers[question.id] || { matches: {} };
@@ -510,7 +533,7 @@ export default function QuizAttempt() {
           {!item?.resource && item?.resourceId && (
             <img
               src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/lms/resources/${item.resourceId}/view`}
-              className="max-h-40 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 object-contain"
+              className="max-h-24 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 object-contain"
               alt=""
             />
           )}
@@ -528,9 +551,8 @@ export default function QuizAttempt() {
               key={prompt.id}
               className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-3 items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50"
             >
-              <div className="font-medium text-slate-700 dark:text-slate-200">
-                <span>{index + 1}. </span>
-                {renderItem(prompt, `Ảnh ${index + 1}`)}
+              <div className="font-medium text-slate-700 dark:text-slate-200 flex flex-row items-center gap-2">
+                {renderItem(prompt, `Nội dung ${index + 1}`)}
               </div>
               <Select
                 value={current.matches?.[prompt.id]}
@@ -547,6 +569,22 @@ export default function QuizAttempt() {
             </div>
           ))}
         </div>
+      );
+    }
+
+    if (question.type === "IMAGE_MATCHING") {
+      const prompts = getItemsByRole(question, "PROMPT");
+      const matches = getItemsByRole(question, "MATCH");
+      const current = answers[question.id] || { matches: {} };
+      
+      return (
+        <DndMatchingQuestion
+          question={question}
+          prompts={prompts}
+          matches={matches}
+          currentMatches={current.matches}
+          onMatchChange={handleDndMatchingChange}
+        />
       );
     }
 

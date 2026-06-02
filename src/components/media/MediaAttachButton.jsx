@@ -116,17 +116,19 @@ export default function MediaAttachButton({
             </button>
           </Tooltip>
           {isImageResource ? (
-            <button
-              type="button"
-              aria-label={t("quizMedia.remove")}
-              onClick={(event) => {
-                event.stopPropagation();
-                handleDetach();
-              }}
-              className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-lg bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity hover:bg-slate-900 group-hover:opacity-100"
-            >
-              {t("quizMedia.remove")}
-            </button>
+            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-900/40 opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none">
+              <button
+                type="button"
+                aria-label={t("quizMedia.remove")}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleDetach();
+                }}
+                className="pointer-events-auto inline-flex items-center justify-center rounded-lg bg-rose-500/90 px-3 py-1.5 text-xs font-medium text-white shadow-md transition-colors hover:bg-rose-600"
+              >
+                {t("quizMedia.remove")}
+              </button>
+            </div>
           ) : null}
         </div>
       );

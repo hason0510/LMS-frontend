@@ -1453,7 +1453,7 @@
         "VIEW_CLASS": "View support class",
         "VIEW_PEOPLE": "View students",
         "VIEW_PROGRESS": "View student progress",
-        "GRADE_ASSIGNMENTS": "View and grade assignments",
+        "MANAGE_ASSIGNMENTS": "Create, manage, and grade assignments",
         "REVIEW_QUIZZES": "View and review quizzes",
         "POST_ANNOUNCEMENTS": "Post announcements",
         "REPLY_COMMENTS": "Reply to comments"
@@ -1462,7 +1462,7 @@
         "VIEW_CLASS": "Class",
         "VIEW_PEOPLE": "People",
         "VIEW_PROGRESS": "Progress",
-        "GRADE_ASSIGNMENTS": "Assignments",
+        "MANAGE_ASSIGNMENTS": "Assignments",
         "REVIEW_QUIZZES": "Quizzes",
         "POST_ANNOUNCEMENTS": "Posts",
         "REPLY_COMMENTS": "Comments"

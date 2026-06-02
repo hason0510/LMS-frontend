@@ -4,14 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getClassReviewQueue } from "../../api/teaching";
 
-export default function ClassReviewTab({ classSectionId, canGradeAssignments, canReviewQuizzes }) {
+export default function ClassReviewTab({ classSectionId, canManageAssignments, canReviewQuizzes }) {
   const navigate = useNavigate();
   const { message } = App.useApp();
   const { t, i18n } = useTranslation();
   const [queue, setQueue] = useState([]);
-  const defaultFilter = canGradeAssignments && !canReviewQuizzes
+  const defaultFilter = canManageAssignments && !canReviewQuizzes
     ? "ASSIGNMENT"
-    : !canGradeAssignments && canReviewQuizzes
+    : !canManageAssignments && canReviewQuizzes
     ? "QUIZ"
     : "ALL";
   const [filter, setFilter] = useState(defaultFilter);
@@ -36,7 +36,7 @@ export default function ClassReviewTab({ classSectionId, canGradeAssignments, ca
 
   useEffect(() => {
     const allowedFilters = new Set(["ALL"]);
-    if (canGradeAssignments) {
+    if (canManageAssignments) {
       allowedFilters.add("ASSIGNMENT");
     }
     if (canReviewQuizzes) {
@@ -45,12 +45,12 @@ export default function ClassReviewTab({ classSectionId, canGradeAssignments, ca
     if (!allowedFilters.has(filter)) {
       setFilter(defaultFilter);
     }
-  }, [canGradeAssignments, canReviewQuizzes, filter, defaultFilter]);
+  }, [canManageAssignments, canReviewQuizzes, filter, defaultFilter]);
 
   const filtered = queue.filter((item) => filter === "ALL" || item.type === filter);
   const filterOptions = [
     { label: t("teaching.review.filters.all"), value: "ALL" },
-    ...(canGradeAssignments ? [{ label: t("teaching.review.filters.assignment"), value: "ASSIGNMENT" }] : []),
+    ...(canManageAssignments ? [{ label: t("teaching.review.filters.assignment"), value: "ASSIGNMENT" }] : []),
     ...(canReviewQuizzes ? [{ label: t("teaching.review.filters.quiz"), value: "QUIZ" }] : []),
   ];
 

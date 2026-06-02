@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import { EyeIcon, LockClosedIcon, UserIcon } from "@heroicons/react/24/outline";
 import { login, googleLogin } from "../../api/auth";
 import { GoogleLogin } from "@react-oauth/google";
+import ModalNotification from "../common/ModalNotification";
+
+const ACCOUNT_LOCKED_ERROR = "ACCOUNT_LOCKED";
+const ACCOUNT_LOCKED_MESSAGE = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.";
 
 export default function LoginForm() {
   const { t } = useTranslation();
@@ -15,6 +19,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { loginUser } = useAuth();
 
   const getRedirectPathForRole = (role) => {
@@ -22,6 +27,22 @@ export default function LoginForm() {
     if (normalized === "TEACHER") return "/teacher/dashboard";
     if (normalized === "ADMIN") return "/admin/dashboard";
     return "/home";
+  };
+
+  useEffect(() => {
+    if (searchParams.get("locked") === "1") {
+      setError(ACCOUNT_LOCKED_MESSAGE);
+      setShowModal(true);
+    }
+  }, [searchParams]);
+
+  const closeModal = () => {
+    setShowModal(false);
+    if (searchParams.get("locked") === "1") {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("locked");
+      setSearchParams(nextParams, { replace: true });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -44,9 +65,9 @@ export default function LoginForm() {
       setLoading(false);
       navigate(getRedirectPathForRole(authedUser?.role || loginData?.role || loginData?.roleName), { replace: true });
     } catch (err) {
-      // setError(err.message || 'Đăng nhập thất bại');
-        setError(t('auth.dangNhapThatBai'));
-        setLoading(false);
+      const errorKey = err?.response?.data?.message;
+      setError(errorKey === ACCOUNT_LOCKED_ERROR ? ACCOUNT_LOCKED_MESSAGE : t('auth.dangNhapThatBai'));
+      setLoading(false);
       setShowModal(true);
     }
   };
@@ -68,7 +89,8 @@ export default function LoginForm() {
       setLoading(false);
       navigate(getRedirectPathForRole(authedUser?.role || loginData?.role || loginData?.roleName), { replace: true });
     } catch (err) {
-      setError(t('auth.googleLoginThatBai'));
+      const errorKey = err?.response?.data?.message;
+      setError(errorKey === ACCOUNT_LOCKED_ERROR ? ACCOUNT_LOCKED_MESSAGE : t('auth.googleLoginThatBai'));
       setLoading(false);
       setShowModal(true);
     }
@@ -194,6 +216,12 @@ export default function LoginForm() {
           .
         </p>
       </form>
+      <ModalNotification
+        open={showModal}
+        title={error === ACCOUNT_LOCKED_MESSAGE ? "Tài khoản bị khóa" : "Đăng nhập thất bại"}
+        message={error}
+        onClose={closeModal}
+      />
     </>
   );
 }

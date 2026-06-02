@@ -4,13 +4,15 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import AdminUserModal from "./AdminUserModal";
-import { getAllUsers, deleteUser, updateUser, createUser } from "../../api/user";
+import { getAllUsers, deleteUser, updateUser, createUser, lockUser, unlockUser } from "../../api/user";
 import {
   MagnifyingGlassIcon,
   PlusCircleIcon,
   EyeIcon,
   PencilIcon,
   TrashIcon,
+  LockClosedIcon,
+  LockOpenIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
@@ -53,13 +55,13 @@ export default function AdminUserManagement() {
       setLoading(true);
       // Lấy tổng số user trước, sau đó fetch tất cả trong 1 request
       const probe = await getAllUsers(0, 1);
-      const totalElements = probe.data.totalElements;
+      const totalElements = probe?.data?.totalElements || 0;
       if (totalElements === 0) {
         setUsers([]);
         return;
       }
       const response = await getAllUsers(0, totalElements);
-      const userList = response.data.pageList;
+      const userList = response?.data?.pageList || [];
       setUsers(userList);
       message.success("Tải danh sách người dùng thành công");
     } catch (error) {
@@ -68,6 +70,22 @@ export default function AdminUserManagement() {
       setUsers([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleUserLock = async (user) => {
+    try {
+      if (user.status === "active") {
+        await lockUser(user.id);
+        message.success(`Đã khóa tài khoản ${user.name}`);
+      } else {
+        await unlockUser(user.id);
+        message.success(`Đã mở khóa tài khoản ${user.name}`);
+      }
+      fetchUsers();
+    } catch (error) {
+      console.error("Error toggling user lock:", error);
+      message.error(error?.response?.data?.message || "Không thể cập nhật trạng thái tài khoản");
     }
   };
 
@@ -154,8 +172,12 @@ export default function AdminUserManagement() {
       name: user.fullName || user.name || "N/A",
       email: user.gmail || user.email || "N/A",
       role: roleCode,
-      status: user.status === 0 ? "inactive" : "active",
-      createdDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : "N/A"
+      status: user.active === false ? "inactive" : "active",
+      createdDate: user.createdDate ? new Date(user.createdDate).toLocaleDateString('vi-VN') : "N/A",
+      studentNumber: user.studentNumber || "",
+      phoneNumber: user.phoneNumber || "",
+      address: user.address || "",
+      imageUrl: user.imageUrl || "",
     };
   });
 
@@ -402,6 +424,28 @@ export default function AdminUserManagement() {
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
+                          <Popconfirm
+                            title={user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                            description={`Bạn có chắc muốn ${user.status === "active" ? "khóa" : "mở khóa"} ${user.name}?`}
+                            onConfirm={() => handleToggleUserLock(user)}
+                            okText={user.status === "active" ? "Khóa" : "Mở khóa"}
+                            cancelText="Hủy"
+                          >
+                            <button
+                              className={`p-1 transition-colors ${
+                                user.status === "active"
+                                  ? "text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+                                  : "text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                              }`}
+                              title={user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                            >
+                              {user.status === "active" ? (
+                                <LockClosedIcon className="h-4 w-4" />
+                              ) : (
+                                <LockOpenIcon className="h-4 w-4" />
+                              )}
+                            </button>
+                          </Popconfirm>
                           <Popconfirm
                             title="Xóa người dùng"
                             description={`Bạn có chắc muốn xóa ${user.name}?`}

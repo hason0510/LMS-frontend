@@ -1453,7 +1453,7 @@
         "VIEW_CLASS": "Xem lớp hỗ trợ",
         "VIEW_PEOPLE": "Xem danh sách học viên",
         "VIEW_PROGRESS": "Xem tiến độ học viên",
-        "GRADE_ASSIGNMENTS": "Xem và chấm bài tập",
+        "MANAGE_ASSIGNMENTS": "Tạo, quản lý và chấm bài tập",
         "REVIEW_QUIZZES": "Xem và rà soát bài quiz",
         "POST_ANNOUNCEMENTS": "Đăng thông báo",
         "REPLY_COMMENTS": "Trả lời bình luận"
@@ -1462,7 +1462,7 @@
         "VIEW_CLASS": "Lớp",
         "VIEW_PEOPLE": "Học viên",
         "VIEW_PROGRESS": "Tiến độ",
-        "GRADE_ASSIGNMENTS": "Bài tập",
+        "MANAGE_ASSIGNMENTS": "Bài tập",
         "REVIEW_QUIZZES": "Quiz",
         "POST_ANNOUNCEMENTS": "Thông báo",
         "REPLY_COMMENTS": "Bình luận"

@@ -21,7 +21,7 @@ import { createAnnouncement } from "../../api/announcement";
 import { getClassWorkbenchSummary } from "../../api/teaching";
 
 const CAP_VIEW_PEOPLE = "VIEW_PEOPLE";
-const CAP_GRADE_ASSIGNMENTS = "GRADE_ASSIGNMENTS";
+const CAP_MANAGE_ASSIGNMENTS = "MANAGE_ASSIGNMENTS";
 const CAP_REVIEW_QUIZZES = "REVIEW_QUIZZES";
 const CAP_POST_ANNOUNCEMENTS = "POST_ANNOUNCEMENTS";
 const CAP_MANAGE_STAFF = "MANAGE_STAFF";
@@ -61,9 +61,9 @@ export default function TeachingClassDetail() {
   const activeTab = tabFromPath(location.pathname);
   const canManageStaff = hasCapability(course, CAP_MANAGE_STAFF);
   const canViewPeople = hasCapability(course, CAP_VIEW_PEOPLE);
-  const canGradeAssignments = hasCapability(course, CAP_GRADE_ASSIGNMENTS);
+  const canManageAssignments = hasCapability(course, CAP_MANAGE_ASSIGNMENTS);
   const canReviewQuizzes = hasCapability(course, CAP_REVIEW_QUIZZES);
-  const canReview = canGradeAssignments || canReviewQuizzes;
+  const canReview = canManageAssignments || canReviewQuizzes;
   const canPostAnnouncements = hasCapability(course, CAP_POST_ANNOUNCEMENTS);
   const isArchived = course?.status === "ARCHIVED";
   const canManageStaffActions = canManageStaff && !isArchived;
@@ -134,7 +134,7 @@ export default function TeachingClassDetail() {
             summary={summary}
             canViewPeople={canViewPeople}
             canReview={canReview}
-            canGradeAssignments={canGradeAssignments}
+            canManageAssignments={canManageAssignments}
             canReviewQuizzes={canReviewQuizzes}
             canPostAnnouncements={canPostAnnouncementsActions}
             canManageStaff={canManageStaffActions}
@@ -167,7 +167,7 @@ export default function TeachingClassDetail() {
         children: (
           <ClassReviewTab
             classSectionId={Number(id)}
-            canGradeAssignments={canGradeAssignments}
+            canManageAssignments={canManageAssignments}
             canReviewQuizzes={canReviewQuizzes}
           />
         ),
@@ -193,7 +193,7 @@ export default function TeachingClassDetail() {
     return items;
   }, [
     announcementVersion,
-    canGradeAssignments,
+    canManageAssignments,
     canManageStaff,
     canPostAnnouncements,
     canReview,
@@ -349,7 +349,7 @@ function Overview({
   summary,
   canViewPeople,
   canReview,
-  canGradeAssignments,
+  canManageAssignments,
   canReviewQuizzes,
   canPostAnnouncements,
   canManageStaff,
@@ -383,7 +383,7 @@ function Overview({
             )}
             {canReview && (
               <Button type="primary" onClick={() => onNavigate(`/teaching/class-sections/${course.id}/review`)}>
-                {canGradeAssignments && canReviewQuizzes ? "Chấm bài" : canGradeAssignments ? "Chấm bài tập" : "Review quiz"}
+                {canManageAssignments && canReviewQuizzes ? "Chấm bài" : canManageAssignments ? "Chấm bài tập" : "Review quiz"}
               </Button>
             )}
             {canPostAnnouncements && (

@@ -22,6 +22,16 @@ export async function deleteUser(id) {
   return response.data;
 }
 
+export async function lockUser(id) {
+  const response = await axiosClient.patch(`users/${id}/lock`);
+  return unwrapApiData(response.data);
+}
+
+export async function unlockUser(id) {
+  const response = await axiosClient.patch(`users/${id}/unlock`);
+  return unwrapApiData(response.data);
+}
+
 export async function uploadUserAvatar(userId, file) {
   const formData = new FormData();
   formData.append('file', file);

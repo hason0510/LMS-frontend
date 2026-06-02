@@ -15,6 +15,37 @@ import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 const formatDate = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-");
 
 const stripHtml = (html) => html?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "";
+const hasExplanation = (item) => typeof item?.explanation === "string" && item.explanation.trim().length > 0;
+
+const AnswerOptionReviewList = ({ items = [] }) => {
+  if (!items.length) {
+    return <span>-</span>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.map((item, index) => (
+        <div
+          key={`${item?.id || "answer"}-${index}`}
+          className="rounded border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900/40"
+        >
+          <div className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            <QuizRichText html={item?.content || ""} className="text-sm font-medium text-slate-700 dark:text-slate-200" />
+          </div>
+          <ResourcePreview resource={item?.resource} className="mt-2" />
+          {hasExplanation(item) && (
+            <div className="mt-2 rounded bg-white px-2 py-1.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              <p className="mb-1 font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Giải thích
+              </p>
+              <QuizRichText html={item.explanation} className="text-xs text-slate-600 dark:text-slate-300" />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const formatAnswerItems = (answer) => {
   if (answer.textAnswer) return answer.textAnswer;
@@ -55,7 +86,7 @@ const formatCorrectAnswer = (answer) => {
   if (question.type === "ESSAY") return "-";
   if (question.answers?.length) {
     const correct = question.answers.filter((item) => item.isCorrect);
-    return correct.length ? correct.map((item) => item.content).join(", ") : "-";
+    return correct.length ? <AnswerOptionReviewList items={correct} /> : "-";
   }
   if (question.items?.length) {
     if (question.type === "CLOZE") {
@@ -341,6 +372,12 @@ export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode
           {previewQuestion && <QuizRichText html={previewQuestion.content || ""} className="prose prose-sm max-w-none" />}
         </div>
         {previewQuestion && <ResourcePreview resource={previewQuestion.resource} className="mt-4" />}
+        {!!previewQuestion?.answers?.length && (
+          <div className="mt-5 space-y-3">
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Đáp án và giải thích</h4>
+            <AnswerOptionReviewList items={previewQuestion.answers} />
+          </div>
+        )}
       </Modal>
     </div>
   );
