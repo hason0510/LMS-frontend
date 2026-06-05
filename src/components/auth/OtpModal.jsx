@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Modal, Input, Button, message, Spin } from 'antd';
+import { Modal, Button, message } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
-import { verifyOtp } from '../../api/auth';
+import { resendRegisterOtp, verifyOtp } from '../../api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,15 @@ export default function OtpModal({
   userEmail, 
   userId, 
   onClose,
-  userData 
+  onVerified,
+  onResend,
+  onSuccess,
+  title = 'Xác thực OTP',
+  successMessage = 'Xác thực OTP thành công!',
+  submitText = 'Xác thực OTP',
+  loadingText = 'Đang xác thực...',
+  expiryMinutes = 5,
+  initialResendCountdown = 30,
 }) {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef([]);
@@ -19,8 +27,6 @@ export default function OtpModal({
   const [resendCountdown, setResendCountdown] = useState(0);
   const { loginUser } = useAuth();
   const navigate = useNavigate();
-
-  console.log('OtpModal render - visible:', visible, 'userId:', userId, 'userEmail:', userEmail);
 
   // Timer for resend OTP
   useEffect(() => {
@@ -34,9 +40,23 @@ export default function OtpModal({
   // Auto focus first input when modal opens
   useEffect(() => {
     if (visible) {
+      setOtp(['', '', '', '', '', '']);
+      setError('');
+      setResendCountdown(initialResendCountdown);
       inputRefs.current[0]?.focus();
     }
-  }, [visible]);
+  }, [initialResendCountdown, visible]);
+
+  const resetModalState = () => {
+    setOtp(['', '', '', '', '', '']);
+    setError('');
+    setLoading(false);
+  };
+
+  const handleClose = () => {
+    resetModalState();
+    onClose();
+  };
 
   const handleOtpChange = (value, index) => {
     // Only allow numbers
@@ -74,21 +94,26 @@ export default function OtpModal({
       setLoading(true);
       setError('');
 
+      if (onVerified) {
+        await onVerified(otpCode);
+        message.success(successMessage);
+        resetModalState();
+        onSuccess?.();
+        handleClose();
+        return;
+      }
+
       const response = await verifyOtp(otpCode, userId);
-      console.log('OTP verification response:', response);
       const payload = response?.data ?? response;
 
       if (payload?.accessToken) {
-        message.success('Xác thực OTP thành công!');
-        
-        // Login user with response data
+        message.success(successMessage);
+
         const authedUser = await loginUser(payload.accessToken, payload.user);
 
-        // Delay before redirect to show success message
         setTimeout(() => {
-          onClose();
-          
-          // Redirect based on user role
+          handleClose();
+
           if ((authedUser?.role || payload.user?.role) === 'TEACHER') {
             navigate('/teacher/dashboard');
           } else if ((authedUser?.role || payload.user?.role) === 'ADMIN') {
@@ -99,7 +124,6 @@ export default function OtpModal({
         }, 500);
       }
     } catch (err) {
-      console.error('OTP verification error:', err);
       setError(err.message || 'Xác thực OTP thất bại. Vui lòng thử lại.');
       message.error(err.message || 'Xác thực OTP thất bại');
     } finally {
@@ -108,22 +132,34 @@ export default function OtpModal({
   };
 
   const handleResendOtp = async () => {
-    // TODO: Implement resend OTP API call
-    message.info('Mã OTP mới sẽ được gửi đến email của bạn');
-    setResendCountdown(60);
-    setOtp(['', '', '', '', '', '']);
-    inputRefs.current[0]?.focus();
+    try {
+      setLoading(true);
+      setError('');
+      if (onResend) {
+        await onResend();
+      } else {
+        await resendRegisterOtp(userEmail);
+      }
+      message.success('Mã OTP mới đã được gửi đến email của bạn');
+      setResendCountdown(30);
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } catch (err) {
+      setError(err.message || 'Không thể gửi lại mã OTP');
+      message.error(err.message || 'Không thể gửi lại mã OTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Modal
-      title="Xác thực OTP"
+      title={title}
       open={visible}
-      onCancel={onClose}
+      onCancel={handleClose}
       footer={null}
       centered
       width={400}
-      closable={false}
     >
       <div className="flex flex-col gap-6 py-4">
         {/* Email display */}
@@ -167,7 +203,7 @@ export default function OtpModal({
 
         {/* Info message */}
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-          Mã OTP sẽ hết hạn sau 10 phút
+          Mã OTP sẽ hết hạn sau {expiryMinutes} phút
         </p>
 
         {/* Action Buttons */}
@@ -178,10 +214,10 @@ export default function OtpModal({
             block
             loading={loading}
             onClick={handleVerifyOtp}
-            disabled={resendCountdown > 0}
+            disabled={loading}
             className="h-11 font-semibold"
           >
-            {loading ? 'Đang xác thực...' : 'Xác thực OTP'}
+            {loading ? loadingText : submitText}
           </Button>
 
           <button

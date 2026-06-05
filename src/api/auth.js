@@ -1,8 +1,10 @@
 import axiosClient from "./axiosClient";
 
+const unwrapApiData = (payload) => payload?.data ?? payload;
+
 export async function login(username, password) {
   const response = await axiosClient.post('/auth/login', { username, password });
-  return response.data; // Trả về ApiResponse chứa data (LoginResponse)
+  return response.data;
 }
 
 export async function register(userData) {
@@ -14,6 +16,13 @@ export async function register(userData) {
 export async function verifyOtp(otpCode, userId) {
   const response = await axiosClient.post('/auth/verify-otp', { code: otpCode, userId: userId });
   return response.data;
+}
+
+export async function resendRegisterOtp(gmail) {
+  const response = await axiosClient.post('/auth/resend-register-otp', null, {
+    params: { gmail },
+  });
+  return unwrapApiData(response.data);
 }
 
 // Đăng nhập bằng Google

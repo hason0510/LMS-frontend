@@ -1,23 +1,30 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { message, Form, Input, Button, Space } from "antd";
-import { changePassword } from "../../../api/user";
+import { message, Form, Input, Button } from "antd";
+import { changePassword, confirmChangePassword, resendChangePasswordOtp } from "../../../api/user";
+import OtpModal from "../../auth/OtpModal";
+import { useAuth } from "../../../contexts/AuthContext";
 
 export default function ChangePassword() {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [pendingPasswordData, setPendingPasswordData] = useState(null);
+  const { user } = useAuth();
 
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      await changePassword({
+      const passwordData = {
         oldPassword: values.currentPassword,
         newPassword: values.newPassword,
         confirmNewPassword: values.confirmNewPassword,
-      });
-      message.success(t("profile.doiMatKhauThanhCong"));
-      form.resetFields();
+      };
+      await changePassword(passwordData);
+      setPendingPasswordData(passwordData);
+      setShowOtpModal(true);
+      message.success(t("profile.otpDaDuocGui"));
     } catch (err) {
       message.error(err.message || t("profile.doiMatKhauThatBai"));
     } finally {
@@ -27,6 +34,24 @@ export default function ChangePassword() {
 
   const handleCancel = () => {
     form.resetFields();
+  };
+
+  const handleConfirmPasswordChange = async (otpCode) => {
+    await confirmChangePassword({
+      ...pendingPasswordData,
+      otp: otpCode,
+    });
+  };
+
+  const handlePasswordChangeSuccess = () => {
+    form.resetFields();
+    setPendingPasswordData(null);
+    setShowOtpModal(false);
+  };
+
+  const handleCloseOtpModal = () => {
+    setShowOtpModal(false);
+    setPendingPasswordData(null);
   };
 
   return (
@@ -128,6 +153,13 @@ export default function ChangePassword() {
 
       <div className="flex justify-end gap-4 pt-4 border-t border-black/10 dark:border-white/10">
         <Button
+          onClick={handleCancel}
+          disabled={loading}
+          className="h-10 px-6 rounded-lg"
+        >
+          {t("profile.huy")}
+        </Button>
+        <Button
           type="primary"
           htmlType="submit"
           onClick={() => form.submit()}
@@ -138,6 +170,19 @@ export default function ChangePassword() {
           {loading ? t("profile.dangLuu") : t("profile.luuThayDoi")}
         </Button>
       </div>
+
+      <OtpModal
+        visible={showOtpModal}
+        userEmail={user?.gmail || user?.email || user?.userName || ""}
+        onClose={handleCloseOtpModal}
+        onVerified={handleConfirmPasswordChange}
+        onResend={resendChangePasswordOtp}
+        onSuccess={handlePasswordChangeSuccess}
+        title={t("profile.xacThucOtpDoiMatKhau")}
+        successMessage={t("profile.doiMatKhauThanhCong")}
+        submitText={t("profile.xacNhanDoiMatKhau")}
+        loadingText={t("profile.dangXacThucOtp")}
+      />
     </>
   );
 }

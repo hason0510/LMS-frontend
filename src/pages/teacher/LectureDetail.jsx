@@ -23,7 +23,18 @@ import {
 import { Form, Input, Button, Spin, Alert, Modal, App, Segmented, Empty } from "antd";
 import { getCourseById, createClassContentItem, getClassChapters, getClassContentItems, getClassContentCompletion } from "../../api/classSection";
 import { getLessonById, updateLesson, deleteLesson, createLesson } from "../../api/lesson";
-import { attachResourceToLesson, createResource, uploadVideoResource, uploadSlideResource, getResourcesByLessonId, deleteResource, detachResourceFromLesson } from "../../api/resource";
+import {
+  attachResourceToLesson,
+  createResource,
+  createStandaloneResource,
+  uploadAttachmentResource,
+  uploadVideoResource,
+  uploadSlideResource,
+  getResourceById,
+  getResourcesByLessonId,
+  deleteResource,
+  detachResourceFromLesson,
+} from "../../api/resource";
 import { getResourceTypeFromFile, isVideoFile } from "../../utils/fileUtils";
 import FileItem from "../../components/common/FileItem";
 import VideoPlayer from "../../components/common/VideoPlayer";
@@ -88,6 +99,10 @@ export default function LectureDetail({ isAdmin = false }) {
   const classResourceScope = !isTemplateMode && classSectionId
     ? { scopeType: "CLASS_SECTION", scopeId: Number(classSectionId) }
     : {};
+  const templateResourceScope = isTemplateMode && templateIdFromPath
+    ? { scopeType: "CURRICULUM_TEMPLATE", scopeId: Number(templateIdFromPath) }
+    : {};
+  const activeMediaScope = isTemplateMode ? templateResourceScope : classResourceScope;
 
   const closeLessonCompletionModal = () => {
     setLessonCompletionModalOpen(false);
@@ -252,6 +267,25 @@ export default function LectureDetail({ isAdmin = false }) {
 
   const videoInfo = extractVideoId(videoUrl);
   const videoEmbedUrl = getVideoEmbedUrl(videoInfo);
+  const nonVideoResources = resources.filter((resource) => resource.type !== "VIDEO");
+
+  const upsertPendingLibraryResource = (resource) => {
+    if (!resource?.id) return;
+    setPendingLibraryResources((prev) => {
+      const withoutDuplicate = prev.filter((item) => item.id !== resource.id);
+      return [...withoutDuplicate, resource];
+    });
+  };
+
+  const replaceTemplateVideoResource = (resource) => {
+    setResources((prev) => prev.filter((item) => item.type !== "VIDEO" && item.id !== resource?.id));
+    setPendingLibraryResources((prev) => {
+      const withoutExistingVideo = prev.filter((item) => item.type !== "VIDEO" && item.id !== resource?.id);
+      return resource ? [...withoutExistingVideo, resource] : withoutExistingVideo;
+    });
+    setVideoResource(resource || null);
+    setVideoSourceType(resource ? "upload" : "embed");
+  };
 
   const modules = buildQuillModules([
     [{ header: [1, 2, 3, false] }],
@@ -305,24 +339,18 @@ export default function LectureDetail({ isAdmin = false }) {
           setContent(lessonData.content || "");
           setVideoUrl(lessonData.videoUrl || "");
           setNotes(lessonData.notes || "");
-          
-          try {
-            const resourcesResponse = await getResourcesByLessonId(lectureId);
-            const resourcesList = Array.isArray(resourcesResponse)
-              ? resourcesResponse
-              : resourcesResponse.data || [];
-            setResources(resourcesList);
+          const resourcesList = Array.isArray(lessonData.resources)
+            ? lessonData.resources
+            : [];
+          setResources(resourcesList);
 
-            const videoRes = resourcesList.find((r) => r.type === "VIDEO");
-            if (videoRes) {
-              setVideoResource(videoRes);
-              setVideoSourceType("upload");
-            } else if (lessonData.videoUrl) {
-              setVideoSourceType("embed");
-            }
-          } catch (resourceErr) {
-            console.error("Failed to fetch resources:", resourceErr);
-            setResources([]);
+          const videoRes = resourcesList.find((r) => r.type === "VIDEO");
+          if (videoRes) {
+            setVideoResource(videoRes);
+            setVideoSourceType("upload");
+          } else if (lessonData.videoUrl || isTemplateMode) {
+            setVideoResource(null);
+            setVideoSourceType("embed");
           }
           
           if (lessonData.attachments && Array.isArray(lessonData.attachments)) {
@@ -355,6 +383,33 @@ export default function LectureDetail({ isAdmin = false }) {
     }
   }, [loading, lesson, form]);
 
+  const uploadTemplateScopedResource = async (file, { forceVideo = false, onProgress } = {}) => {
+    if (!templateResourceScope.scopeType || !templateResourceScope.scopeId) {
+      throw new Error("Không xác định được phạm vi media của khung chương trình");
+    }
+
+    const standalone = await createStandaloneResource({
+      title: file.name,
+      fileUrl: "",
+      type: forceVideo ? "VIDEO" : "FILE",
+      source: "UPLOAD",
+      ...templateResourceScope,
+    });
+
+    const resourceId = standalone?.id;
+    if (!resourceId) {
+      throw new Error("Không tạo được media cho bài giảng mẫu");
+    }
+
+    if (forceVideo) {
+      await uploadVideoResource(resourceId, file, onProgress);
+    } else {
+      await uploadAttachmentResource(resourceId, file, onProgress);
+    }
+
+    return getResourceById(resourceId);
+  };
+
   const handleFileSelect = (event) => {
     const files = Array.from(event.target.files || []);
     // Reset input early so re-selecting the same file works
@@ -364,10 +419,11 @@ export default function LectureDetail({ isAdmin = false }) {
       // Validate file type
       const allowedTypes = [
         "application/pdf",
+        "application/vnd.ms-powerpoint",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       ];
       if (!allowedTypes.includes(file.type)) {
-        messageApi.error("Chỉ hỗ trợ file PDF và PPTX");
+        messageApi.error("Chỉ hỗ trợ file PDF, PPT và PPTX");
         return;
       }
       // Validate file size (50MB)
@@ -385,6 +441,39 @@ export default function LectureDetail({ isAdmin = false }) {
         isNew: true,
         uploading: false,
       };
+
+      if (isTemplateMode) {
+        const uploadingFile = { ...newFile, uploading: true };
+        setUploadedFiles((prev) => [...prev, uploadingFile]);
+        setIsUploading(true);
+
+        (async () => {
+          try {
+            const uploadedResource = await uploadTemplateScopedResource(file, {
+              onProgress: (percent) => {
+                setFileUploadProgress((prev) => ({ ...prev, [fileId]: percent }));
+              },
+            });
+            upsertPendingLibraryResource(uploadedResource);
+            messageApi.success(`Tải lên ${file.name} thành công`);
+          } catch (err) {
+            console.error("Failed to upload template file:", err);
+            messageApi.warning(err?.response?.data?.message || `Không thể tải lên file ${file.name}`);
+            setUploadedFiles((prev) => prev.map((f) =>
+              f.id === fileId ? { ...f, uploading: false, uploadError: true } : f
+            ));
+          } finally {
+            setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+            setFileUploadProgress((prev) => {
+              const next = { ...prev };
+              delete next[fileId];
+              return next;
+            });
+            setIsUploading(false);
+          }
+        })();
+        return;
+      }
 
       // In edit mode (lectureId exists, not template): upload immediately
       if (lectureId && !isTemplateMode) {
@@ -451,7 +540,13 @@ export default function LectureDetail({ isAdmin = false }) {
   };
 
   const handleDetachSavedResource = async (resourceId) => {
-    if (!lectureId || !resourceId) return;
+    if (!resourceId) return;
+    if (isTemplateMode) {
+      setResources((prev) => prev.filter((resource) => resource.id !== resourceId));
+      messageApi.success("Đã gỡ media khỏi bài giảng mẫu");
+      return;
+    }
+    if (!lectureId) return;
     try {
       await detachResourceFromLesson(lectureId, resourceId);
       const resourcesResponse = await getResourcesByLessonId(lectureId);
@@ -469,12 +564,6 @@ export default function LectureDetail({ isAdmin = false }) {
   const handleSelectLibraryResource = async (resource) => {
     if (!resource) return;
 
-    if (isTemplateMode) {
-      messageApi.info("Template lesson chưa hỗ trợ media library.");
-      setLibraryPickerOpen(false);
-      return;
-    }
-
     const duplicateInSaved = resources.some((item) => item.id === resource.id);
     const duplicateInPending = pendingLibraryResources.some((item) => item.id === resource.id);
     if (duplicateInSaved || duplicateInPending) {
@@ -483,7 +572,7 @@ export default function LectureDetail({ isAdmin = false }) {
       return;
     }
 
-    if (lectureId) {
+    if (lectureId && !isTemplateMode) {
       try {
         await attachResourceToLesson(lectureId, resource.id);
         const resourcesResponse = await getResourcesByLessonId(lectureId);
@@ -502,6 +591,7 @@ export default function LectureDetail({ isAdmin = false }) {
     }
 
     setPendingLibraryResources((prev) => [...prev, resource]);
+    messageApi.success(isTemplateMode ? "Đã chọn media cho bài giảng mẫu" : "Đã thêm media vào danh sách chờ");
     setLibraryPickerOpen(false);
   };
 
@@ -520,6 +610,9 @@ export default function LectureDetail({ isAdmin = false }) {
         notes: notes.trim(),
         chapterId: chapterId, // Assuming chapterId is passed in params
       };
+      const templateResourceIds = Array.from(
+        new Set([...resources, ...pendingLibraryResources].map((resource) => resource?.id).filter(Boolean))
+      );
 
       // Validate required fields
       if (!lessonData.title) {
@@ -542,6 +635,7 @@ export default function LectureDetail({ isAdmin = false }) {
             content: lessonData.content,
             videoUrl: lessonData.videoUrl,
             notes: lessonData.notes,
+            resourceIds: templateResourceIds,
           });
           messageApi.success("Cập nhật bài giảng mẫu thành công");
         } else {
@@ -551,6 +645,7 @@ export default function LectureDetail({ isAdmin = false }) {
             content: lessonData.content,
             videoUrl: lessonData.videoUrl,
             notes: lessonData.notes,
+            resourceIds: templateResourceIds,
           });
 
           await createContentItemTemplate(templateIdFromPath, chapterIdFromState, {
@@ -712,7 +807,7 @@ export default function LectureDetail({ isAdmin = false }) {
     }
 
     // Create mode: defer upload until lesson is saved
-    if (!lectureId) {
+    if (!lectureId && !isTemplateMode) {
       setPendingVideoFile(file);
       return;
     }
@@ -721,33 +816,44 @@ export default function LectureDetail({ isAdmin = false }) {
     setVideoUploadProgress(0);
 
     try {
-      const resourceResponse = await createResource(lectureId, {
-        title: file.name,
-        fileUrl: "",
-        type: "VIDEO",
-        source: "UPLOAD",
-        ...classResourceScope,
-      });
-      const resourceId = resourceResponse?.id || resourceResponse?.data?.id;
-
-      if (resourceId) {
-        await uploadVideoResource(resourceId, file, (percent) => {
-          setVideoUploadProgress(percent);
+      if (isTemplateMode) {
+        const uploadedResource = await uploadTemplateScopedResource(file, {
+          forceVideo: true,
+          onProgress: (percent) => {
+            setVideoUploadProgress(percent);
+          },
         });
+        replaceTemplateVideoResource(uploadedResource);
+        messageApi.success("Upload video cho bài giảng mẫu thành công");
+      } else {
+        const resourceResponse = await createResource(lectureId, {
+          title: file.name,
+          fileUrl: "",
+          type: "VIDEO",
+          source: "UPLOAD",
+          ...classResourceScope,
+        });
+        const resourceId = resourceResponse?.id || resourceResponse?.data?.id;
 
-        const resourcesResponse = await getResourcesByLessonId(lectureId);
-        const list = Array.isArray(resourcesResponse)
-          ? resourcesResponse
-          : resourcesResponse.data || [];
-        setResources(list);
+        if (resourceId) {
+          await uploadVideoResource(resourceId, file, (percent) => {
+            setVideoUploadProgress(percent);
+          });
 
-        const uploaded = list.find((r) => r.id === resourceId);
-        setVideoResource(uploaded || null);
-        messageApi.success("Upload video thành công");
+          const resourcesResponse = await getResourcesByLessonId(lectureId);
+          const list = Array.isArray(resourcesResponse)
+            ? resourcesResponse
+            : resourcesResponse.data || [];
+          setResources(list);
+
+          const uploaded = list.find((r) => r.id === resourceId);
+          setVideoResource(uploaded || null);
+          messageApi.success("Upload video thành công");
+        }
       }
     } catch (err) {
       console.error("Video upload failed:", err);
-      messageApi.error("Không thể upload video. Vui lòng thử lại.");
+      messageApi.error(err?.response?.data?.message || "Không thể upload video. Vui lòng thử lại.");
     } finally {
       setIsVideoUploading(false);
       setVideoUploadProgress(0);
@@ -756,6 +862,11 @@ export default function LectureDetail({ isAdmin = false }) {
 
   const handleDeleteVideo = async () => {
     if (!videoResource) return;
+    if (isTemplateMode) {
+      replaceTemplateVideoResource(null);
+      messageApi.success("Đã gỡ video khỏi bài giảng mẫu. Media vẫn còn trong thư viện.");
+      return;
+    }
     try {
       await deleteResource(videoResource.id);
       setVideoResource(null);
@@ -1089,12 +1200,12 @@ export default function LectureDetail({ isAdmin = false }) {
                                   <div className="p-2 bg-primary/10 rounded-lg">
                                     <PlayCircleIcon className="h-5 w-5 text-primary" />
                                   </div>
-                                  <div className="flex flex-col min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{pendingVideoFile.name}</p>
+                                    <div className="flex flex-col min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{pendingVideoFile.name}</p>
                                     <p className="text-xs text-gray-500">{(pendingVideoFile.size / (1024 * 1024)).toFixed(1)} MB — Sẽ upload khi lưu bài giảng</p>
+                                    </div>
                                   </div>
-                                </div>
-                                <button
+                                  <button
                                   type="button"
                                   onClick={() => setPendingVideoFile(null)}
                                   className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
@@ -1128,7 +1239,7 @@ export default function LectureDetail({ isAdmin = false }) {
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   Click để chọn file video
                                 </p>
-                                <p className="text-xs text-gray-400 mt-1">MP4, WebM, MOV — tối đa 500MB</p>
+                                <p className="text-xs text-gray-400 mt-1">MP4, WebM, MOV — tối đa 100MB</p>
                               </div>
                               <input
                                 ref={videoFileInputRef}
@@ -1158,7 +1269,7 @@ export default function LectureDetail({ isAdmin = false }) {
                             Tài liệu / Slide
                           </h3>
                         </div>
-                        {!isViewMode && !isTemplateMode && (
+                        {!isViewMode && (
                           <Button onClick={() => setLibraryPickerOpen(true)}>
                             Chọn từ kho media
                           </Button>
@@ -1176,19 +1287,24 @@ export default function LectureDetail({ isAdmin = false }) {
                       >
                         <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mb-3" />
                         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
-                          Kéo thả file PDF vào đây hoặc{" "}
+                          Kéo thả file PDF/PPTX vào đây hoặc{" "}
                           <span className="text-primary hover:underline">
                             tải lên
                           </span>
                         </p>
                         <p className="text-xs text-gray-500 mt-2">
-                          Hỗ trợ: PDF, PPTX (Max 50MB)
+                          Hỗ trợ: PDF, PPTX (Max 100MB)
                         </p>
+                        {isTemplateMode && (
+                          <p className="mt-2 text-xs text-gray-500 text-center">
+                            File được tải lên kho media của khung chương trình và sẽ gắn vào bài giảng mẫu khi bạn lưu.
+                          </p>
+                        )}
                         <input
                           ref={fileInputRef}
                           type="file"
                           multiple
-                          accept=".pdf,.pptx"
+                          accept=".pdf,.ppt,.pptx"
                           onChange={handleFileSelect}
                           className="!hidden"
                         />
@@ -1266,13 +1382,13 @@ export default function LectureDetail({ isAdmin = false }) {
                       )}
 
                       {/* Resources List Section - Already Uploaded */}
-                      {resources.length > 0 && (
+                      {nonVideoResources.length > 0 && (
                         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                           <h3 className="text-sm font-semibold text-[#111418] dark:text-white mb-3">
                             Tài nguyên đã tải lên
                           </h3>
                           <div className="space-y-2">
-                            {resources.map((resource) => (
+                            {nonVideoResources.map((resource) => (
                               <FileItem
                                 key={resource.id}
                                 fileUrl={resource.fileUrl || resource.url}
@@ -1296,8 +1412,9 @@ export default function LectureDetail({ isAdmin = false }) {
                     open={libraryPickerOpen}
                     onCancel={() => setLibraryPickerOpen(false)}
                     onSelect={handleSelectLibraryResource}
-                    mediaContext={classResourceScope}
+                    mediaContext={activeMediaScope}
                     title="Chọn media từ kho của tôi"
+                    allowedTypes={["IMAGE", "AUDIO", "PDF", "FILE", "LINK"]}
                   />
 
                   {/* Notes Section */}

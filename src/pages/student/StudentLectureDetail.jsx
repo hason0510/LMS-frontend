@@ -117,6 +117,9 @@ export default function StudentLectureDetail() {
     return null;
   };
 
+  const resolvePrimaryVideoResource = (items) =>
+    (items || []).find((resource) => resource.type === "VIDEO") || null;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -141,9 +144,17 @@ export default function StudentLectureDetail() {
 
   const videoInfo = lesson?.videoUrl ? extractVideoId(lesson.videoUrl) : null;
   const videoEmbedUrl = getVideoEmbedUrl(videoInfo);
-  const uploadedVideoResource = resources.find(
-    (r) => r.type === "VIDEO" && r.source === "UPLOAD"
+  const primaryVideoResource = resolvePrimaryVideoResource(resources);
+  const primaryVideoResourceRawUrl =
+    primaryVideoResource?.embedUrl || primaryVideoResource?.fileUrl || "";
+  const primaryVideoResourceInfo = extractVideoId(
+    primaryVideoResourceRawUrl
   );
+  const primaryVideoResourceEmbedUrl =
+    primaryVideoResource?.source === "EMBED" && primaryVideoResource?.embedUrl
+      ? primaryVideoResource.embedUrl
+      : getVideoEmbedUrl(primaryVideoResourceInfo);
+  const nonVideoResources = resources.filter((resource) => resource.type !== "VIDEO");
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -166,13 +177,37 @@ export default function StudentLectureDetail() {
             </h1>
           </div>
 
-          {uploadedVideoResource ? (
+          {primaryVideoResource ? (
             <div className="mb-8">
-              <VideoPlayer
-                fileUrl={uploadedVideoResource.fileUrl}
-                hlsUrl={uploadedVideoResource.hlsUrl}
-                title={lesson?.title}
-              />
+              {primaryVideoResourceEmbedUrl ? (
+                <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md">
+                  <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                    <iframe
+                      src={primaryVideoResourceEmbedUrl}
+                      title={lesson?.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute top-0 left-0 w-full h-full"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {primaryVideoResourceInfo?.platform === "onedrive-share" ? (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+                      <p className="text-yellow-800 dark:text-yellow-400 text-sm font-medium">Video OneDrive chưa được cấu hình đúng</p>
+                      <p className="text-yellow-700 dark:text-yellow-500 text-xs mt-1">Vui lòng liên hệ giảng viên để cập nhật link embed OneDrive.</p>
+                    </div>
+                  ) : (
+                    <VideoPlayer
+                      fileUrl={primaryVideoResource.fileUrl || primaryVideoResource.embedUrl}
+                      hlsUrl={primaryVideoResource.hlsUrl}
+                      title={lesson?.title}
+                    />
+                  )}
+                </>
+              )}
             </div>
           ) : videoEmbedUrl ? (
             <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md">
@@ -210,13 +245,13 @@ export default function StudentLectureDetail() {
             </div>
 
             <div>
-              {resources.length > 0 && (
+              {nonVideoResources.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-4 shadow-md sticky top-24">
                   <h3 className="text-md font-semibold text-[#111418] dark:text-white mb-3">
                     Tài liệu bài giảng
                   </h3>
                   <div className="space-y-2">
-                    {resources.map((resource) => (
+                    {nonVideoResources.map((resource) => (
                       <FileItem
                         key={resource.id}
                         fileUrl={resource.fileUrl || resource.url}

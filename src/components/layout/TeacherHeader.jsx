@@ -49,7 +49,7 @@ export default function TeacherHeader({ toggleSidebar }) {
   useEffect(() => {
     if (isLoggedIn && user?.id) {
       fetchUnreadCount();
-      connect(user.id);
+      connect();
     }
     return () => disconnect();
   }, [isLoggedIn, user?.id, fetchUnreadCount, connect, disconnect]);

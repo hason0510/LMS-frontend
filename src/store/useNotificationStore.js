@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import useUserStore from './useUserStore';
 import { getMyNotifications, countUnreadNotifications, markNotificationAsRead as apiMarkAsRead } from '../api/notification';
 import { notification as antdNotification } from 'antd';
 import {
@@ -56,12 +57,16 @@ const useNotificationStore = create((set, get) => ({
     }
   },
 
-  connect: (userId) => {
-    if (get().isConnected || !userId) return;
+  connect: () => {
+    const token = useUserStore.getState().accessToken;
+    if (get().isConnected || !token) return;
 
     const socket = new SockJS(`${BACKEND_URL}/ws`);
     const client = new Client({
       webSocketFactory: () => socket,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
       debug: (str) => {
         // console.log(str);
       },
@@ -74,7 +79,7 @@ const useNotificationStore = create((set, get) => ({
       set({ isConnected: true, stompClient: client });
       // console.log('Connected to WebSocket');
 
-      client.subscribe(`/topic/notifications/${userId}`, (message) => {
+      client.subscribe(`/user/queue/notifications`, (message) => {
         const newNotification = normalizeNotificationItem(JSON.parse(message.body));
         
         // Add to list and play sound or show toast

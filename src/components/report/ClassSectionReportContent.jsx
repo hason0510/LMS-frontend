@@ -59,6 +59,10 @@ function normalizeProgressThresholds(thresholds = DEFAULT_PROGRESS_THRESHOLDS) {
   return { low, high };
 }
 
+function getTeachingAssistantCount(classSection) {
+  return (classSection?.teachingMembers || []).filter((member) => member.role === "TA").length;
+}
+
 export default function ClassSectionReportContent({
   classSections,
   selectedClassSectionId,
@@ -96,6 +100,7 @@ export default function ClassSectionReportContent({
   const emptyDateLabel = t("reportsPage.shared.defaults.noData");
   const defaultSelectorLabel = selectorLabel || t("reportsPage.shared.filter.placeholder");
   const defaultEmptyMessage = emptyMessage || t("reportsPage.shared.empty.classSections");
+  const teachingAssistantCount = getTeachingAssistantCount(currentClassSection);
   const statusLabelMap = {
     PUBLIC: t("teaching.status.public"),
     PRIVATE: t("teaching.status.private"),
@@ -1015,6 +1020,7 @@ export default function ClassSectionReportContent({
             <MetaRow label={t("reportsPage.shared.meta.classCode")} value={currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} />
             <MetaRow label={t("reportsPage.shared.meta.subject")} value={currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} />
             <MetaRow label={t("reportsPage.shared.meta.primaryTeacher")} value={currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} />
+            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={teachingAssistantCount} />
             <MetaRow
               label={t("reportsPage.shared.meta.status")}
               value={
@@ -1364,6 +1370,7 @@ export default function ClassSectionReportContent({
             <MetaRow label={t("reportsPage.shared.meta.classCode")} value={currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} />
             <MetaRow label={t("reportsPage.shared.meta.subject")} value={currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} />
             <MetaRow label={t("reportsPage.shared.meta.teacher")} value={currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} />
+            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={teachingAssistantCount} />
           </div>
         </ReportSectionCard>
       </div>

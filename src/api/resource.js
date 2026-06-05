@@ -55,6 +55,22 @@ export async function uploadSlideResource(resourceId, file, onProgress) {
   return unwrapPayload(response);
 }
 
+export async function uploadAttachmentResource(resourceId, file, onProgress) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await axiosClient.post(`resources/${resourceId}/file`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+    onUploadProgress: onProgress
+      ? (e) => onProgress(Math.round((e.loaded * 100) / e.total))
+      : undefined,
+  });
+
+  return unwrapPayload(response);
+}
+
 /**
  * Lấy tất cả resources của một bài học
  * @param {number} lessonId - ID của bài học

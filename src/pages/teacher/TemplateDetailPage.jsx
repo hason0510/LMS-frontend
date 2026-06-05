@@ -36,7 +36,6 @@ import {
   TrashIcon,
   BookOpenIcon,
   ClipboardDocumentCheckIcon,
-  DocumentTextIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   ChevronUpIcon,
@@ -60,12 +59,6 @@ const ITEM_TYPE_CONFIG = {
     label: "Bài kiểm tra",
     badgeClass: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
     dotClass: "bg-amber-500",
-  },
-  ASSIGNMENT: {
-    Icon: DocumentTextIcon,
-    label: "Bài tập",
-    badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
-    dotClass: "bg-purple-500",
   },
 };
 
@@ -204,8 +197,6 @@ export default function TemplateDetailPage({ isAdmin = false }) {
       navigate(`${basePath}/curriculums/${templateId}/chapters/${selectedChapterId}/quizzes/create`, {
         state: { isTemplateMode: true, chapterId: selectedChapterId },
       });
-    } else {
-      message.info("Tính năng bài tập đang được phát triển");
     }
   };
 
@@ -353,14 +344,12 @@ export default function TemplateDetailPage({ isAdmin = false }) {
           orderIndex: swapIdx,
           lessonTemplateId: itemA.lessonTemplateId,
           quizTemplateId: itemA.quizTemplateId,
-          assignmentTemplateId: itemA.assignmentTemplateId,
         }),
         updateContentItemTemplate(templateId, chapterId, itemB.id, {
           itemType: itemB.itemType,
           orderIndex: idx,
           lessonTemplateId: itemB.lessonTemplateId,
           quizTemplateId: itemB.quizTemplateId,
-          assignmentTemplateId: itemB.assignmentTemplateId,
         }),
       ]);
     } catch (err) {
@@ -602,7 +591,6 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                                   const itemTitle =
                                     item.lessonTemplateTitle ||
                                     item.quizTemplateTitle ||
-                                    item.assignmentTemplateTitle ||
                                     "Chưa có tiêu đề";
                                   return (
                                     <div
@@ -737,7 +725,6 @@ export default function TemplateDetailPage({ isAdmin = false }) {
           {[
             { type: "LESSON", desc: "Bài giảng có video, nội dung, tài liệu đính kèm" },
             { type: "QUIZ", desc: "Bài kiểm tra trắc nghiệm từ ngân hàng câu hỏi" },
-            { type: "ASSIGNMENT", desc: "Bài tập yêu cầu sinh viên nộp bài" },
           ].map(({ type, desc }) => {
             const cfg = ITEM_TYPE_CONFIG[type];
             const { Icon } = cfg;

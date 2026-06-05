@@ -93,6 +93,10 @@ function buildAttentionList(rows = []) {
     });
 }
 
+function getTeachingAssistantCount(classSection) {
+  return (classSection?.teachingMembers || []).filter((member) => member.role === "TA").length;
+}
+
 export default function TeacherDashboard() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -510,6 +514,7 @@ export default function TeacherDashboard() {
 
                       {classes.slice(0, 6).map((item) => {
                         const isSelected = item.id === selectedClassSectionId;
+                        const teachingAssistantCount = getTeachingAssistantCount(item);
                         return (
                           <button
                             key={item.id}
@@ -526,7 +531,7 @@ export default function TeacherDashboard() {
                                   {item.title || item.classCode}
                                 </p>
                                 <p className="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                                  {item.subjectTitle || t("teacherDashboard.defaults.noSubject")}
+                                  {item.subjectTitle || t("teacherDashboard.defaults.noSubject")} · {t("teacherDashboard.classes.assistants", { count: teachingAssistantCount })}
                                 </p>
                               </div>
                               <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">

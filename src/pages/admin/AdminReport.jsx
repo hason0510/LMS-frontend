@@ -30,6 +30,10 @@ import {
 } from "../../api/statistics";
 import { collectAllPagedItems, unwrapApiData, unwrapPageItems } from "../../utils/reporting";
 
+function getTeachingAssistantCount(classSection) {
+  return (classSection?.teachingMembers || []).filter((member) => member.role === "TA").length;
+}
+
 export default function AdminReport() {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const { t } = useTranslation();
@@ -439,7 +443,10 @@ export default function AdminReport() {
                               {item.subjectTitle || t("reportsPage.shared.defaults.noSubject")} · {item.teacherName || t("reportsPage.shared.defaults.unknownTeacher")}
                             </p>
                           </div>
-                          <Tag color="blue">{t("reportsPage.admin.sections.topClasses.students", { count: item.totalEnrollments || 0 })}</Tag>
+                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                            <Tag color="blue">{t("reportsPage.admin.sections.topClasses.students", { count: item.totalEnrollments || 0 })}</Tag>
+                            <Tag>{t("reportsPage.admin.sections.topClasses.assistants", { count: getTeachingAssistantCount(item) })}</Tag>
+                          </div>
                         </button>
                       ))
                     )}

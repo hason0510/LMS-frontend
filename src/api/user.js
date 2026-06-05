@@ -47,7 +47,17 @@ export async function uploadUserAvatar(userId, file) {
 
 export async function changePassword(passwordData) {
   const response = await axiosClient.post(`auth/change-password`, passwordData);
-  return response.data;
+  return unwrapApiData(response.data);
+}
+
+export async function confirmChangePassword(passwordData) {
+  const response = await axiosClient.post(`auth/change-password/confirm`, passwordData);
+  return unwrapApiData(response.data);
+}
+
+export async function resendChangePasswordOtp() {
+  const response = await axiosClient.post(`auth/resend-change-password-otp`);
+  return unwrapApiData(response.data);
 }
 
 export async function createUser(userData) {

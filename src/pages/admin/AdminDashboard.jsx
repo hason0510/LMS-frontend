@@ -71,6 +71,10 @@ function getClassAccessTone(status) {
   return "slate";
 }
 
+function getTeachingAssistantCount(classSection) {
+  return (classSection?.teachingMembers || []).filter((member) => member.role === "TA").length;
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -503,6 +507,12 @@ export default function AdminDashboard() {
                             <span className="text-slate-500 dark:text-slate-400">{t("adminDashboard.topClasses.studentsLabel")}</span>
                             <span className="font-semibold text-slate-800 dark:text-slate-100">
                               {t("adminDashboard.topClasses.studentsValue", { count: item.totalEnrollments || 0 })}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">{t("adminDashboard.topClasses.assistantsLabel")}</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-100">
+                              {t("adminDashboard.topClasses.assistantsValue", { count: getTeachingAssistantCount(item) })}
                             </span>
                           </div>
                         </button>

@@ -344,6 +344,10 @@
     "vuiLongXacNhanMatKhauMoi": "Vui lòng xác nhận mật khẩu mới",
     "nhapLaiMatKhauMoi": "Nhập lại mật khẩu mới",
     "matKhauKhongKhop": "Mật khẩu xác nhận không khớp",
+    "otpDaDuocGui": "Mã OTP đã được gửi tới email của bạn.",
+    "xacThucOtpDoiMatKhau": "Xác thực OTP đổi mật khẩu",
+    "xacNhanDoiMatKhau": "Xác nhận đổi mật khẩu",
+    "dangXacThucOtp": "Đang xác thực OTP...",
     "doiMatKhauThanhCong": "Đổi mật khẩu thành công!",
     "doiMatKhauThatBai": "Đổi mật khẩu thất bại. Vui lòng thử lại.",
     "dangTaiKhoaHoc": "Đang tải khóa học...",
@@ -1858,6 +1862,7 @@
         "subject": "Môn học",
         "primaryTeacher": "Giảng viên chính",
         "teacher": "Giảng viên",
+        "teachingAssistants": "Trợ giảng",
         "status": "Trạng thái",
         "startDate": "Bắt đầu",
         "endDate": "Kết thúc",
@@ -2122,7 +2127,8 @@
           "title": "Lớp có quy mô lớn",
           "subtitle": "Ưu tiên theo dõi những lớp đang có đông học viên hơn.",
           "empty": "Chưa có lớp nào để xếp hạng.",
-          "students": "{{count}} học viên"
+          "students": "{{count}} học viên",
+          "assistants": "{{count}} trợ giảng"
         }
       },
       "charts": {
@@ -2390,7 +2396,8 @@
       "subtitle": "Chọn nhanh một lớp để xem sát hơn tình hình học tập.",
       "action": "Xem danh sách lớp",
       "allClassesHint": "Gộp chung tình hình của tất cả lớp bạn đang phụ trách.",
-      "students": "{{count}} học viên"
+      "students": "{{count}} học viên",
+      "assistants": "{{count}} trợ giảng"
     },
     "upcoming": {
       "title": "Bài sắp đến hạn",
@@ -2501,7 +2508,9 @@
       "action": "Mở trang lớp học",
       "empty": "Chưa có lớp nào để hiển thị.",
       "studentsLabel": "Số học viên",
-      "studentsValue": "{{count}} học viên"
+      "studentsValue": "{{count}} học viên",
+      "assistantsLabel": "Số trợ giảng",
+      "assistantsValue": "{{count}} trợ giảng"
     },
     "teachers": {
       "title": "Giáo viên đang phụ trách nhiều lớp",

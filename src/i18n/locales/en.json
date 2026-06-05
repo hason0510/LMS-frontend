@@ -344,6 +344,10 @@
     "vuiLongXacNhanMatKhauMoi": "Please confirm your new password",
     "nhapLaiMatKhauMoi": "Re-enter your new password",
     "matKhauKhongKhop": "Passwords do not match",
+    "otpDaDuocGui": "An OTP code has been sent to your email.",
+    "xacThucOtpDoiMatKhau": "Verify password change OTP",
+    "xacNhanDoiMatKhau": "Confirm password change",
+    "dangXacThucOtp": "Verifying OTP...",
     "doiMatKhauThanhCong": "Password changed successfully!",
     "doiMatKhauThatBai": "Password change failed. Please try again.",
     "dangTaiKhoaHoc": "Loading courses...",
@@ -1858,6 +1862,7 @@
         "subject": "Subject",
         "primaryTeacher": "Lead teacher",
         "teacher": "Teacher",
+        "teachingAssistants": "Teaching assistants",
         "status": "Status",
         "startDate": "Start date",
         "endDate": "End date",
@@ -2122,7 +2127,8 @@
           "title": "Largest classes",
           "subtitle": "Useful for spotting the classes that may need support earlier.",
           "empty": "There are no classes to rank yet.",
-          "students": "{{count}} students"
+          "students": "{{count}} students",
+          "assistants": "{{count}} teaching assistants"
         }
       },
       "charts": {
@@ -2390,7 +2396,8 @@
       "subtitle": "Pick a class quickly to look more closely at how students are doing.",
       "action": "View class list",
       "allClassesHint": "Combine the picture across all of your active classes.",
-      "students": "{{count}} students"
+      "students": "{{count}} students",
+      "assistants": "{{count}} teaching assistants"
     },
     "upcoming": {
       "title": "Upcoming deadlines",
@@ -2501,7 +2508,9 @@
       "action": "Open classes page",
       "empty": "There are no classes to show yet.",
       "studentsLabel": "Students",
-      "studentsValue": "{{count}} students"
+      "studentsValue": "{{count}} students",
+      "assistantsLabel": "Teaching assistants",
+      "assistantsValue": "{{count}} teaching assistants"
     },
     "teachers": {
       "title": "Teachers leading the most classes",

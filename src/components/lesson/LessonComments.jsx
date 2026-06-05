@@ -1,17 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Input, Button, Avatar, Spin, message, Empty } from "antd";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import {
   getCommentsByLesson,
   createComment,
   replyComment,
 } from "../../api/lessonComment";
 import { SendOutlined } from "@ant-design/icons";
+import useUserStore from "../../store/useUserStore";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8081";
 
 export default function LessonComments({ lectureId, previewMode = false, readOnlyReason = null }) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const accessToken = useUserStore((state) => state.accessToken);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -21,11 +27,7 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
   const [showCommentForm, setShowCommentForm] = useState(false);
   const isReadOnly = previewMode || Boolean(readOnlyReason);
 
-  useEffect(() => {
-    fetchComments();
-  }, [lectureId]);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     if (!lectureId) return;
     try {
       setLoading(true);
@@ -45,7 +47,49 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
     } finally {
       setLoading(false);
     }
-  };
+  }, [lectureId, t]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
+
+  useEffect(() => {
+    if (!lectureId || !accessToken) {
+      return undefined;
+    }
+
+    const socket = new SockJS(`${BACKEND_URL}/ws`);
+    const client = new Client({
+      webSocketFactory: () => socket,
+      connectHeaders: accessToken
+        ? { Authorization: `Bearer ${accessToken}` }
+        : {},
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      debug: () => {},
+    });
+
+    client.onConnect = () => {
+      client.subscribe(`/topic/lessons/${lectureId}/comments`, () => {
+        fetchComments();
+      });
+    };
+
+    client.onStompError = (frame) => {
+      console.error("Comment STOMP error:", frame.headers?.message, frame.body);
+    };
+
+    client.onWebSocketError = (event) => {
+      console.error("Comment WebSocket error:", event);
+    };
+
+    client.activate();
+
+    return () => {
+      client.deactivate();
+    };
+  }, [lectureId, accessToken, fetchComments]);
 
   const handleSubmitComment = async () => {
     if (!commentText.trim()) {
@@ -61,7 +105,6 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
       message.success(t("lessonComments.messages.created"));
       setCommentText("");
       setShowCommentForm(false);
-      await fetchComments();
     } catch (err) {
       message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.createFailed"));
     } finally {
@@ -84,7 +127,6 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
       message.success(t("lessonComments.messages.replied"));
       setReplyText("");
       setReplyingTo(null);
-      await fetchComments();
     } catch (err) {
       message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.replyFailed"));
     } finally {

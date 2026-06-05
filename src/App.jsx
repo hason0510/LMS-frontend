@@ -111,7 +111,7 @@ function AppContent() {
 
   useEffect(() => {
     if (isLoggedIn && user?.id) {
-      connect(user.id);
+      connect();
       fetchUnreadCount();
     } else {
       disconnect();
