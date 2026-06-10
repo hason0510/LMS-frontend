@@ -32,13 +32,13 @@ import {
   uploadSlideResource,
   getResourceById,
   getResourcesByLessonId,
-  deleteResource,
   detachResourceFromLesson,
 } from "../../api/resource";
 import { getResourceTypeFromFile, isVideoFile } from "../../utils/fileUtils";
 import FileItem from "../../components/common/FileItem";
-import VideoPlayer from "../../components/common/VideoPlayer";
 import ResourceLibrarySelectModal from "../../components/media/ResourceLibrarySelectModal";
+import MediaAttachButton from "../../components/media/MediaAttachButton";
+import ResourceRenderer from "../../components/media/ResourceRenderer";
 import {
   createContentItemTemplate,
   getTemplateById,
@@ -285,6 +285,66 @@ export default function LectureDetail({ isAdmin = false }) {
     });
     setVideoResource(resource || null);
     setVideoSourceType(resource ? "upload" : "embed");
+    if (resource) {
+      setVideoUrl("");
+    }
+  };
+
+  const handleVideoSourceTypeChange = (nextType) => {
+    if (isViewMode || nextType === videoSourceType) return;
+    setVideoSourceType(nextType);
+
+    if (nextType === "upload") {
+      setVideoUrl("");
+      return;
+    }
+
+    setPendingVideoFile(null);
+    if (isTemplateMode) {
+      replaceTemplateVideoResource(null);
+    }
+  };
+
+  const applySelectedVideoResource = async (resource) => {
+    if (!resource?.id) return;
+
+    setVideoResource(resource);
+    setVideoSourceType("upload");
+    setVideoUrl("");
+    setPendingVideoFile(null);
+    setResources((prev) => prev.filter((item) => item.type !== "VIDEO" && item.id !== resource.id));
+
+    if (isTemplateMode || !lectureId) {
+      setPendingLibraryResources((prev) => {
+        const withoutExistingVideo = prev.filter((item) => item.type !== "VIDEO" && item.id !== resource.id);
+        return [...withoutExistingVideo, resource];
+      });
+      return;
+    }
+
+    await attachResourceToLesson(lectureId, resource.id);
+    const resourcesResponse = await getResourcesByLessonId(lectureId);
+    const list = Array.isArray(resourcesResponse)
+      ? resourcesResponse
+      : resourcesResponse.data || [];
+    setResources(list.filter((item) => item.id !== resource.id));
+    setVideoResource(list.find((item) => item.id === resource.id) || resource);
+  };
+
+  const handleVideoMediaChange = async (mediaPatch) => {
+    try {
+      const selectedResource = mediaPatch?.resource || null;
+      if (!selectedResource) {
+        await handleDeleteVideo();
+        return;
+      }
+
+      await applySelectedVideoResource(selectedResource);
+      messageApi.success(isTemplateMode ? "Đã chọn video cho bài giảng mẫu" : "Đã chọn video cho bài giảng");
+    } catch (error) {
+      console.error(error);
+      messageApi.error(error?.response?.data?.message || "Không thể chọn video từ kho media");
+    }
   };
 
   const modules = buildQuillModules([
@@ -603,15 +663,19 @@ export default function LectureDetail({ isAdmin = false }) {
       setSubmitting(true);
       
       // Prepare lesson data
+      const effectiveVideoUrl = videoSourceType === "embed" ? videoUrl.trim() : "";
       const lessonData = {
         title: title.trim(),
         content: content.trim(),
-        videoUrl: videoUrl.trim(),
+        videoUrl: effectiveVideoUrl,
         notes: notes.trim(),
         chapterId: chapterId, // Assuming chapterId is passed in params
       };
       const templateResourceIds = Array.from(
-        new Set([...resources, ...pendingLibraryResources].map((resource) => resource?.id).filter(Boolean))
+        new Set([...resources, ...pendingLibraryResources]
+          .filter((resource) => videoSourceType === "upload" || resource?.type !== "VIDEO")
+          .map((resource) => resource?.id)
+          .filter(Boolean))
       );
 
       // Validate required fields
@@ -698,6 +762,7 @@ export default function LectureDetail({ isAdmin = false }) {
             await uploadVideoResource(resourceId, pendingVideoFile, (percent) => {
               setVideoUploadProgress(percent);
             });
+            setVideoUrl("");
           }
         } catch (uploadErr) {
           console.error("Failed to upload video:", uploadErr);
@@ -722,7 +787,8 @@ export default function LectureDetail({ isAdmin = false }) {
         setPendingLibraryResources([]);
       }
 
-      // Upload files only for class section lessons (LessonTemplate has no resources)
+      // Class-section create mode uploads remaining local files here. Template files are uploaded into
+      // the curriculum media scope immediately and attached through resourceIds above.
       // In edit mode, files are already uploaded immediately on select — only pending files remain here
       const newFiles = isTemplateMode ? [] : uploadedFiles.filter(f => f.file && !f.uploading);
       if (newFiles.length > 0 && savedLesson?.id) {
@@ -809,6 +875,7 @@ export default function LectureDetail({ isAdmin = false }) {
     // Create mode: defer upload until lesson is saved
     if (!lectureId && !isTemplateMode) {
       setPendingVideoFile(file);
+      setVideoUrl("");
       return;
     }
 
@@ -848,6 +915,7 @@ export default function LectureDetail({ isAdmin = false }) {
 
           const uploaded = list.find((r) => r.id === resourceId);
           setVideoResource(uploaded || null);
+          setVideoUrl("");
           messageApi.success("Upload video thành công");
         }
       }
@@ -861,20 +929,34 @@ export default function LectureDetail({ isAdmin = false }) {
   };
 
   const handleDeleteVideo = async () => {
-    if (!videoResource) return;
+    if (!videoResource) {
+      setPendingVideoFile(null);
+      return;
+    }
     if (isTemplateMode) {
       replaceTemplateVideoResource(null);
       messageApi.success("Đã gỡ video khỏi bài giảng mẫu. Media vẫn còn trong thư viện.");
       return;
     }
-    try {
-      await deleteResource(videoResource.id);
+    if (!lectureId) {
       setVideoResource(null);
-      setResources((prev) => prev.filter((r) => r.id !== videoResource.id));
-      messageApi.success("Đã xóa video");
+      setPendingLibraryResources((prev) => prev.filter((resource) => resource.id !== videoResource.id));
+      setPendingVideoFile(null);
+      messageApi.success("Đã gỡ video khỏi bài giảng");
+      return;
+    }
+    try {
+      await detachResourceFromLesson(lectureId, videoResource.id);
+      const resourcesResponse = await getResourcesByLessonId(lectureId);
+      const list = Array.isArray(resourcesResponse)
+        ? resourcesResponse
+        : resourcesResponse.data || [];
+      setVideoResource(null);
+      setResources(list);
+      messageApi.success("Đã gỡ video khỏi bài giảng. Media vẫn còn trong thư viện.");
     } catch (err) {
       console.error("Delete video failed:", err);
-      messageApi.error("Không thể xóa video");
+      messageApi.error("Không thể gỡ video");
     }
   };
 
@@ -1081,18 +1163,29 @@ export default function LectureDetail({ isAdmin = false }) {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Video Section */}
                     <div className="bg-white dark:bg-card-dark p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400">
-                          <PlayCircleIcon className="h-6 w-6" />
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400">
+                            <PlayCircleIcon className="h-6 w-6" />
+                          </div>
+                          <h3 className="font-bold text-lg dark:text-white">Video bài giảng</h3>
                         </div>
-                        <h3 className="font-bold text-lg dark:text-white">Video bài giảng</h3>
+                        {!isViewMode && (
+                          <MediaAttachButton
+                            resource={videoResource}
+                            allowedTypes={["VIDEO"]}
+                            mediaContext={activeMediaScope}
+                            label="Chọn từ kho media"
+                            onChange={handleVideoMediaChange}
+                          />
+                        )}
                       </div>
 
                       {/* Source type toggle */}
                       <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
                         <button
                           type="button"
-                          onClick={() => !isViewMode && setVideoSourceType("embed")}
+                          onClick={() => handleVideoSourceTypeChange("embed")}
                           className={`flex-1 py-2 text-sm font-medium transition-colors ${
                             videoSourceType === "embed"
                               ? "bg-primary text-white"
@@ -1103,7 +1196,7 @@ export default function LectureDetail({ isAdmin = false }) {
                         </button>
                         <button
                           type="button"
-                          onClick={() => !isViewMode && setVideoSourceType("upload")}
+                          onClick={() => handleVideoSourceTypeChange("upload")}
                           className={`flex-1 py-2 text-sm font-medium transition-colors border-l border-gray-200 dark:border-gray-600 ${
                             videoSourceType === "upload"
                               ? "bg-primary text-white"
@@ -1182,14 +1275,14 @@ export default function LectureDetail({ isAdmin = false }) {
                         <div className="flex flex-col gap-3">
                           {videoResource ? (
                             <>
-                              <VideoPlayer fileUrl={videoResource.fileUrl} hlsUrl={videoResource.hlsUrl} title={videoResource.title} />
+                              <ResourceRenderer resource={videoResource} className="m-0" />
                               {!isViewMode && (
                                 <button
                                   type="button"
                                   onClick={handleDeleteVideo}
                                   className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors self-start"
                                 >
-                                  <TrashIcon className="h-4 w-4" /> Xóa video
+                                  <TrashIcon className="h-4 w-4" /> Gỡ video
                                 </button>
                               )}
                             </>

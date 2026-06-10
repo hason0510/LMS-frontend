@@ -216,6 +216,7 @@ export default function MyInformation({
   }
 
   const isStudent = user?.role === "STUDENT";
+  const isEmailLocked = Boolean(initialData?.verified);
   const persistedAvatar =
     initialData?.imageUrl || initialData?.avatar || initialData?.image_url || null;
   const displayName =
@@ -372,12 +373,17 @@ export default function MyInformation({
                 name="gmail"
                 value={formData.gmail}
                 onChange={(e) => handleAntdChange("gmail", e.target.value)}
-                disabled={!isEditing}
+                disabled={!isEditing || isEmailLocked}
                 placeholder={t("profile.nhapEmail")}
                 type="email"
                 size="large"
                 className={inputClass}
               />
+              {isEmailLocked && (
+                <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  {t("profile.emailDaXacThucKhongTheChinhSua")}
+                </p>
+              )}
             </label>
 
             <label className="flex min-w-0 flex-col">

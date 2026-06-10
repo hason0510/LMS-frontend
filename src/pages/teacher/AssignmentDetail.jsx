@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import { App, Button, DatePicker, Form, Input, InputNumber, Spin, Switch } from "antd";
 import dayjs from "dayjs";
@@ -38,6 +38,7 @@ const quillFormats = extendQuillFormats([
 
 export default function AssignmentDetail({ isAdmin = false, teachingMode = false }) {
   const { classSectionId, chapterId, assignmentId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { message } = App.useApp();
   const isEditMode = Boolean(assignmentId);
@@ -55,6 +56,8 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
+  const classContentItemId =
+    new URLSearchParams(location.search).get("classContentItemId") || location.state?.classContentItemId || null;
   const assignmentScopeParams = classSectionId
     ? { scopeType: "CLASS_SECTION", scopeId: Number(classSectionId) }
     : {};
@@ -67,7 +70,7 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
         setCourse(courseResponse?.data || courseResponse);
 
         if (isEditMode) {
-          const assignmentResponse = await getAssignmentById(assignmentId);
+          const assignmentResponse = await getAssignmentById(assignmentId, classContentItemId);
           const assignment = assignmentResponse?.data || assignmentResponse;
 
           form.setFieldsValue({
@@ -111,7 +114,7 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
     };
 
     init();
-  }, [assignmentId, classSectionId, form, isEditMode, message]);
+  }, [assignmentId, classContentItemId, classSectionId, form, isEditMode, message]);
 
   const handleUploadFiles = async (event) => {
     const files = Array.from(event.target.files || []);

@@ -12,12 +12,13 @@ export default function ChangePassword() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [pendingPasswordData, setPendingPasswordData] = useState(null);
   const { user } = useAuth();
+  const isGoogleOnlyAccount = user && user.googleLinked && !user.localAuthEnabled;
 
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
       const passwordData = {
-        oldPassword: values.currentPassword,
+        oldPassword: values.currentPassword || "",
         newPassword: values.newPassword,
         confirmNewPassword: values.confirmNewPassword,
       };
@@ -59,10 +60,10 @@ export default function ChangePassword() {
       <div className="flex flex-wrap justify-between items-start gap-4 pb-5 border-b border-black/10 dark:border-white/10">
         <div className="flex min-w-72 flex-col gap-2">
           <p className="!mb-1 text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
-            {t("profile.doiMatKhau")}
+            {isGoogleOnlyAccount ? t("profile.thietLapMatKhauLocal") : t("profile.doiMatKhau")}
           </p>
           <p className="!mb-1 text-base font-normal leading-normal text-[#617589] dark:text-gray-400">
-            {t("profile.quanLyMatKhau")}
+            {isGoogleOnlyAccount ? t("profile.taiKhoanGoogleDatMatKhauLocal") : t("profile.quanLyMatKhau")}
           </p>
         </div>
       </div>
@@ -74,25 +75,27 @@ export default function ChangePassword() {
           onFinish={handleSubmit}
           className="flex max-w-xl flex-col"
         >
-          <Form.Item
-            label={
-              <p className="!mb-0 text-sm font-medium text-[#111418] dark:text-white">
-                {t("profile.matKhauHienTai")}
-              </p>
-            }
-            name="currentPassword"
-            rules={[
-              {
-                required: true,
-                message: t("profile.vuiLongNhapMatKhauHienTai"),
-              },
-            ]}
-          >
-            <Input.Password
-              placeholder={t("profile.nhapMatKhauHienTai")}
-              className="rounded-lg h-10"
-            />
-          </Form.Item>
+          {!isGoogleOnlyAccount && (
+            <Form.Item
+              label={
+                <p className="!mb-0 text-sm font-medium text-[#111418] dark:text-white">
+                  {t("profile.matKhauHienTai")}
+                </p>
+              }
+              name="currentPassword"
+              rules={[
+                {
+                  required: true,
+                  message: t("profile.vuiLongNhapMatKhauHienTai"),
+                },
+              ]}
+            >
+              <Input.Password
+                placeholder={t("profile.nhapMatKhauHienTai")}
+                className="rounded-lg h-10"
+              />
+            </Form.Item>
+          )}
 
           <Form.Item
             label={
@@ -179,8 +182,8 @@ export default function ChangePassword() {
         onResend={resendChangePasswordOtp}
         onSuccess={handlePasswordChangeSuccess}
         title={t("profile.xacThucOtpDoiMatKhau")}
-        successMessage={t("profile.doiMatKhauThanhCong")}
-        submitText={t("profile.xacNhanDoiMatKhau")}
+        successMessage={isGoogleOnlyAccount ? t("profile.datMatKhauLocalThanhCong") : t("profile.doiMatKhauThanhCong")}
+        submitText={isGoogleOnlyAccount ? t("profile.xacNhanDatMatKhauLocal") : t("profile.xacNhanDoiMatKhau")}
         loadingText={t("profile.dangXacThucOtp")}
       />
     </>

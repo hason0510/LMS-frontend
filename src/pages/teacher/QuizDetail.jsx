@@ -334,6 +334,7 @@ const transformApiQuestion = (q) => {
   const base = {
     localId: `q-${uid()}`,
     id: q.id,
+    sourceBankQuestionId: q.sourceBankQuestionId ?? null,
     content: q.content || "",
     type: q.type,
     points: Number(q.points) || 1,
@@ -374,6 +375,7 @@ const convertBankQToLocal = (bq) => {
   const base = {
     localId: `q-${uid()}`,
     id: null,
+    sourceBankQuestionId: bq.id,
     content: bq.content || "",
     type: bq.type,
     points: Number(bq.defaultPoints) || 1,
@@ -1487,6 +1489,10 @@ function SettingsPanel({ settings, onChange }) {
           <span className="text-sm text-gray-700">{t("quizEditor.settings.shuffleQuestions")}</span>
         </div>
         <div className="flex items-center gap-3">
+          <Switch checked={settings.shuffleAnswers} onChange={(v) => onChange({ shuffleAnswers: v })} />
+          <span className="text-sm text-gray-700">{t("quizEditor.settings.shuffleAnswers")}</span>
+        </div>
+        <div className="flex items-center gap-3">
           <Switch checked={settings.showCorrectAnswer} onChange={(v) => onChange({ showCorrectAnswer: v })} />
           <span className="text-sm text-gray-700">{t("quizEditor.settings.showCorrectAnswer")}</span>
         </div>
@@ -1520,7 +1526,8 @@ export default function QuizDetail() {
   const isTemplateMode = !!templateId;
   const isEditMode = !!quizId;
   const chapterIdFromState = location.state?.chapterId || chapterId;
-  const initialClassContentItemId = location.state?.classContentItemId || null;
+  const initialClassContentItemId =
+    new URLSearchParams(location.search).get("classContentItemId") || location.state?.classContentItemId || null;
 
   const [course, setCourse] = useState(null);
   const [title, setTitle] = useState(t("quizEditor.defaults.newQuizTitle"));
@@ -1597,7 +1604,7 @@ export default function QuizDetail() {
   useEffect(() => {
     if (!isEditMode) return;
     setLoading(true);
-    const loader = isTemplateMode ? () => getQuizTemplateById(quizId) : () => getQuizById(quizId);
+    const loader = isTemplateMode ? () => getQuizTemplateById(quizId) : () => getQuizById(quizId, initialClassContentItemId);
     loader()
       .then((quizResponse) => {
         const quiz = quizResponse?.data ?? quizResponse;
@@ -1721,6 +1728,7 @@ export default function QuizDetail() {
       const processedQuestions = persistedQuestions.map((q) => {
         const base = {
           id: q.id,
+          sourceBankQuestionId: q.sourceBankQuestionId ?? null,
           content: q.type === "CLOZE" ? q.clozeSyntax : q.content,
           type: q.type,
           points: q.points,

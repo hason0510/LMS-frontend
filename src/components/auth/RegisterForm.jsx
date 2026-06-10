@@ -30,6 +30,7 @@ export default function RegisterForm() {
     switch (name) {
       case 'username':
         if (!value.trim()) error = t('auth.vuilongNhapTenDangNhap');
+        else if (value.includes('@')) error = t('auth.tenDangNhapKhongChuaAt');
         break;
       case 'fullName':
         if (!value.trim()) error = t('auth.vuilongNhapHoVaTen');

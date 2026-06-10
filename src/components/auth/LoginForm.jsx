@@ -110,7 +110,7 @@ export default function LoginForm() {
       >
         <div className="flex flex-col w-full">
           <p className="text-[#111418] dark:text-gray-200 text-sm font-medium mb-2">
-            {t('auth.emailHoacTenDangNhap')}
+            {t('auth.tenDangNhap')}
           </p>
           <div className="input-group w-full">
             <div className="icon-area border-r border-[#dbe0e6] dark:border-gray-600">
@@ -118,7 +118,7 @@ export default function LoginForm() {
             </div>
             <input
               className="form-input flex w-full min-w-0 flex-1"
-              placeholder={t('auth.nhapEmailHoacTenDangNhap')}
+              placeholder={t('auth.nhapTenDangNhap')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
