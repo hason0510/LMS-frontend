@@ -28,6 +28,15 @@ const axiosClient = axios.create({
   withCredentials: true,
 });
 
+export const clearAuthHeader = () => {
+  delete axiosClient.defaults.headers.common.Authorization;
+};
+
+const clearLocalAuthState = () => {
+  clearAuthHeader();
+  useUserStore.getState().clearUser();
+};
+
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -71,8 +80,8 @@ axiosClient.interceptors.response.use(
     const errorMessage = getErrorMessage(error);
 
     if (errorMessage === ACCOUNT_LOCKED_ERROR) {
+      clearLocalAuthState();
       if (window.location.pathname !== '/login') {
-        useUserStore.getState().clearUser();
         window.location.href = '/login?locked=1';
       }
       return Promise.reject(error);
@@ -110,17 +119,16 @@ axiosClient.interceptors.response.use(
 
             useUserStore.getState().setAccessToken(newAccessToken);
 
-            axiosClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
             processQueue(null, newAccessToken);
             resolve(axiosClient(originalRequest));
           })
           .catch((err) => {
             processQueue(err, null);
             console.error("Session expired, redirecting to login...");
+            clearLocalAuthState();
             
             // Only redirect if NOT on login page to avoid infinite loop
             if (window.location.pathname !== '/login') {
-              useUserStore.getState().clearUser();
               window.location.href = '/login';
             }
             

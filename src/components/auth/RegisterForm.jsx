@@ -257,7 +257,7 @@ export default function RegisterForm() {
             <span className="text-[#111418] dark:text-gray-200 text-sm group-hover:text-primary transition-colors">{t('auth.sinhVien')}</span>
           </label>
 
-          <label className="flex items-center gap-2 cursor-pointer group">
+{/*          <label className="flex items-center gap-2 cursor-pointer group">
             <div className="relative flex items-center">
               <input 
                 type="radio" 
@@ -274,7 +274,7 @@ export default function RegisterForm() {
               </div>
             </div>
             <span className="text-[#111418] dark:text-gray-200 text-sm group-hover:text-primary transition-colors">{t('auth.giaoVien')}</span>
-          </label>
+          </label>*/}
         </div>
       </div>
 

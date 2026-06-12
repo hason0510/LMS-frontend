@@ -52,7 +52,7 @@ export function useTokenExpiration() {
         useUserStore.getState().setAccessToken(newAccessToken);
       } catch (error) {
         if (cancelled) return;
-        logout();
+        await logout({ remote: false });
         navigate('/login', { replace: true });
       }
     };

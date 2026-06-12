@@ -64,9 +64,6 @@ const useNotificationStore = create((set, get) => ({
     const socket = new SockJS(`${BACKEND_URL}/ws`);
     const client = new Client({
       webSocketFactory: () => socket,
-      connectHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
       debug: (str) => {
         // console.log(str);
       },

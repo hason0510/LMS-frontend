@@ -22,7 +22,7 @@ import {
   getClassSectionJoinPreview,
   searchClassSections,
 } from "../../api/classSection";
-import { enrollClassSection, enrollPrivateCourse } from "../../api/enrollment";
+import { enrollClassSection, enrollClassSectionByCode } from "../../api/enrollment";
 import { getAllCategories } from "../../api/category";
 import { getAllSubjects } from "../../api/subject";
 import { useTranslation } from "react-i18next";
@@ -573,7 +573,7 @@ export default function ClassesPage() {
     if (!joinCode.trim()) return;
     try {
       setJoinLoading(true);
-      await enrollPrivateCourse(joinCode.trim());
+      await enrollClassSectionByCode(joinCode.trim());
       message.success(
         joinPreview?.joinMode === "REQUEST"
           ? t("classesPage.messages.joinRequestSent")

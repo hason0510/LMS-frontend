@@ -1012,22 +1012,24 @@ export default function LectureDetail({ isAdmin = false }) {
                   lectureTitle: title || lesson?.title,
                 }}
               />
-              <button
-                onClick={() => {
-                  const base = isAdmin ? "/admin" : "/teacher";
-                  if (isTemplateMode && templateIdFromPath) {
-                    navigate(`${base}/curriculums/${templateIdFromPath}`);
-                  } else {
-                    navigate(`${base}/class-sections/${classSectionId}`);
-                  }
-                }}
-                className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
-              >
-                <ArrowLeftIcon className="w-5 h-5" />
-                <span className="font-medium">
-                  Quay lại {isTemplateMode ? `khung chương trình: ${course?.name}` : `khóa học: ${course?.title}`}
-                </span>
-              </button>
+              {!isCreateMode && (
+                <button
+                  onClick={() => {
+                    const base = isAdmin ? "/admin" : "/teacher";
+                    if (isTemplateMode && templateIdFromPath) {
+                      navigate(`${base}/curriculums/${templateIdFromPath}`);
+                    } else {
+                      navigate(`${base}/class-sections/${classSectionId}`);
+                    }
+                  }}
+                  className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
+                >
+                  <ArrowLeftIcon className="w-5 h-5" />
+                  <span className="font-medium">
+                    Quay lại {isTemplateMode ? `khung chương trình: ${course?.name}` : `khóa học: ${course?.title}`}
+                  </span>
+                </button>
+              )}
               <div className="mx-auto flex flex-col gap-6">
                 {/* Page Header */}
                 <div className="flex flex-wrap justify-between items-start gap-4">

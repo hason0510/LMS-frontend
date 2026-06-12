@@ -2,6 +2,8 @@ import React, { createContext, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import useUserStore from "../store/useUserStore";
 import { getUserById } from "../api/user";
+import { logout as requestLogout } from "../api/auth";
+import { clearAuthHeader } from "../api/axiosClient";
 
 const AuthContext = createContext();
 
@@ -51,10 +53,19 @@ export function AuthProvider({ children }) {
   const loading = storeLoading;
 
   // Hàm logout
-  const logout = () => {
-    clearUser();
-    // Reset language to Vietnamese
-    i18n.changeLanguage('vi');
+  const logout = async ({ remote = true } = {}) => {
+    try {
+      if (remote && accessToken) {
+        await requestLogout();
+      }
+    } catch (err) {
+      console.warn("Logout request failed; clearing local session.", err);
+    } finally {
+      clearAuthHeader();
+      clearUser();
+      // Reset language to Vietnamese
+      i18n.changeLanguage('vi');
+    }
   };
 
   // Hàm login - fetch full user data after login

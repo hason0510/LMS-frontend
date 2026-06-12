@@ -5,11 +5,6 @@ export async function createQuiz(quizData) {
   return response.data;
 }
 
-export async function createQuizInChapter(chapterId, quizData) {
-  const response = await axiosClient.post(`chapters/${chapterId}/quizzes`, quizData);
-  return response.data;
-}
-
 export async function getQuizById(id, classContentItemId = null) {
   const response = await axiosClient.get(`quizzes/${id}`, {
     params: classContentItemId ? { classContentItemId } : {},

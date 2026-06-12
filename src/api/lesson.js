@@ -1,10 +1,5 @@
 import axiosClient from "./axiosClient";
 
-export async function getLessonsByChapterId(chapterId) {
-  const response = await axiosClient.get(`lessons/chapter/${chapterId}`);
-  return response.data;
-}
-
 export async function getLessonById(id, classContentItemId = null) {
   const response = await axiosClient.get(`lessons/${id}`, {
     params: classContentItemId ? { classContentItemId } : {},
@@ -14,11 +9,6 @@ export async function getLessonById(id, classContentItemId = null) {
 
 export async function createLesson(lessonData) {
   const response = await axiosClient.post('lessons', lessonData);
-  return response.data;
-}
-
-export async function createLessonInChapter(chapterId, lessonData) {
-  const response = await axiosClient.post(`chapters/${chapterId}/lessons`, lessonData);
   return response.data;
 }
 

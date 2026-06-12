@@ -36,3 +36,8 @@ export async function refreshToken() {
   const response = await axiosClient.put('/auth/refresh');
   return response.data;
 }
+
+export async function logout() {
+  const response = await axiosClient.put('/auth/logout');
+  return response.data;
+}

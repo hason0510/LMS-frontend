@@ -152,7 +152,7 @@ export default function Header({ menuItems }) {
   const handleLogoutConfirm = async () => {
     setIsLoggingOut(true);
     try {
-      logout();
+      await logout();
       setShowLogoutConfirm(false);
       navigate("/home");
     } catch (err) {

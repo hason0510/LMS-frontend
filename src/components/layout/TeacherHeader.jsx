@@ -109,7 +109,7 @@ export default function TeacherHeader({ toggleSidebar }) {
 
   const handleLogoutConfirm = async () => {
     try {
-      logout();
+      await logout();
       setShowLogoutConfirm(false);
       navigate("/home");
     } catch (err) {
@@ -223,7 +223,7 @@ export default function TeacherHeader({ toggleSidebar }) {
             )}
           </div>
 
-          <Link
+          {/* <Link
             to={settingsPath}
             title={t("teacher.caiDatHeThong")}
             aria-label={t("teacher.caiDatHeThong")}
@@ -247,7 +247,7 @@ export default function TeacherHeader({ toggleSidebar }) {
             }`}
           >
             <UserCircleIcon className="h-6 w-6" />
-          </Link>
+          </Link> */}
 
           {/* User Profile */}
           <div className="relative" ref={dropdownRef}>
