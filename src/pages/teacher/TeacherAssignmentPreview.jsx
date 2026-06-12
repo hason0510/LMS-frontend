@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Spin, Tag } from "antd";
 import dayjs from "dayjs";
-import { ArrowLeftIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
@@ -83,15 +83,8 @@ export default function TeacherAssignmentPreview() {
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              Chế độ xem trước — Đây là giao diện học viên thấy khi xem bài tập này
+              Chế độ xem trước — Đây là giao diện người học thấy khi xem bài tập này
             </div>
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
-            >
-              <ArrowLeftIcon className="h-3.5 w-3.5" />
-              Quay lại chỉnh sửa
-            </button>
           </div>
 
           <div className="max-w-5xl mx-auto pt-8 px-4 pb-10 space-y-6">
@@ -170,7 +163,7 @@ export default function TeacherAssignmentPreview() {
               <div>
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Nội dung nộp bài (rich text)</p>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-lg min-h-30 bg-slate-50 dark:bg-slate-800/50 p-4 text-sm text-slate-400 dark:text-slate-500 italic select-none">
-                  Học viên nhập nội dung bài làm ở đây...
+                  người học nhập nội dung bài làm ở đây...
                 </div>
               </div>
 
@@ -211,7 +204,7 @@ export default function TeacherAssignmentPreview() {
               </div>
 
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 text-sm text-amber-700 dark:text-amber-400">
-                Đây là giao diện học viên thấy khi chưa nộp bài. Tất cả các nút bấm không hoạt động ở chế độ xem trước.
+                Đây là giao diện người học thấy khi chưa nộp bài. Tất cả các nút bấm không hoạt động ở chế độ xem trước.
               </div>
             </div>
           </div>

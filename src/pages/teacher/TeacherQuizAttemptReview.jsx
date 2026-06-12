@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { App, Button, Input, InputNumber, Modal, Spin, Table, Tag } from "antd";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
@@ -131,7 +131,6 @@ const answerResult = (answer, t) => {
 export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode = false }) {
   const { t } = useTranslation();
   const { attemptId } = useParams();
-  const navigate = useNavigate();
   const { message } = App.useApp();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -266,12 +265,6 @@ export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode
     );
   }
 
-  const base = isAdmin ? "/admin" : "/teacher";
-  const backPath = teachingMode
-    ? attempt?.classSectionId && attempt?.quizId && attempt?.classContentItemId
-      ? `/teaching/class-sections/${attempt.classSectionId}/quizzes/${attempt.quizId}/attempts?classContentItemId=${attempt.classContentItemId}`
-      : "/teaching/classes"
-    : `${base}/quiz-attempts`;
   const content = (
     <div className="mx-auto max-w-7xl space-y-5">
       <AppBreadcrumb
@@ -283,7 +276,6 @@ export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode
           attemptTitle: `${t("breadcrumbs.attempt")} #${attemptId}`,
         }}
       />
-      <Button onClick={() => navigate(backPath)}>{t("quizAttempts.back")}</Button>
 
       <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

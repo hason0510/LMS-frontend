@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Spin, Alert } from "antd";
-import { ArrowLeftIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
@@ -12,8 +12,7 @@ import { getLessonById } from "../../api/lesson";
 import { getResourcesByLessonId } from "../../api/resource";
 
 export default function TeacherLessonPreview() {
-  const { classSectionId, lectureId } = useParams();
-  const navigate = useNavigate();
+  const { lectureId } = useParams();
   const [lesson, setLesson] = useState(null);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -117,15 +116,8 @@ export default function TeacherLessonPreview() {
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              Chế độ xem trước — Đây là giao diện học viên thấy khi học bài giảng này
+              Chế độ xem trước — Đây là giao diện người học thấy khi học bài giảng này
             </div>
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
-            >
-              <ArrowLeftIcon className="h-3.5 w-3.5" />
-              Quay lại chỉnh sửa
-            </button>
           </div>
 
           {error && (

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Alert, Button, Dropdown, Form, Input, message, Modal, Select, Spin, Table, Tag } from "antd";
-import { ArrowDownTrayIcon, ArrowLeftIcon, ArrowUpTrayIcon, EllipsisHorizontalIcon, PencilSquareIcon, PlusCircleIcon, TagIcon, TrashIcon, UserPlusIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, ArrowUpTrayIcon, EllipsisHorizontalIcon, PencilSquareIcon, PlusCircleIcon, TagIcon, TrashIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
@@ -613,11 +613,6 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         <main className={`flex-1 pt-16 bg-slate-50 dark:bg-slate-900 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           <div className="px-6 py-8 mx-auto max-w-5xl">
             <AppBreadcrumb className="mb-6" context={{ questionBankName: bank?.name }} />
-            <div className="mb-4">
-              <Button type="link" icon={<ArrowLeftIcon className="w-4 h-4" />} onClick={() => navigate(-1)} className="p-0 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                {t("questionBank.quayLai") || "Quay lại"}
-              </Button>
-            </div>
 
             {loading ? (
               <div className="flex justify-center p-10">

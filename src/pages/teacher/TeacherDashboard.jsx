@@ -15,6 +15,7 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
+import UserIdentity from "../../components/common/UserIdentity";
 import {
   getClassPeople,
   getClassReviewQueue,
@@ -234,14 +235,14 @@ export default function TeacherDashboard() {
       title: t("teacherDashboard.students.columns.student"),
       dataIndex: "studentName",
       render: (_, record) => (
-        <div className="min-w-0">
-          <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
-            {record.studentName || t("teacherDashboard.students.defaults.noName")}
-          </p>
-          <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {record.email || record.studentNumber || t("teacherDashboard.students.defaults.noStudentNumber")}
-          </p>
-        </div>
+        <UserIdentity
+          user={record}
+          variant="student"
+          showAvatar={false}
+          fallbackName={t("teacherDashboard.students.defaults.noName")}
+          nameClassName="m-0 truncate text-sm font-bold text-slate-900 dark:text-white"
+          secondaryClassName="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400"
+        />
       ),
     },
     {
@@ -664,14 +665,15 @@ export default function TeacherDashboard() {
                         {visibleAttentionStudents.map((student) => (
                           <div key={student.studentId} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                             <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
-                                  {student.studentName || t("teacherDashboard.students.defaults.noName")}
-                                </p>
-                                <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                  {student.email || student.studentNumber || t("teacherDashboard.students.defaults.noStudentNumber")}
-                                </p>
-                              </div>
+                              <UserIdentity
+                                user={student}
+                                variant="student"
+                                avatarSizeClass="size-10"
+                                fallbackName={t("teacherDashboard.students.defaults.noName")}
+                                className="flex-1"
+                                nameClassName="m-0 truncate text-sm font-bold text-slate-900 dark:text-white"
+                                secondaryClassName="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400"
+                              />
                               <button
                                 onClick={() => navigate(`/teacher/class-sections/${selectedClassSectionId}`)}
                                 className="shrink-0 text-sm font-semibold text-primary"

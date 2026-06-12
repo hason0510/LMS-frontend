@@ -6,7 +6,7 @@ import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
-import CustomAvatar from "../../components/common/Avatar";
+import UserIdentity from "../../components/common/UserIdentity";
 import AddStudentModal from "../../components/teacher/AddStudentModal";
 import StudentDetailModal from "../../components/teacher/StudentDetailModal";
 import {
@@ -225,17 +225,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
     {
       title: t("teacherLists.students.columns.student"),
       key: "student",
-      render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <CustomAvatar src={record.avatar} className="h-10 w-10" />
-          <div className="min-w-0">
-            <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">{record.name}</p>
-            <p className="m-0 truncate text-xs text-slate-500 dark:text-slate-400">
-              @{record.username} {record.email ? `· ${record.email}` : ""}
-            </p>
-          </div>
-        </div>
-      ),
+      render: (_, record) => <UserIdentity user={record} variant="student" avatarSizeClass="size-10" />,
     },
     {
       title: t("teacherLists.students.columns.classSection"),
@@ -386,12 +376,8 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
                       className="rounded-lg border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/40"
                     >
                       <div className="flex items-start gap-3">
-                        <CustomAvatar src={record.avatar} className="h-10 w-10" />
                         <div className="min-w-0 flex-1">
-                          <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">{record.name}</p>
-                          <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            @{record.username} {record.email ? `· ${record.email}` : ""}
-                          </p>
+                          <UserIdentity user={record} variant="student" avatarSizeClass="size-10" />
                           <p className="m-0 mt-2 text-sm text-slate-700 dark:text-slate-300">{record.classSectionName}</p>
                           <div className="mt-2">
                             <Tag color={record.approvalStatus === "APPROVED" ? "green" : record.approvalStatus === "PENDING" ? "gold" : "red"}>

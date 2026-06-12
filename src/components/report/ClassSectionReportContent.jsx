@@ -17,6 +17,7 @@ import {
 import ReportMetricCard from "./ReportMetricCard";
 import ReportSectionCard from "./ReportSectionCard";
 import { DonutSummaryChart, SingleSeriesBarChart, StackedStatusBarChart } from "./ReportCharts";
+import UserIdentity from "../common/UserIdentity";
 import { getAssignmentSubmissions } from "../../api/submission";
 import {
   buildAssignmentStatusChartData,
@@ -115,6 +116,7 @@ export default function ClassSectionReportContent({
         fullName: student.studentName,
         studentNumber: student.studentNumber,
         email: student.email,
+        avatarUrl: student.avatarUrl,
         progress: student.progress,
         approvalStatus: student.enrollmentStatus || "APPROVED",
         missingAssignments: student.missingAssignments,
@@ -127,6 +129,7 @@ export default function ClassSectionReportContent({
       ...student,
       fullName: student.fullName || student.studentName,
       studentId: student.studentId,
+      avatarUrl: student.avatarUrl || student.studentAvatar || student.avatar,
       missingAssignments: student.missingAssignments || 0,
       pendingReviews: student.pendingReviews || 0,
       latestScore: student.latestScore ?? null,
@@ -281,10 +284,14 @@ export default function ClassSectionReportContent({
       fixed: "left",
       width: 220,
       render: (_, record) => (
-        <div>
-          <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">{record.studentName}</p>
-          <p className="m-0 text-xs text-slate-500 dark:text-slate-400">{record.studentNumber}</p>
-        </div>
+        <UserIdentity
+          user={record}
+          variant="student"
+          showAvatar={false}
+          fallbackName={t("reportsPage.shared.defaults.noName")}
+          nameClassName="m-0 text-sm font-bold text-slate-900 dark:text-white"
+          secondaryClassName="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400"
+        />
       ),
     },
     {
@@ -320,14 +327,14 @@ export default function ClassSectionReportContent({
       title: t("reportsPage.shared.tables.student"),
       dataIndex: "fullName",
       render: (_, record) => (
-        <div>
-          <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
-            {record.fullName || t("reportsPage.shared.defaults.noName")}
-          </p>
-          <p className="m-0 text-xs text-slate-500 dark:text-slate-400">
-            {record.email || record.studentNumber || t("reportsPage.shared.defaults.noStudentNumber")}
-          </p>
-        </div>
+        <UserIdentity
+          user={record}
+          variant="student"
+          avatarSizeClass="size-10"
+          fallbackName={t("reportsPage.shared.defaults.noName")}
+          nameClassName="m-0 text-sm font-bold text-slate-900 dark:text-white"
+          secondaryClassName="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400"
+        />
       ),
     },
     {

@@ -10,6 +10,7 @@ import CourseTabs from "../../components/course/CourseTabs";
 import CourseContent from "../../components/course/CourseContent";
 import ClassStaffModal from "../../components/teaching/ClassStaffModal";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
+import UserIdentity from "../../components/common/UserIdentity";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import AnnouncementsTab from "../../components/course/AnnouncementsTab";
 import { useAuth } from "../../contexts/AuthContext";
@@ -295,7 +296,7 @@ export default function ClassSectionDetailPage() {
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
       <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-1">Mã nhóm</h3>
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
-        Chia sẻ mã này để học viên tham gia trực tiếp vào lớp.
+        Chia sẻ mã này để người học tham gia trực tiếp vào lớp.
       </p>
       {course.classCode ? (
         <>
@@ -322,7 +323,7 @@ export default function ClassSectionDetailPage() {
             </Tooltip>
             <Popconfirm
               title="Xóa mã lớp?"
-              description="Học viên sẽ không thể tham gia bằng mã sau khi xóa."
+              description="Người học sẽ không thể tham gia bằng mã sau khi xóa."
               onConfirm={handleDeleteCode}
               okText="Xóa"
               cancelText="Hủy"
@@ -420,7 +421,7 @@ export default function ClassSectionDetailPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <UserGroupIcon className="w-4 h-4 shrink-0 text-gray-400" />
-                  <span>Học viên: <span className="font-medium text-gray-800 dark:text-white">{course.totalEnrollments ?? 0}</span></span>
+                  <span>người học: <span className="font-medium text-gray-800 dark:text-white">{course.totalEnrollments ?? 0}</span></span>
                 </li>
                 </ul>
               </div>
@@ -436,19 +437,21 @@ export default function ClassSectionDetailPage() {
                     Quản lý trợ giảng
                   </button>
                 </div>
-                {course.teachingMembers?.length ? (
-                  <div className="space-y-2">
-                    {course.teachingMembers.map((member) => (
+                    {course.teachingMembers?.length ? (
+                      <div className="space-y-2">
+                        {course.teachingMembers.map((member) => (
                       <div
                         key={`${member.userId}-${member.role}`}
                         className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 dark:bg-gray-700/40 px-3 py-2"
                       >
-                        <div className="min-w-0">
-                          <p className="m-0 text-sm font-semibold text-gray-800 dark:text-white truncate">
-                            {member.fullName || member.username}
-                          </p>
-                          <p className="m-0 text-xs text-gray-500 dark:text-gray-400 truncate">@{member.username}</p>
-                        </div>
+                        <UserIdentity
+                          user={member}
+                          variant="teacher"
+                          avatarSizeClass="size-9"
+                          className="min-w-0 flex-1"
+                          nameClassName="m-0 truncate text-sm font-semibold text-gray-800 dark:text-white"
+                          secondaryClassName="m-0 mt-1 truncate text-xs text-gray-500 dark:text-gray-400"
+                        />
                         <Tag color={member.role === "TEACHER" ? "blue" : "green"}>
                           {member.role === "TEACHER" ? "Giáo viên chính" : "Trợ giảng"}
                         </Tag>
@@ -546,7 +549,7 @@ export default function ClassSectionDetailPage() {
                       )}
                       <div className="flex items-center gap-1.5">
                         <UserGroupIcon className="w-4 h-4" />
-                        <span>{course.totalEnrollments ?? 0} học viên</span>
+                        <span>{course.totalEnrollments ?? 0} người học</span>
                       </div>
                     </div>
                   </div>
@@ -598,7 +601,7 @@ export default function ClassSectionDetailPage() {
                     {!isArchived && (
                       <Popconfirm
                         title="Lưu trữ lớp học?"
-                        description="Học viên sẽ không thể truy cập lớp sau khi lưu trữ."
+                        description="Người học sẽ không thể truy cập lớp sau khi lưu trữ."
                         onConfirm={() => handleStatusChange("ARCHIVED")}
                         okText="Lưu trữ"
                         cancelText="Hủy"
@@ -662,7 +665,7 @@ export default function ClassSectionDetailPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-3 text-center">
                         <p className="text-2xl font-black text-primary">{course.totalEnrollments ?? 0}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Học viên</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">người học</p>
                       </div>
                       <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-3 text-center">
                         <p className="text-2xl font-black text-violet-600 dark:text-violet-400">
@@ -779,32 +782,21 @@ export default function ClassSectionDetailPage() {
                     </h1>
 
                     {primaryTeacher && (
-                      <div className="mt-5 flex items-center gap-3">
-                        {primaryTeacher.avatarUrl ? (
-                          <img
-                            src={primaryTeacher.avatarUrl}
-                            alt={primaryTeacher.fullName}
-                            className="h-12 w-12 rounded-full object-cover ring-2 ring-primary/15"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-base font-bold text-primary">
-                            {(primaryTeacher.fullName || "G").charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                            {primaryTeacher.fullName}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Giảng viên phụ trách</p>
-                        </div>
-                      </div>
+                      <UserIdentity
+                        user={primaryTeacher}
+                        variant="teacher"
+                        className="mt-5"
+                        avatarSizeClass="size-12"
+                        avatarClassName="ring-2 ring-primary/15"
+                        secondaryText={primaryTeacher.email || null}
+                      />
                     )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 lg:w-[220px]">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        Học viên
+                        người học
                       </p>
                       <p className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
                         {course.totalEnrollments ?? 0}
@@ -852,7 +844,7 @@ export default function ClassSectionDetailPage() {
                     { id: "content", label: "Nội dung học tập" },
                     { id: "announcements", label: "Thông báo" },
                     { id: "staff", label: "Nhân sự" },
-                    { id: "students", label: "Học viên" },
+                    { id: "students", label: "Người học" },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -981,7 +973,7 @@ export default function ClassSectionDetailPage() {
                   </InfoRow>
                 )}
                 <InfoRow icon={<UserGroupIcon className="h-4 w-4" />}>
-                  {course.totalEnrollments ?? 0} học viên đã đăng ký
+                  {course.totalEnrollments ?? 0} người học đã đăng ký
                 </InfoRow>
               </div>
             </section>
@@ -1130,7 +1122,7 @@ function StudentRosterPanel({ classSectionId, enabled }) {
         if (!cancelled) {
           setRows([]);
           setTotal(0);
-          message.error(err?.response?.data?.message || "Không thể tải danh sách học viên");
+          message.error(err?.response?.data?.message || "Không thể tải danh sách người học");
         }
       } finally {
         if (!cancelled) {
@@ -1158,7 +1150,7 @@ function StudentRosterPanel({ classSectionId, enabled }) {
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-800/60">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Danh sách học viên</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Danh sách người học</h3>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Tìm theo họ tên hoặc MSSV.
             </p>
@@ -1180,7 +1172,7 @@ function StudentRosterPanel({ classSectionId, enabled }) {
         </div>
       ) : rows.length === 0 ? (
         <div className="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
-          Không có học viên phù hợp.
+          Không có người học phù hợp.
         </div>
       ) : (
         <>
@@ -1191,28 +1183,13 @@ function StudentRosterPanel({ classSectionId, enabled }) {
                 className="flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  {student.studentAvatar ? (
-                    <img
-                      src={student.studentAvatar}
-                      alt={student.fullName}
-                      className="h-11 w-11 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
-                      {(student.fullName || "S").charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">
-                      {student.fullName || student.userName}
-                    </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                      <span>{student.studentNumber || "Chưa có MSSV"}</span>
-                      {student.email && (
-                        <span className="truncate">{student.email}</span>
-                      )}
-                    </div>
-                  </div>
+                  <UserIdentity
+                    user={student}
+                    variant="student"
+                    avatarSizeClass="size-11"
+                    nameClassName="m-0 truncate text-sm font-semibold text-slate-950 dark:text-white"
+                    secondaryClassName="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400"
+                  />
                 </div>
               </div>
             ))}
@@ -1222,7 +1199,7 @@ function StudentRosterPanel({ classSectionId, enabled }) {
             currentPage={page}
             pageSize={pageSize}
             total={total}
-            totalLabel={`Tổng học viên: ${total}`}
+            totalLabel={`Tổng người học: ${total}`}
             pageSizeLabel="Hiển thị"
             rangeLabel={undefined}
             onPageChange={setPage}

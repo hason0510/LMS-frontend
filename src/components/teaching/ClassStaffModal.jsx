@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Checkbox, Modal, Select, Tag, Tooltip, Avatar, Spin } from "antd";
+import { Alert, App, Button, Checkbox, Modal, Select, Tag, Tooltip, Spin } from "antd";
 import { useTranslation } from "react-i18next";
 import { addMember, getMembers, removeMember, updateMemberPermissions, updateMemberRole } from "../../api/classSection";
 import { searchUsers } from "../../api/user";
 import { UserPlusIcon, TrashIcon, ShieldCheckIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import UserIdentity from "../common/UserIdentity";
 
 const TA_PERMISSION_KEYS = [
   "VIEW_CLASS",
@@ -66,12 +67,14 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
     .map((user) => ({
       value: user.id,
       label: (
-        <div className="flex flex-col">
-          <span className="font-medium text-gray-800 dark:text-white">
-            {user.fullName || user.userName || user.username || t("teaching.layout.defaultUser")}
-          </span>
-          {user.gmail && <span className="text-xs text-gray-500">{user.gmail}</span>}
-        </div>
+        <UserIdentity
+          user={user}
+          variant="teacher"
+          showAvatar={false}
+          fallbackName={t("teaching.layout.defaultUser")}
+          nameClassName="m-0 text-sm font-medium text-gray-800 dark:text-white"
+          secondaryClassName="m-0 mt-1 text-xs text-gray-500"
+        />
       ),
     }));
 
@@ -152,11 +155,6 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
     label: t(`teaching.staff.permissions.${permission}`),
     disabled: permission === "VIEW_CLASS",
   }));
-
-  const getInitials = (name) => {
-    if (!name) return "U";
-    return name.charAt(0).toUpperCase();
-  };
 
   return (
     <Modal
@@ -258,15 +256,14 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
                     <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                       {/* Avatar & Info */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar size="large" className="bg-primary/20 text-primary font-bold shrink-0">
-                          {getInitials(member.fullName || member.username)}
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="m-0 text-sm font-bold text-gray-900 dark:text-white truncate">
-                            {member.fullName || member.username}
-                          </p>
-                          <p className="m-0 text-xs text-gray-500 truncate">@{member.username}</p>
-                        </div>
+                        <UserIdentity
+                          user={member}
+                          variant="teacher"
+                          avatarSizeClass="size-10"
+                          fallbackName={t("teaching.layout.defaultUser")}
+                          nameClassName="m-0 truncate text-sm font-bold text-gray-900 dark:text-white"
+                          secondaryClassName="m-0 mt-1 truncate text-xs text-gray-500"
+                        />
                       </div>
 
                       {/* Controls */}

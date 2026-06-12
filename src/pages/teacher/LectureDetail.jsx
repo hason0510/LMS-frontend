@@ -7,6 +7,7 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import UserIdentity from "../../components/common/UserIdentity";
 import {
   TrashIcon,
   PlayCircleIcon,
@@ -16,7 +17,6 @@ import {
   PlusCircleIcon,
   ClipboardDocumentListIcon,
   CheckCircleIcon,
-  ArrowLeftIcon,
   PencilIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
@@ -1012,24 +1012,6 @@ export default function LectureDetail({ isAdmin = false }) {
                   lectureTitle: title || lesson?.title,
                 }}
               />
-              {!isCreateMode && (
-                <button
-                  onClick={() => {
-                    const base = isAdmin ? "/admin" : "/teacher";
-                    if (isTemplateMode && templateIdFromPath) {
-                      navigate(`${base}/curriculums/${templateIdFromPath}`);
-                    } else {
-                      navigate(`${base}/class-sections/${classSectionId}`);
-                    }
-                  }}
-                  className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
-                >
-                  <ArrowLeftIcon className="w-5 h-5" />
-                  <span className="font-medium">
-                    Quay lại {isTemplateMode ? `khung chương trình: ${course?.name}` : `khóa học: ${course?.title}`}
-                  </span>
-                </button>
-              )}
               <div className="mx-auto flex flex-col gap-6">
                 {/* Page Header */}
                 <div className="flex flex-wrap justify-between items-start gap-4">
@@ -1080,7 +1062,7 @@ export default function LectureDetail({ isAdmin = false }) {
                             className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
                             icon={<EyeIcon className="h-4 w-4" />}
                           >
-                            Xem như học viên
+                            Xem như người học
                           </Button>
                         </>
                       )}
@@ -1582,27 +1564,14 @@ export default function LectureDetail({ isAdmin = false }) {
                               key={row.studentId}
                               className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 md:flex-row md:items-center md:justify-between"
                             >
-                              <div className="flex min-w-0 items-center gap-3">
-                                {row.avatarUrl ? (
-                                  <img
-                                    src={row.avatarUrl}
-                                    alt={row.studentName || t("classContent.lessonCompletion.table.student")}
-                                    className="h-11 w-11 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                                  />
-                                ) : (
-                                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-                                    {(row.studentName || "U").trim().charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                                <div className="min-w-0">
-                                  <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
-                                    {row.studentName || t("reportsPage.shared.defaults.noName")}
-                                  </p>
-                                  <p className="m-0 truncate text-xs text-slate-500 dark:text-slate-400">
-                                    {row.studentNumber || row.email || t("classContent.lessonCompletion.defaults.noStudentInfo")}
-                                  </p>
-                                </div>
-                              </div>
+                              <UserIdentity
+                                user={row}
+                                variant="student"
+                                avatarSizeClass="size-11"
+                                avatarClassName="ring-1 ring-slate-200 dark:ring-slate-700"
+                                fallbackName={t("reportsPage.shared.defaults.noName")}
+                                className="min-w-0"
+                              />
                               <div className="grid gap-3 md:grid-cols-[140px_180px] md:items-center">
                                 <div>
                                   <p className="m-0 text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">

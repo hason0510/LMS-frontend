@@ -82,7 +82,7 @@ export default function TeacherHeader({ toggleSidebar }) {
     {
       id: 2,
       title: "Yêu cầu tham gia",
-      message: "3 học viên mới yêu cầu tham gia khóa học.",
+      message: "3 người học mới yêu cầu tham gia khóa học.",
       time: "2 giờ trước",
       isRead: false,
     },

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { App, Button, Empty, Input, InputNumber, Modal, Select, Spin, Table, Tag } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
-import { ArrowLeft, ClipboardCheck, FileCheck2 } from "lucide-react";
+import { ClipboardCheck, FileCheck2 } from "lucide-react";
 import dayjs from "dayjs";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -76,7 +76,6 @@ function SubmissionMetric({ icon: Icon, label, value, tone = "blue" }) {
 export default function AssignmentSubmissions({ isAdmin = false, teachingMode = false }) {
   const { classSectionId, assignmentId } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const { message } = App.useApp();
   const { t } = useTranslation();
   const basePath = isAdmin ? "/admin" : "/teacher";
@@ -297,12 +296,8 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
     );
   }
 
-  const backPath = teachingMode
-    ? returnPath || `/teaching/class-sections/${classSectionId}/content`
-    : `${basePath}/class-sections/${classSectionId}/assignments/${assignmentId}`;
-
   const content = (
-      <div className="mx-auto w-full max-w-[1440px] p-6 space-y-4">
+    <div className="mx-auto w-full max-w-[1440px] p-6 space-y-4">
       <AppBreadcrumb
         className="mb-1"
         context={{
@@ -310,14 +305,6 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
           assignmentTitle: assignment?.title,
         }}
       />
-      <Button
-        type="text"
-        icon={<ArrowLeft size={16} />}
-        onClick={() => navigate(backPath)}
-        className="px-0! text-primary!"
-      >
-        {teachingMode ? t("assignments.submissions.backToContent") : t("assignments.submissions.backToAssignment")}
-      </Button>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         <SubmissionMetric icon={ClipboardCheck} label={t("assignments.submissions.metrics.total")} value={metrics.total} />

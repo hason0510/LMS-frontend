@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Alert, Button, Checkbox, Form, Input, Spin, message } from "antd";
-import { ArrowLeftIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
+import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -120,13 +120,6 @@ export default function CreateChapter({ isAdmin = false }) {
         >
           <div className="px-4 sm:px-6 lg:px-8 py-8">
             <AppBreadcrumb className="mb-5" context={{ templateName: template?.name }} />
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5" />
-              <span className="font-medium">Quay lại chương trình học {template?.name}</span>
-            </button>
 
             <div className="mx-auto w-full flex flex-col gap-6">
               <div className="flex flex-col gap-2">

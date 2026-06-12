@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import UserIdentity from "../../components/common/UserIdentity";
 import CourseContent from "../../components/course/CourseContent";
 import AnnouncementsTab from "../../components/course/AnnouncementsTab";
 import ClassPeopleTab from "../../components/teaching/ClassPeopleTab";
@@ -322,7 +323,7 @@ function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, 
           </div>
           <h1 className="m-0 text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">{title}</h1>
           <p className="m-0 mt-2 text-sm text-slate-500">
-            GV: {course.teacherName || "Chưa xác định"} · {course.totalEnrollments ?? 0} học viên · {course.teachingMembers?.length ?? 1} nhân sự
+            GV: {course.teacherName || "Chưa xác định"} · {course.totalEnrollments ?? 0} người học · {course.teachingMembers?.length ?? 1} nhân sự
           </p>
         </div>
 
@@ -407,10 +408,14 @@ function Overview({
             {(course.teachingMembers || []).length ? (
               course.teachingMembers.map((member) => (
                 <div key={member.userId} className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
-                  <div className="min-w-0">
-                    <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">{member.fullName || member.username}</p>
-                    <p className="m-0 truncate text-xs text-slate-500">@{member.username}</p>
-                  </div>
+                  <UserIdentity
+                    user={member}
+                    variant="teacher"
+                    avatarSizeClass="size-9"
+                    className="min-w-0 flex-1"
+                    nameClassName="m-0 truncate text-sm font-bold text-slate-900 dark:text-white"
+                    secondaryClassName="m-0 mt-1 truncate text-xs text-slate-500"
+                  />
                   <span className="shrink-0 text-xs font-semibold text-slate-500">
                     {member.role === "TEACHER" ? t("teaching.roles.primaryTeacher") : t("teaching.roles.teachingAssistant")}
                   </span>

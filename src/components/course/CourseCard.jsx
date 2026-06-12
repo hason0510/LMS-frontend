@@ -63,7 +63,7 @@ export default function CourseCard({
           <div className="flex-grow space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-4">
             <div className="flex items-center gap-2">
               <UserGroupIcon className="h-5 w-5" />
-              <span>{studentsCount} học viên</span>
+              <span>{studentsCount} người học</span>
             </div>
             <div className="flex items-center gap-2">
               <CalendarDaysIcon className="h-5 w-5" />

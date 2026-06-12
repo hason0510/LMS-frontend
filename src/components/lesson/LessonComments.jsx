@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Input, Button, Avatar, Spin, message, Empty } from "antd";
+import { Input, Button, Spin, message, Empty } from "antd";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import { Client } from "@stomp/stompjs";
@@ -11,6 +11,7 @@ import {
 } from "../../api/lessonComment";
 import { SendOutlined } from "@ant-design/icons";
 import useUserStore from "../../store/useUserStore";
+import UserIdentity from "../common/UserIdentity";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8081";
 
@@ -147,9 +148,16 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
 
   return (
     <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
-      <h3 className="text-xl font-bold text-[#111418] dark:text-white mb-6">
-        {t("lessonComments.title", { count: comments.length })}
-      </h3>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="m-0 text-xl font-bold text-[#111418] dark:text-white">
+          {t("lessonComments.title", { count: comments.length })}
+        </h3>
+        {!isReadOnly && user && !showCommentForm ? (
+          <Button type="primary" onClick={() => setShowCommentForm(true)} className="shrink-0">
+            {t("lessonComments.actions.add")}
+          </Button>
+        ) : null}
+      </div>
 
       {/* Comment Button / Form */}
       {isReadOnly ? (
@@ -160,25 +168,14 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
         </div>
       ) : user ? (
         <div className="mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
-          {!showCommentForm ? (
-            <Button
-              type="primary"
-              size="large"
-              onClick={() => setShowCommentForm(true)}
-              className="w-full"
-            >
-              {t("lessonComments.actions.add")}
-            </Button>
-          ) : (
+          {showCommentForm ? (
             <div className="flex gap-3 mb-4">
-              <Avatar
-                size={40}
-                src={user.avatar}
-                name={user.fullName}
-                className="flex-shrink-0"
-              >
-                {user.fullName?.charAt(0)}
-              </Avatar>
+              <UserIdentity
+                user={user}
+                variant="student"
+                className="flex-shrink-0 items-start"
+                avatarSizeClass="size-10"
+              />
               <div className="flex-1">
                 <Input.TextArea
                   value={commentText}
@@ -208,7 +205,7 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       ) : (
         <div className="mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
@@ -231,23 +228,24 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
             <div key={comment.commentId} className="space-y-4">
               {/* Main Comment */}
               <div className="flex gap-4">
-                <Avatar
-                  size={40}
-                  src={comment.avatar}
-                  className={`flex-shrink-0 ${!comment.avatar ? "bg-primary" : ""}`}
-                >
-                  {comment.fullName?.charAt(0) || "U"}
-                </Avatar>
+                <UserIdentity
+                  user={comment}
+                  variant="student"
+                  className="flex-shrink-0 items-start"
+                  avatarSizeClass="size-10"
+                  showText={false}
+                  secondaryText={null}
+                />
                 <div className="flex-1">
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-[#111418] dark:text-white">
-                        {comment.fullName || t("lessonComments.unknownUser")}
-                      </h4>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {formatDate(comment.createdAt)}
                       </span>
                     </div>
+                    <p className="m-0 mb-2 text-sm font-semibold text-[#111418] dark:text-white">
+                      {comment.fullName || t("lessonComments.unknownUser")}
+                    </p>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
                       {comment.commentDetail}
                     </p>
@@ -269,13 +267,12 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
               {replyingTo === comment.commentId && user && !isReadOnly && (
                 <div className="ml-12 mb-4">
                   <div className="flex gap-3">
-                    <Avatar
-                      size={32}
-                      src={user.avatar}
-                      className="flex-shrink-0"
-                    >
-                      {user.fullName?.charAt(0)}
-                    </Avatar>
+                    <UserIdentity
+                      user={user}
+                      variant="student"
+                      className="flex-shrink-0 items-start"
+                      avatarSizeClass="size-8"
+                    />
                     <div className="flex-1">
                       <Input.TextArea
                         value={replyText}
@@ -314,23 +311,24 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
                 <div className="ml-12 space-y-4 pt-2 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
                   {comment.replies.map((reply) => (
                     <div key={reply.commentId} className="flex gap-3">
-                      <Avatar
-                        size={32}
-                        src={reply.avatar}
-                        className={`flex-shrink-0 ${!reply.avatar ? "bg-primary" : ""}`}
-                      >
-                        {reply.fullName?.charAt(0) || "U"}
-                      </Avatar>
+                      <UserIdentity
+                        user={reply}
+                        variant="student"
+                        className="flex-shrink-0 items-start"
+                        avatarSizeClass="size-8"
+                        showText={false}
+                        secondaryText={null}
+                      />
                       <div className="flex-1">
                         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                           <div className="flex items-center justify-between mb-1">
-                            <h5 className="font-semibold text-sm text-[#111418] dark:text-white">
-                              {reply.fullName || t("lessonComments.unknownUser")}
-                            </h5>
                             <span className="text-xs text-gray-500 dark:text-gray-400">
                               {formatDate(reply.createdAt)}
                             </span>
                           </div>
+                          <p className="m-0 mb-1 text-sm font-semibold text-[#111418] dark:text-white">
+                            {reply.fullName || t("lessonComments.unknownUser")}
+                          </p>
                           <p className="text-gray-700 dark:text-gray-300 text-sm">
                             {reply.commentDetail}
                           </p>

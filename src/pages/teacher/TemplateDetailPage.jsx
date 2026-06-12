@@ -813,7 +813,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
           <div className="mb-4">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Mã lớp học</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              Chia sẻ mã này để học viên có thể tham gia trực tiếp vào lớp.
+              Chia sẻ mã này để người học có thể tham gia trực tiếp vào lớp.
             </p>
             {generatedCode ? (
               <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-4">
@@ -831,7 +831,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                       Đặt lại
                     </button>
                   </Tooltip>
-                  <Tooltip title="Xóa mã (học viên không thể tham gia bằng mã)">
+                  <Tooltip title="Xóa mã (người học không thể tham gia bằng mã)">
                     <button
                       type="button"
                       onClick={() => setGeneratedCode(null)}

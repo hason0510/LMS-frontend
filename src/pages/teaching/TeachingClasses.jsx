@@ -23,7 +23,7 @@ const statusOptions = [
 const sortOptions = [
   { value: "newest", label: "Mới nhất" },
   { value: "az", label: "Tên A-Z" },
-  { value: "students", label: "Nhiều học viên" },
+  { value: "students", label: "Nhiều người học" },
 ];
 
 const statusLabel = {
@@ -106,11 +106,11 @@ export default function TeachingClasses() {
                 Lớp trợ giảng
               </h1>
               <p className="m-0 mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                Các lớp bạn được phân công hỗ trợ. Vào từng lớp để xem nội dung, học viên, chấm bài và thông báo theo quyền được giáo viên cấp.
+                Các lớp bạn được phân công hỗ trợ. Vào từng lớp để xem nội dung, người học, chấm bài và thông báo theo quyền được giáo viên cấp.
               </p>
             </div>
             <Button type="primary" onClick={() => navigate("/classes")}>
-              Về lớp học viên
+              Về lớp người học
             </Button>
           </div>
 
@@ -191,7 +191,7 @@ function TeachingClassCard({ item, onOpen }) {
           </div>
           <div className="flex items-center gap-2">
             <UserGroupIcon className="h-4 w-4 shrink-0 text-slate-400" />
-            <span>{item.totalEnrollments ?? 0} học viên · {staffCount} nhân sự</span>
+            <span>{item.totalEnrollments ?? 0} người học · {staffCount} nhân sự</span>
           </div>
         </div>
 

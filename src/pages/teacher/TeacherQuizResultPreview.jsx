@@ -256,13 +256,6 @@ export default function TeacherQuizResultPreview({ isAdmin = false }) {
           <EyeIcon className="h-4 w-4" />
           Kết quả xem trước — Không được lưu vào hệ thống
         </div>
-        <button
-          onClick={() => navigate(editUrl)}
-          className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
-        >
-          <ArrowLeftIcon className="h-3.5 w-3.5" />
-          Về trang chỉnh sửa quiz
-        </button>
       </div>
 
       <div className="layout-container flex h-full grow flex-col">

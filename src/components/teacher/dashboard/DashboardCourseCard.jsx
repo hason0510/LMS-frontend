@@ -13,7 +13,7 @@ export default function DashboardCourseCard({ title, students, classCode, subjec
       <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 gap-4">
         <div className="flex items-center gap-1.5">
           <UserGroupIcon className="h-5 w-5" />
-          <span>{students} học viên</span>
+          <span>{students} người học</span>
         </div>
       </div>
 

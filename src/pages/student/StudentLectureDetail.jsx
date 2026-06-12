@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { Alert, Spin } from "antd";
 import { useTranslation } from "react-i18next";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
 import LessonComments from "../../components/lesson/LessonComments";
 import FileItem from "../../components/common/FileItem";
@@ -17,7 +16,6 @@ export default function StudentLectureDetail() {
   const { t } = useTranslation();
   const { classSectionId, lectureId } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const classContentItemId =
     new URLSearchParams(location.search).get("classContentItemId") || location.state?.classContentItemId || null;
   const [lesson, setLesson] = useState(null);
@@ -163,13 +161,6 @@ export default function StudentLectureDetail() {
       <div className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
           <AppBreadcrumb className="mb-5" context={{ lectureTitle: lesson?.title }} />
-          <button
-            onClick={() => navigate(`/class-sections/${classSectionId}`)}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-6 font-medium transition-colors"
-          >
-            <ArrowLeftIcon className="h-5 w-5" />
-            <span>Quay lại</span>
-          </button>
 
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-[#111418] dark:text-white mb-2">

@@ -771,7 +771,7 @@ function resolveBreadcrumbs(pathname, context, t) {
   return buildStudentBreadcrumb(pathname, context, t);
 }
 
-export default function AppBreadcrumb({ context = {}, className = "", hideSingle = false }) {
+export default function AppBreadcrumb({ context = {}, className = "", hideSingle = true }) {
   const location = useLocation();
   const { t } = useTranslation();
   const items = resolveBreadcrumbs(location.pathname, context, t);

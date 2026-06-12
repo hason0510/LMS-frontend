@@ -1567,6 +1567,7 @@
         "placeholder": "Enter chapter description (optional)..."
       },
       "editContent": {
+        "title": "Edit content settings",
         "hidden": "Hide from students",
         "locked": "Lock access",
         "availableFrom": "Available from",

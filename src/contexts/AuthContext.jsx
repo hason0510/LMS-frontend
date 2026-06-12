@@ -1,8 +1,8 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import useUserStore from "../store/useUserStore";
 import { getUserById } from "../api/user";
-import { logout as requestLogout } from "../api/auth";
+import { logout as requestLogout, refreshToken } from "../api/auth";
 import { clearAuthHeader } from "../api/axiosClient";
 
 const AuthContext = createContext();
@@ -48,9 +48,47 @@ export function AuthProvider({ children }) {
     setUser,
     setAccessToken,
     clearUser,
+    setLoading,
   } = useUserStore();
   const isLoggedIn = Boolean(accessToken && user);
   const loading = storeLoading;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrapAuth = async () => {
+      setLoading(true);
+
+      try {
+        const response = await refreshToken();
+        const payload = response?.data ?? response;
+        const refreshedAccessToken = payload?.accessToken;
+        const refreshedUser = payload?.user ?? user;
+
+        if (!refreshedAccessToken) {
+          throw new Error("Missing access token in refresh response");
+        }
+
+        if (cancelled) return;
+
+        await loginUser(refreshedAccessToken, refreshedUser);
+      } catch {
+        if (cancelled) return;
+        clearAuthHeader();
+        clearUser();
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void bootstrapAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Hàm logout
   const logout = async ({ remote = true } = {}) => {
@@ -71,6 +109,7 @@ export function AuthProvider({ children }) {
   // Hàm login - fetch full user data after login
   const loginUser = async (accessToken, loginData) => {
     try {
+      setLoading(true);
       setAccessToken(accessToken);
 
       // Set basic user immediately so routing/guards don't "flash" another role UI.
@@ -100,6 +139,8 @@ export function AuthProvider({ children }) {
       const basicUser = normalizeBasicUser(loginData) || loginData;
       setUser(basicUser);
       return basicUser;
+    } finally {
+      setLoading(false);
     }
   };
 

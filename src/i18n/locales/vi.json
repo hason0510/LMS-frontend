@@ -28,7 +28,7 @@
     "roles": {
       "admin": "Quản trị viên",
       "teacher": "Giáo viên",
-      "student": "Học viên"
+      "student": "Người học"
     }
   },
   "settings": {
@@ -221,12 +221,12 @@
       "subject": "Môn học",
       "teacher": "Giảng viên",
       "schedule": "Thời gian",
-      "studentsLabel": "Học viên",
+      "studentsLabel": "Người học",
       "noCategory": "Chưa có danh mục",
       "noSubject": "Chưa có môn học",
       "noTeacher": "Chưa có giảng viên",
       "classCode": "Mã lớp: {{code}}",
-      "students": "{{count}} học viên",
+      "students": "{{count}} người học",
       "progress": "Tiến độ hiện tại",
       "pendingApproval": "Chờ duyệt",
       "noSchedule": "Chưa có lịch học",
@@ -416,7 +416,7 @@
     "nganHangCauHoi": "Ngân hàng câu hỏi",
     "quanLyMedia": "Thư viện media",
     "quanLyKhoaHoc": "Quản lý khóa học",
-    "quanLyHocVien": "Quản lý học viên",
+    "quanLyHocVien": "Quản lý người học",
     "quizAttempts": "Lượt làm quiz",
     "baoCoThongKe": "Báo cáo/Thống kê",
     "hoSo": "Hồ sơ",
@@ -624,25 +624,25 @@
     },
     "submissions": {
       "title": "Bài nộp: {{title}}",
-      "subtitle": "Theo dõi danh sách học viên, trạng thái nộp bài và xử lý chấm/trả bài.",
+      "subtitle": "Theo dõi danh sách người học, trạng thái nộp bài và xử lý chấm/trả bài.",
       "backToContent": "Quay lại nội dung lớp",
       "backToAssignment": "Quay lại bài tập",
-      "searchPlaceholder": "Tìm theo tên, MSSV hoặc ID học viên",
+      "searchPlaceholder": "Tìm theo tên, MSSV hoặc ID người học",
       "empty": "Không có bài nộp phù hợp",
       "notSubmitted": "Chưa nộp",
       "studentNumber": "MSSV",
-      "unknownStudent": "Học viên #{{id}}",
+      "unknownStudent": "Người học #{{id}}",
       "filters": {
         "allStatuses": "Tất cả trạng thái"
       },
       "metrics": {
-        "total": "Tổng học viên",
+        "total": "Tổng người học",
         "submitted": "Đã nộp",
         "pending": "Chờ chấm",
         "graded": "Đã chấm"
       },
       "columns": {
-        "student": "Học viên",
+        "student": "Người học",
         "status": "Trạng thái",
         "submittedAt": "Nộp lúc",
         "grade": "Điểm",
@@ -669,7 +669,7 @@
       "messages": {
         "loadFailed": "Không thể tải danh sách bài nộp",
         "graded": "Đã chấm bài thành công",
-        "returned": "Đã trả bài cho học viên"
+        "returned": "Đã trả bài cho người học"
       }
     }
   },
@@ -1006,7 +1006,7 @@
     "difficultyAliasHint": "Alias độ khó ({alias}) sẽ tự map vào Độ khó, không lưu thành tag.",
     "shortAnswerAutoGradeHint": "Câu trả lời được chấm tự động theo đáp án đúng (không phân biệt hoa/thường).",
     "nhapDapAnDung": "Nhập đáp án đúng...",
-    "essayHint": "Câu tự luận sẽ được lưu để giáo viên chấm tay sau khi học viên nộp bài.",
+    "essayHint": "Câu tự luận sẽ được lưu để giáo viên chấm tay sau khi người học nộp bài.",
     "themLuaChonMoi": "Thêm lựa chọn mới...",
     "veTrai": "Vế trái {{index}}",
     "vePhai": "Vế phải {{index}}",
@@ -1059,7 +1059,7 @@
     "pickBankToBrowse": "Chọn ngân hàng câu hỏi để duyệt",
     "emptyStateTitle": "Chưa có câu hỏi nào",
     "emptyStateDescription": "Thêm câu hỏi thủ công hoặc gắn rule từ ngân hàng câu hỏi bên dưới.",
-    "qaPlaceholder": "Khu vực Q&A sẽ hiển thị câu hỏi của học viên về quiz này.",
+    "qaPlaceholder": "Khu vực Q&A sẽ hiển thị câu hỏi của người học về quiz này.",
     "fields": {
       "bank": "Ngân hàng câu hỏi",
       "tags": "Tags",
@@ -1211,7 +1211,7 @@
     "quizInfo": "Thông tin quiz",
     "quiz": "Quiz",
     "course": "Lớp học",
-    "student": "Học viên",
+    "student": "Người học",
     "questions": "Câu hỏi",
     "question": "Câu hỏi",
     "correct": "Đúng",
@@ -1231,7 +1231,7 @@
     "correctAnswer": "Đáp án đúng",
     "completedAt": "Hoàn thành",
     "back": "Quay lại",
-      "search": "Tìm quiz hoặc học viên...",
+      "search": "Tìm quiz hoặc người học...",
       "saveReview": "Lưu chấm điểm",
       "reviewSaved": "Đã lưu chấm điểm",
       "reviewSaveFailed": "Không thể lưu chấm điểm",
@@ -1253,7 +1253,7 @@
       "overview": "Tổng quan",
       "classes": "Lớp đang hỗ trợ",
       "classesShort": "Lớp",
-      "people": "Học viên"
+      "people": "Người học"
     },
     "layout": {
       "title": "Không gian hỗ trợ",
@@ -1262,7 +1262,7 @@
       "backToLearning": "Quay về không gian học tập",
       "defaultUser": "Người dùng",
       "focusTitle": "Trọng tâm hôm nay",
-      "focusDescription": "Chấm bài, theo dõi tiến độ học viên và xử lý các việc vận hành lớp mỗi ngày."
+      "focusDescription": "Chấm bài, theo dõi tiến độ người học và xử lý các việc vận hành lớp mỗi ngày."
     },
     "status": {
       "public": "Công khai",
@@ -1275,7 +1275,7 @@
     },
     "dashboard": {
       "title": "Bảng điều phối trợ giảng",
-      "subtitle": "Tập trung vào các đầu việc cần xử lý ngay: bài chờ chấm, quiz cần duyệt và học viên có nguy cơ trễ tiến độ.",
+      "subtitle": "Tập trung vào các đầu việc cần xử lý ngay: bài chờ chấm, quiz cần duyệt và người học có nguy cơ trễ tiến độ.",
       "myClasses": "Lớp đang hỗ trợ",
       "reviewQueue": "Hàng đợi xử lý",
       "openByClass": "Mở theo lớp",
@@ -1290,14 +1290,14 @@
       "stats": {
         "pendingSubmissions": "Bài nộp chờ chấm",
         "pendingQuizReviews": "Quiz cần duyệt",
-        "atRiskStudents": "Học viên cần chú ý",
+        "atRiskStudents": "Người học cần chú ý",
         "totalClasses": "Lớp đang hỗ trợ"
       }
     },
     "classes": {
       "title": "Danh sách lớp đang hỗ trợ",
       "searchPlaceholder": "Tìm theo tên lớp, mã lớp hoặc môn học...",
-      "students": "Học viên",
+      "students": "Người học",
       "staff": "Nhân sự giảng dạy",
       "openWorkspace": "Mở không gian lớp",
       "noSubject": "Chưa có môn học",
@@ -1316,19 +1316,19 @@
       "tabs": {
         "overview": "Tổng quan",
         "content": "Nội dung",
-        "people": "Học viên",
+        "people": "Người học",
         "review": "Chấm bài",
         "announcements": "Thông báo",
         "progress": "Tiến độ"
       },
       "stats": {
-        "students": "Học viên",
+        "students": "Người học",
         "pendingSubmissions": "Bài chờ chấm",
         "pendingQuizReviews": "Quiz cần duyệt",
         "atRiskStudents": "Cần chú ý"
       },
       "progress": {
-        "atRisk": "Học viên cần chú ý",
+        "atRisk": "Người học cần chú ý",
         "upcoming": "Bài sắp đến hạn",
         "pendingReviews": "Mục chờ xử lý"
       },
@@ -1353,20 +1353,20 @@
         "title": "Tiêu đề",
         "content": "Nội dung",
         "panelTitle": "Thông báo lớp học",
-        "panelDescription": "Gửi cập nhật cho học viên trong lớp.",
+        "panelDescription": "Gửi cập nhật cho người học trong lớp.",
         "placeholderTitle": "Ví dụ: Nhắc lịch nộp bài tuần này",
-        "placeholderContent": "Nội dung gửi tới học viên trong lớp...",
+        "placeholderContent": "Nội dung gửi tới người học trong lớp...",
         "validationTitle": "Nhập tiêu đề thông báo",
         "validationContent": "Nhập nội dung thông báo"
       }
     },
     "people": {
-      "title": "Danh sách học viên",
-      "subtitle": "Theo dõi danh sách lớp, bài còn thiếu và mức độ cần can thiệp của từng học viên.",
-      "studentProfile": "Hồ sơ học viên",
+      "title": "Danh sách người học",
+      "subtitle": "Theo dõi danh sách lớp, bài còn thiếu và mức độ cần can thiệp của từng người học.",
+      "studentProfile": "Hồ sơ người học",
       "selfNotice": "Đây là hồ sơ của chính bạn. Các thao tác chấm bài với bài làm của bạn sẽ bị khóa.",
-      "noStudentCode": "Chưa có mã học viên",
-      "empty": "Không có học viên phù hợp.",
+      "noStudentCode": "Chưa có mã người học",
+      "empty": "Không có người học phù hợp.",
       "filters": {
         "all": "Tất cả",
         "approved": "Đã duyệt",
@@ -1374,7 +1374,7 @@
         "rejected": "Từ chối"
       },
       "columns": {
-        "student": "Học viên",
+        "student": "Người học",
         "status": "Trạng thái",
         "progress": "Tiến độ",
         "missingAssignments": "Thiếu bài",
@@ -1419,7 +1419,7 @@
       },
       "drawer": {
         "title": "Chấm bài tập",
-        "student": "Học viên",
+        "student": "Người học",
         "submittedAt": "Nộp lúc",
         "score": "Điểm",
         "feedback": "Nhận xét",
@@ -1434,7 +1434,7 @@
       },
       "messages": {
         "graded": "Đã lưu điểm thành công.",
-        "returned": "Đã trả bài cho học viên."
+        "returned": "Đã trả bài cho người học."
       }
     },
     "staff": {
@@ -1462,8 +1462,8 @@
       },
       "permissions": {
         "VIEW_CLASS": "Xem lớp hỗ trợ",
-        "VIEW_PEOPLE": "Xem danh sách học viên",
-        "VIEW_PROGRESS": "Xem tiến độ học viên",
+        "VIEW_PEOPLE": "Xem danh sách người học",
+        "VIEW_PROGRESS": "Xem tiến độ người học",
         "MANAGE_ASSIGNMENTS": "Tạo, quản lý và chấm bài tập",
         "REVIEW_QUIZZES": "Xem và rà soát bài quiz",
         "POST_ANNOUNCEMENTS": "Đăng thông báo",
@@ -1471,7 +1471,7 @@
       },
       "permissionShort": {
         "VIEW_CLASS": "Lớp",
-        "VIEW_PEOPLE": "Học viên",
+        "VIEW_PEOPLE": "Người học",
         "VIEW_PROGRESS": "Tiến độ",
         "MANAGE_ASSIGNMENTS": "Bài tập",
         "REVIEW_QUIZZES": "Quiz",
@@ -1567,6 +1567,7 @@
         "placeholder": "Nhập mô tả chương (tùy chọn)..."
       },
       "editContent": {
+        "title": "Chỉnh sửa thiết lập nội dung",
         "hidden": "Ẩn với học sinh",
         "locked": "Khóa truy cập",
         "availableFrom": "Mở từ ngày",
@@ -1590,30 +1591,30 @@
     "lessonComments": {
       "title": "Bình luận bài học",
       "actions": {
-        "open": "Xem bình luận học viên"
+        "open": "Xem bình luận người học"
       }
     },
       "lessonCompletion": {
         "title": "Theo dõi hoàn thành bài học",
-        "subtitle": "Xem nhanh học viên nào đã học xong bài này và ai còn đang dừng lại ở phía sau.",
+        "subtitle": "Xem nhanh người học nào đã học xong bài này và ai còn đang dừng lại ở phía sau.",
         "actions": {
           "open": "Xem tiến độ bài học"
       },
       "filters": {
-        "searchPlaceholder": "Tìm theo tên học viên, mã sinh viên hoặc email",
+        "searchPlaceholder": "Tìm theo tên người học, mã sinh viên hoặc email",
         "status": {
-          "all": "Tất cả học viên",
+          "all": "Tất cả người học",
           "completed": "Đã hoàn thành",
           "notCompleted": "Chưa hoàn thành"
         }
       },
       "summary": {
-        "students": "Học viên trong lớp",
+        "students": "Người học trong lớp",
         "completed": "Đã hoàn thành",
         "notCompleted": "Chưa hoàn thành"
       },
       "table": {
-        "student": "Học viên",
+        "student": "Người học",
         "status": "Trạng thái",
         "completedAt": "Hoàn thành lúc"
       },
@@ -1622,8 +1623,8 @@
         "notCompleted": "Chưa hoàn thành"
       },
       "empty": {
-        "default": "Chưa có học viên nào trong lớp hoặc chưa có dữ liệu để hiển thị.",
-        "filtered": "Không có học viên nào khớp với bộ lọc hiện tại."
+        "default": "Chưa có người học nào trong lớp hoặc chưa có dữ liệu để hiển thị.",
+        "filtered": "Không có người học nào khớp với bộ lọc hiện tại."
       },
       "messages": {
         "loadFailed": "Không thể tải danh sách hoàn thành bài học."
@@ -1635,7 +1636,7 @@
       },
       "lessonCompletionPicker": {
         "title": "Chọn bài giảng cần xem tiến độ",
-        "subtitle": "Chọn một bài giảng trong lớp để mở danh sách học viên đã hoàn thành hoặc chưa hoàn thành.",
+        "subtitle": "Chọn một bài giảng trong lớp để mở danh sách người học đã hoàn thành hoặc chưa hoàn thành.",
         "actions": {
           "open": "Xem tiến độ bài học"
         },
@@ -1744,10 +1745,10 @@
         "openQuizAttempts": "Mở danh sách lượt làm",
         "resetThresholds": "Dùng mốc mặc định",
         "applyThresholds": "Áp dụng mốc mới",
-        "clearStudentFilters": "Xóa bộ lọc học viên"
+        "clearStudentFilters": "Xóa bộ lọc người học"
       },
       "messages": {
-        "approveSuccess": "Đã duyệt học viên.",
+        "approveSuccess": "Đã duyệt người học.",
         "rejectSuccess": "Đã từ chối yêu cầu."
       },
       "errors": {
@@ -1768,9 +1769,9 @@
       "filters": {
         "studentGroups": {
           "label": "Nhóm tiến độ",
-          "hint": "Chọn nhanh nhóm học viên bạn muốn theo dõi trước.",
+          "hint": "Chọn nhanh nhóm người học bạn muốn theo dõi trước.",
           "options": {
-            "all": "Tất cả học viên"
+            "all": "Tất cả người học"
           }
         },
         "studentStatus": {
@@ -1785,23 +1786,23 @@
         },
         "quizParticipation": {
           "label": "Tình hình làm bài quiz",
-          "hint": "Tách nhanh học viên theo việc đã làm bài hay chưa và kết quả hiện có.",
+          "hint": "Tách nhanh người học theo việc đã làm bài hay chưa và kết quả hiện có.",
           "options": {
-            "all": "Tất cả học viên"
+            "all": "Tất cả người học"
           }
         }
       },
       "tabs": {
         "overview": "Tổng quan",
         "gradebookWithCount": "Sổ điểm Quiz ({{count}})",
-        "studentsWithCount": "Học viên ({{count}})",
+        "studentsWithCount": "Người học ({{count}})",
         "requestsWithCount": "Yêu cầu ({{count}})",
         "assignments": "Bài tập",
         "quizzes": "Bài quiz",
-        "progressWithCount": "Tiến độ học viên ({{count}})"
+        "progressWithCount": "Tiến độ người học ({{count}})"
       },
       "tables": {
-        "student": "Học viên",
+        "student": "Người học",
         "progress": "Tiến độ",
         "quizAverage": "TB quiz",
         "studentNumber": "Mã sinh viên",
@@ -1821,20 +1822,20 @@
         "bestScore": "Điểm tốt nhất"
       },
       "metrics": {
-        "totalStudents": "Tổng học viên",
-        "totalStudentsHint": "{{count}} học viên đang dưới mốc {{low}}%",
+        "totalStudents": "Tổng người học",
+        "totalStudentsHint": "{{count}} người học đang dưới mốc {{low}}%",
         "pendingRequests": "Yêu cầu chờ duyệt",
-        "pendingRequestsHint": "Số học viên đang chờ vào lớp",
+        "pendingRequestsHint": "Số người học đang chờ vào lớp",
         "averageQuizScore": "Điểm quiz trung bình",
         "averageQuizScoreHint": "Điểm cao nhất hiện có: {{score}}",
         "averageProgress": "Tiến độ trung bình",
-        "averageProgressHint": "{{count}} học viên đang ở mức từ {{high}}% trở lên"
+        "averageProgressHint": "{{count}} người học đang ở mức từ {{high}}% trở lên"
       },
       "summary": {
         "trackedQuizzes": "Quiz đang theo dõi",
         "atRiskStudents": "Tiến độ dưới chuẩn",
-        "engagedStudents": "Học viên ổn định",
-        "filteredStudents": "Học viên đang hiển thị",
+        "engagedStudents": "Người học ổn định",
+        "filteredStudents": "Người học đang hiển thị",
         "activeStudentFilters": "Bộ lọc đang bật",
         "scoreWatchMark": "Mốc điểm cần chú ý"
       },
@@ -1855,11 +1856,11 @@
       "thresholds": {
         "low": {
           "label": "Mốc cần quan tâm thêm",
-          "hint": "Học viên dưới mốc này sẽ vào nhóm cần hỗ trợ."
+          "hint": "Người học dưới mốc này sẽ vào nhóm cần hỗ trợ."
         },
         "high": {
           "label": "Mốc ổn định",
-          "hint": "Học viên từ mốc này trở lên sẽ được xem là đang ổn định."
+          "hint": "Người học từ mốc này trở lên sẽ được xem là đang ổn định."
         },
         "validation": "Mốc cần quan tâm thêm phải nhỏ hơn mốc ổn định."
       },
@@ -1881,9 +1882,9 @@
         "assignmentScore": "Điểm tối đa"
       },
       "charts": {
-        "progressOverviewCenter": "Học viên trong lớp",
-        "studentsCount": "{{count}} học viên",
-        "quizPassRateValue": "{{rate}}% đạt ({{passed}}/{{total}} học viên)",
+        "progressOverviewCenter": "Người học trong lớp",
+        "studentsCount": "{{count}} người học",
+        "quizPassRateValue": "{{rate}}% đạt ({{passed}}/{{total}} người học)",
         "assignmentLegend": {
           "feedbackSent": "Đã nhận xét",
           "waitingFeedback": "Đang chờ nhận xét",
@@ -1908,18 +1909,18 @@
         },
         "progressDistribution": {
           "title": "Phân bổ tiến độ",
-          "subtitle": "Tách nhanh học viên theo các mốc {{low}}% và {{high}}% để đọc tình hình lớp."
+          "subtitle": "Tách nhanh người học theo các mốc {{low}}% và {{high}}% để đọc tình hình lớp."
         },
         "classProfile": {
           "title": "Hồ sơ lớp",
           "subtitle": "Thông tin cơ bản để đọc kết quả của lớp rõ hơn."
         },
         "gradebook": {
-          "title": "Sổ điểm theo học viên",
-          "subtitle": "Mỗi cột là một quiz, mỗi ô là điểm cao nhất ghi nhận được cho học viên đó."
+          "title": "Sổ điểm theo người học",
+          "subtitle": "Mỗi cột là một quiz, mỗi ô là điểm cao nhất ghi nhận được cho người học đó."
         },
         "students": {
-          "title": "Danh sách học viên đã duyệt",
+          "title": "Danh sách người học đã duyệt",
           "subtitle": "Tập trung vào tiến độ thực tế thay vì danh sách thô."
         },
         "requests": {
@@ -1940,17 +1941,17 @@
         },
         "assignmentSubmissions": {
           "title": "Tình hình nộp bài",
-          "subtitle": "Đọc nhanh nhóm học viên nào còn đang chậm hoặc cần nhắc thêm.",
+          "subtitle": "Đọc nhanh nhóm người học nào còn đang chậm hoặc cần nhắc thêm.",
           "loading": "Đang cập nhật tình hình nộp bài của lớp này.",
-          "note": "Danh sách chi tiết học viên và thao tác chấm bài được giữ ở màn quản lý bài nộp."
+          "note": "Danh sách chi tiết người học và thao tác chấm bài được giữ ở màn quản lý bài nộp."
         },
         "assignmentCoverage": {
           "title": "Nhìn chung các bài tập đang ra sao",
-          "subtitle": "So sánh nhanh bài nào đã được phản hồi tốt và bài nào còn nhiều học viên chưa theo kịp."
+          "subtitle": "So sánh nhanh bài nào đã được phản hồi tốt và bài nào còn nhiều người học chưa theo kịp."
         },
         "assignmentTable": {
-          "title": "Danh sách học viên theo bài tập",
-          "subtitle": "Bảng này giúp giáo viên xem từng học viên đã nộp hay chưa và đã được nhận xét chưa."
+          "title": "Danh sách người học theo bài tập",
+          "subtitle": "Bảng này giúp giáo viên xem từng người học đã nộp hay chưa và đã được nhận xét chưa."
         },
         "quizDistribution": {
           "title": "Phân bố điểm của bài quiz đang xem",
@@ -1958,23 +1959,23 @@
         },
         "quizPassRate": {
           "title": "Mức độ đạt của từng bài quiz",
-          "subtitle": "So sánh nhanh bài nào học viên đang gặp khó nhiều hơn."
+          "subtitle": "So sánh nhanh bài nào người học đang gặp khó nhiều hơn."
         },
         "quizAttempts": {
           "title": "Danh sách lượt làm gần đây",
-          "subtitle": "Xem nhanh học viên nào đã làm, kết quả ra sao và mở bài để xem kỹ khi cần."
+          "subtitle": "Xem nhanh người học nào đã làm, kết quả ra sao và mở bài để xem kỹ khi cần."
         },
         "quizParticipation": {
           "title": "Ai đã làm bài quiz này",
-          "subtitle": "Theo dõi nhanh học viên đã làm, chưa làm và nhóm cần mở bài ra xem thêm."
+          "subtitle": "Theo dõi nhanh người học đã làm, chưa làm và nhóm cần mở bài ra xem thêm."
         },
         "progressStudents": {
-          "title": "Tiến độ học viên",
-          "subtitle": "Theo dõi tiến độ, bài còn thiếu và điểm gần nhất của từng học viên."
+          "title": "Tiến độ người học",
+          "subtitle": "Theo dõi tiến độ, bài còn thiếu và điểm gần nhất của từng người học."
         },
         "progressThresholds": {
           "title": "Điều chỉnh mốc theo dõi",
-          "subtitle": "Bạn có thể đổi mốc để nhóm học viên sát hơn với cách theo dõi của mình."
+          "subtitle": "Bạn có thể đổi mốc để nhóm người học sát hơn với cách theo dõi của mình."
         },
         "emptyState": {
           "title": "Báo cáo theo lớp",
@@ -1982,10 +1983,10 @@
         }
       },
       "assignmentMetrics": {
-        "totalStudents": "Số học viên trong lớp",
-        "totalStudentsHint": "Tổng số học viên được theo dõi ở bài này",
+        "totalStudents": "Số người học trong lớp",
+        "totalStudentsHint": "Tổng số người học được theo dõi ở bài này",
         "submitted": "Đã nộp bài",
-        "submittedHint": "Số học viên đã có bài nộp",
+        "submittedHint": "Số người học đã có bài nộp",
         "waitingFeedback": "Đang chờ nhận xét",
         "waitingFeedbackHint": "Những bài giáo viên chưa phản hồi xong",
         "graded": "Đã nhận xét",
@@ -2013,7 +2014,7 @@
       },
       "quizSummary": {
         "bestResults": "Kết quả đang tính",
-        "passed": "Học viên đã đạt",
+        "passed": "Người học đã đạt",
         "waitingReview": "Bài cần xem thêm"
       },
       "quizParticipationSummary": {
@@ -2053,15 +2054,15 @@
         "quizDistribution": "Chưa có đủ kết quả để vẽ phân bố điểm.",
         "quizPassRate": "Chưa có đủ kết quả để so sánh mức độ đạt.",
         "quizAttempts": "Chưa có lượt làm nào gần đây để hiển thị.",
-        "filteredStudents": "Không có học viên nào khớp với bộ lọc hiện tại.",
-        "quizParticipation": "Chưa có học viên nào khớp với bộ lọc của bài quiz này."
+        "filteredStudents": "Không có người học nào khớp với bộ lọc hiện tại.",
+        "quizParticipation": "Chưa có người học nào khớp với bộ lọc của bài quiz này."
       }
     },
     "teacher": {
       "hero": {
         "badge": "Báo cáo lớp",
         "title": "Báo cáo theo lớp học",
-        "subtitle": "Theo dõi tiến độ học viên, kết quả bài quiz, bài tập và danh sách chờ của từng lớp bạn đang phụ trách.",
+        "subtitle": "Theo dõi tiến độ người học, kết quả bài quiz, bài tập và danh sách chờ của từng lớp bạn đang phụ trách.",
         "scopeLabel": "Lớp đang xem",
         "scopeValue": "Chọn một lớp để xem chi tiết",
         "sourceLabel": "Nội dung đang theo dõi",
@@ -2078,10 +2079,10 @@
       },
       "modals": {
         "approve": {
-          "content": "Duyệt học viên \"{{name}}\" vào lớp hiện tại?"
+          "content": "Duyệt người học \"{{name}}\" vào lớp hiện tại?"
         },
         "reject": {
-          "content": "Từ chối học viên \"{{name}}\" khỏi danh sách chờ?"
+          "content": "Từ chối người học \"{{name}}\" khỏi danh sách chờ?"
         }
       }
     },
@@ -2089,7 +2090,7 @@
       "hero": {
         "badge": "Tổng hợp lớp",
         "title": "Báo cáo quản lý lớp học",
-        "subtitle": "Xem nhanh bức tranh chung, rồi chọn từng lớp để theo dõi tiến độ học viên, bài quiz, bài tập và danh sách chờ.",
+        "subtitle": "Xem nhanh bức tranh chung, rồi chọn từng lớp để theo dõi tiến độ người học, bài quiz, bài tập và danh sách chờ.",
         "scopeLabel": "Số lớp đang xem",
         "scopeValue": "{{count}} lớp",
         "modeLabel": "Cách xem",
@@ -2112,7 +2113,7 @@
         "subjects": "Môn học",
         "subjectsHint": "Những môn đang có lớp hoạt động",
         "pendingEnrollments": "Yêu cầu tham gia chờ duyệt",
-        "pendingEnrollmentsHint": "Tổng số học viên đang chờ được vào lớp"
+        "pendingEnrollmentsHint": "Tổng số người học đang chờ được vào lớp"
       },
       "sections": {
         "statusDistribution": {
@@ -2132,23 +2133,23 @@
         },
         "topClasses": {
           "title": "Lớp có quy mô lớn",
-          "subtitle": "Ưu tiên theo dõi những lớp đang có đông học viên hơn.",
+          "subtitle": "Ưu tiên theo dõi những lớp đang có đông người học hơn.",
           "empty": "Chưa có lớp nào để xếp hạng.",
-          "students": "{{count}} học viên",
+          "students": "{{count}} người học",
           "assistants": "{{count}} trợ giảng"
         }
       },
       "charts": {
         "statusCenter": "Tổng số lớp",
-        "teacherLoadValue": "{{classes}} lớp · {{students}} học viên",
+        "teacherLoadValue": "{{classes}} lớp · {{students}} người học",
         "subjectLoadValue": "{{count}} lớp"
       },
       "modals": {
         "approve": {
-          "content": "Duyệt học viên \"{{name}}\" vào lớp này?"
+          "content": "Duyệt người học \"{{name}}\" vào lớp này?"
         },
         "reject": {
-          "content": "Từ chối học viên \"{{name}}\" khỏi lớp này?"
+          "content": "Từ chối người học \"{{name}}\" khỏi lớp này?"
         }
       }
     }
@@ -2245,7 +2246,7 @@
         "statusPlaceholder": "Lọc theo trạng thái"
       },
       "labels": {
-        "students": "Học viên",
+        "students": "Người học",
         "schedule": "Thời gian",
         "noSchedule": "Chưa có lịch học"
       },
@@ -2321,16 +2322,16 @@
       }
     },
     "students": {
-      "title": "Học viên",
-      "subtitle": "Theo dõi yêu cầu tham gia, học viên đã duyệt và thao tác quản lý theo từng lớp học.",
-      "empty": "Không có học viên phù hợp",
+      "title": "Người học",
+      "subtitle": "Theo dõi yêu cầu tham gia, người học đã duyệt và thao tác quản lý theo từng lớp học.",
+      "empty": "Không có người học phù hợp",
       "filters": {
-        "searchPlaceholder": "Tìm theo tên, username, email hoặc mã học viên...",
+        "searchPlaceholder": "Tìm theo tên, username, email hoặc mã người học...",
         "classPlaceholder": "Lọc theo lớp học",
         "statusPlaceholder": "Lọc theo trạng thái"
       },
       "columns": {
-        "student": "Học viên",
+        "student": "Người học",
         "classSection": "Lớp học",
         "status": "Trạng thái",
         "enrolledAt": "Ngày tham gia",
@@ -2342,27 +2343,27 @@
         "rejected": "Bị từ chối"
       },
       "actions": {
-        "add": "Thêm học viên",
+        "add": "Thêm người học",
         "approve": "Duyệt",
         "reject": "Từ chối",
-        "deleteSelected": "Xóa {{count}} học viên"
+        "deleteSelected": "Xóa {{count}} người học"
       },
       "confirm": {
-        "approveTitle": "Duyệt học viên?",
+        "approveTitle": "Duyệt người học?",
         "approveDescription": "Cho phép {{name}} tham gia lớp học này.",
         "rejectTitle": "Từ chối yêu cầu?",
         "rejectDescription": "Từ chối yêu cầu tham gia của {{name}}.",
-        "deleteTitle": "Xóa học viên?",
-        "deleteDescription": "Xóa {{count}} học viên khỏi lớp học đã chọn."
+        "deleteTitle": "Xóa người học?",
+        "deleteDescription": "Xóa {{count}} người học khỏi lớp học đã chọn."
       },
       "messages": {
-        "loadFailed": "Không thể tải danh sách học viên",
-        "approveSuccess": "Đã duyệt học viên",
-        "approveFailed": "Không thể duyệt học viên",
+        "loadFailed": "Không thể tải danh sách người học",
+        "approveSuccess": "Đã duyệt người học",
+        "approveFailed": "Không thể duyệt người học",
         "rejectSuccess": "Đã từ chối yêu cầu",
         "rejectFailed": "Không thể từ chối yêu cầu",
-        "deleteSuccess": "Đã xóa học viên",
-        "deleteFailed": "Không thể xóa học viên"
+        "deleteSuccess": "Đã xóa người học",
+        "deleteFailed": "Không thể xóa người học"
       }
     }
   },
@@ -2370,7 +2371,7 @@
     "header": {
       "eyebrow": "Tổng quan giảng dạy",
       "title": "Hôm nay bạn cần ưu tiên gì?",
-      "subtitle": "Theo dõi lớp đang phụ trách, việc cần chấm và những học viên cần bạn nhắc thêm trong cùng một màn hình.",
+      "subtitle": "Theo dõi lớp đang phụ trách, việc cần chấm và những người học cần bạn nhắc thêm trong cùng một màn hình.",
       "scopeLabel": "Bạn đang xem",
       "focusLabel": "Việc cần xử lý",
       "focusValue": "{{submissions}} bài cần chấm, {{quizzes}} bài quiz cần xem"
@@ -2381,10 +2382,10 @@
     },
     "stats": {
       "classes": "Lớp đang phụ trách",
-      "students": "Học viên đang theo học",
+      "students": "Người học đang theo học",
       "pendingSubmissions": "Bài cần chấm",
       "pendingQuizReviews": "Bài quiz cần xem",
-      "atRiskStudents": "Học viên cần nhắc thêm"
+      "atRiskStudents": "Người học cần nhắc thêm"
     },
     "reviewQueue": {
       "title": "Việc cần xử lý trước",
@@ -2403,7 +2404,7 @@
       "subtitle": "Chọn nhanh một lớp để xem sát hơn tình hình học tập.",
       "action": "Xem danh sách lớp",
       "allClassesHint": "Gộp chung tình hình của tất cả lớp bạn đang phụ trách.",
-      "students": "{{count}} học viên",
+      "students": "{{count}} người học",
       "assistants": "{{count}} trợ giảng"
     },
     "upcoming": {
@@ -2417,14 +2418,14 @@
       "feedbackSent": "Đã nhận xét"
     },
     "students": {
-      "title": "Học viên cần bạn quan tâm thêm",
-      "subtitleAllClasses": "Chọn một lớp để xem rõ những học viên đang cần bạn nhắc hoặc theo sát hơn.",
+      "title": "Người học cần bạn quan tâm thêm",
+      "subtitleAllClasses": "Chọn một lớp để xem rõ những người học đang cần bạn nhắc hoặc theo sát hơn.",
       "subtitleForClass": "Danh sách ưu tiên trong lớp {{classTitle}}.",
       "selectClassPrompt": "Hãy chọn một lớp ở phía trên để xem danh sách này.",
-      "empty": "Hiện chưa có học viên nào cần bạn theo sát thêm ở lớp này.",
+      "empty": "Hiện chưa có người học nào cần bạn theo sát thêm ở lớp này.",
       "openClass": "Mở lớp",
       "columns": {
-        "student": "Học viên",
+        "student": "Người học",
         "progress": "Tiến độ",
         "missingAssignments": "Bài chưa nộp",
         "pendingReviews": "Bài đang chờ nhận xét",
@@ -2433,11 +2434,11 @@
       },
       "defaults": {
         "noName": "Chưa có tên",
-        "noStudentNumber": "Chưa có mã học viên",
+        "noStudentNumber": "Chưa có mã người học",
         "scoreFallback": "-"
       },
       "pagination": {
-        "total": "{{count}} học viên cần quan tâm",
+        "total": "{{count}} người học cần quan tâm",
         "pageSize": "Số dòng",
         "range": "{{start}} - {{end}}"
       }
@@ -2462,8 +2463,8 @@
       "eyebrow": "Tổng quan quản lý",
       "title": "Tình hình lớp học và đội ngũ hôm nay",
       "subtitle": "Theo dõi lớp đang mở, giáo viên, trợ giảng và những việc còn chờ xử lý trên cùng một màn hình.",
-      "studentsLabel": "Học viên đang theo học",
-      "studentsValue": "{{count}} học viên",
+      "studentsLabel": "Người học đang theo học",
+      "studentsValue": "{{count}} người học",
       "subjectsLabel": "Môn học đang có lớp",
       "subjectsValue": "{{count}} môn học",
       "pendingLabel": "Yêu cầu mới",
@@ -2482,9 +2483,9 @@
     },
     "classAccess": {
       "open": "Lớp mở tham gia ngay",
-      "openHint": "Học viên có thể vào lớp ngay từ danh sách.",
+      "openHint": "Người học có thể vào lớp ngay từ danh sách.",
       "approval": "Lớp cần duyệt trước khi vào",
-      "approvalHint": "Học viên cần chờ giáo viên duyệt tham gia.",
+      "approvalHint": "Người học cần chờ giáo viên duyệt tham gia.",
       "archived": "Lớp đã lưu lại",
       "archivedHint": "Giữ để tra cứu, không còn vận hành hằng ngày."
     },
@@ -2504,18 +2505,18 @@
       "subtitle": "Tóm tắt nhanh những việc quản lý nên để mắt trước.",
       "pendingRequests": "Yêu cầu tham gia mới",
       "pendingRequestsHint": "Hiện có {{count}} yêu cầu tham gia lớp đang chờ duyệt.",
-      "waitingFeedback": "Bài học viên đang chờ giáo viên phản hồi",
+      "waitingFeedback": "Bài người học đang chờ giáo viên phản hồi",
       "waitingFeedbackHint": "Hiện còn {{count}} bài cần giáo viên mở ra xem hoặc nhận xét.",
       "assistants": "Trợ giảng đang hỗ trợ lớp",
       "assistantsHint": "Hiện có {{count}} trợ giảng đang tham gia hỗ trợ các lớp."
     },
     "topClasses": {
-      "title": "Những lớp đang đông học viên",
-      "subtitle": "Ưu tiên theo dõi các lớp có đông học viên để kịp hỗ trợ đội ngũ.",
+      "title": "Những lớp đang đông người học",
+      "subtitle": "Ưu tiên theo dõi các lớp có đông người học để kịp hỗ trợ đội ngũ.",
       "action": "Mở trang lớp học",
       "empty": "Chưa có lớp nào để hiển thị.",
-      "studentsLabel": "Số học viên",
-      "studentsValue": "{{count}} học viên",
+      "studentsLabel": "Số người học",
+      "studentsValue": "{{count}} người học",
       "assistantsLabel": "Số trợ giảng",
       "assistantsValue": "{{count}} trợ giảng"
     },
@@ -2525,8 +2526,8 @@
       "empty": "Chưa có dữ liệu giáo viên phụ trách lớp.",
       "classesLabel": "Số lớp",
       "classesValue": "{{count}} lớp",
-      "studentsLabel": "Tổng học viên",
-      "studentsValue": "{{count}} học viên"
+      "studentsLabel": "Tổng người học",
+      "studentsValue": "{{count}} người học"
     },
     "assistants": {
       "title": "Trợ giảng đang hỗ trợ lớp nào",
@@ -2536,7 +2537,7 @@
       "moreClasses": "+{{count}} lớp khác"
     },
     "reviewQueue": {
-      "title": "Bài học viên đang chờ mở ra xem",
+      "title": "Bài người học đang chờ mở ra xem",
       "subtitle": "Danh sách ngắn để quản lý nhìn nhanh lớp nào còn đang dồn việc cho giáo viên.",
       "action": "Mở trang bài tập",
       "empty": "Hiện chưa có bài nào đang chờ xử lý.",
@@ -2576,7 +2577,7 @@
     "password": "Đổi mật khẩu",
     "settings": "Cài đặt",
     "media": "Media",
-    "students": "Học viên",
+    "students": "Người học",
     "announcements": "Thông báo lớp",
     "quizAttempts": "Lượt làm quiz",
     "reports": "Báo cáo",
@@ -2585,7 +2586,7 @@
     "subjects": "Môn học",
     "overview": "Tổng quan",
     "content": "Nội dung",
-    "people": "Học viên",
+    "people": "Người học",
     "review": "Chấm bài",
     "progress": "Tiến độ",
     "submissions": "Bài nộp",

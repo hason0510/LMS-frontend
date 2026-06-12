@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, Descriptions, Avatar, Typography } from "antd";
 import { UserOutlined, MailOutlined, PhoneOutlined, IdcardOutlined, HomeOutlined, CalendarOutlined } from "@ant-design/icons";
+import { getUserSecondaryText } from "../../utils/userIdentity";
 
 const { Text } = Typography;
 
@@ -9,7 +10,7 @@ export default function StudentDetailModal({ visible, onClose, student }) {
 
   return (
     <Modal
-      title="Thông tin chi tiết học viên"
+      title="Thông tin chi tiết người học"
       open={visible}
       onCancel={onClose}
       footer={null}
@@ -27,12 +28,12 @@ export default function StudentDetailModal({ visible, onClose, student }) {
           {student.fullName || student.name}
         </h2>
         <Text type="secondary" className="text-lg">
-          @{student.userName || student.username}
+          {getUserSecondaryText(student, "student") || "Chưa cập nhật"}
         </Text>
       </div>
 
       <Descriptions bordered column={1} size="middle" className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-        <Descriptions.Item label={<span className="flex items-center gap-2"><IdcardOutlined /> Mã số học viên</span>}>
+        <Descriptions.Item label={<span className="flex items-center gap-2"><IdcardOutlined /> Mã số người học</span>}>
           <Text strong>{student.studentNumber || "Chưa cập nhật"}</Text>
         </Descriptions.Item>
         

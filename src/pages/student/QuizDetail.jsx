@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Spin, message, Modal } from "antd";
 import Header from "../../components/layout/Header";
 import { getQuizById, getStudentAttemptsHistory } from "../../api/quiz";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
 export default function QuizDetail() {
@@ -94,10 +93,6 @@ export default function QuizDetail() {
     setShowConfirmModal(false);
   };
 
-  const handleBackClick = () => {
-    navigate(-1);
-  };
-
   // Get quiz statistics
   const totalQuestions = quiz.questionCount ?? (quiz.questions?.length || 0);
   const timeLimitMinutes = quiz.timeLimitMinutes || 0;
@@ -117,15 +112,6 @@ export default function QuizDetail() {
               quizTitle: quiz?.title,
             }}
           />
-          <button
-              onClick={() => navigate(`/class-sections/${classSectionId}`)}
-              className="flex items-center gap-2 mb-3 text-primary hover:text-primary/80 transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5" />
-              <span className="font-medium">
-                Quay lại khóa học
-              </span>
-            </button>
 
           {/* Page Heading */}
           <div className="flex flex-col md:flex-row gap-4 mb-8 justify-between items-start md:items-end">

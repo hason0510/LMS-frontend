@@ -62,7 +62,7 @@ export default function TeachingQuizContentAttempts() {
 
   const columns = [
     {
-      title: "Học viên",
+      title: "Người học",
       dataIndex: "studentName",
       render: (_, record) => (
         <div>

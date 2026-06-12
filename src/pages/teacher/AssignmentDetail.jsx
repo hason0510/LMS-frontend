@@ -302,51 +302,45 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
 
   const content = (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
-            <AppBreadcrumb
-              className="mb-1"
-              context={{
-                classTitle: course?.title,
-                assignmentTitle,
-              }}
-            />
-            <button
-              onClick={() => navigate(`${basePath}/class-sections/${classSectionId}`)}
-              className="text-primary text-sm font-medium hover:underline"
-            >
-              Quay lại lớp: {course?.title}
-            </button>
+      <AppBreadcrumb
+        className="mb-1"
+        context={{
+          classTitle: course?.title,
+          assignmentTitle,
+        }}
+      />
 
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-              <div className="flex items-center justify-between gap-3 mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {isEditMode ? "Chỉnh sửa Assignment" : "Tạo Assignment"}
-                </h1>
-                {isEditMode && (
-                  <div className="flex items-center gap-2">
-                    {!isAdmin && !teachingMode && classSectionId && assignmentId && (
-                      <Button
-                        onClick={() =>
-                          navigate(`/teacher/class-sections/${classSectionId}/assignments/${assignmentId}/preview`)
-                        }
-                        className="flex items-center gap-1.5 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
-                        icon={<EyeIcon className="h-4 w-4" />}
-                      >
-                        Xem như học viên
-                      </Button>
-                    )}
-                    <Button
-                      onClick={() =>
-                        navigate(`${basePath}/class-sections/${classSectionId}/assignments/${assignmentId}/submissions`)
-                      }
-                    >
-                      Xem Bài Nộp
-                    </Button>
-                  </div>
-                )}
-              </div>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            {isEditMode ? "Chỉnh sửa Assignment" : "Tạo Assignment"}
+          </h1>
+          {isEditMode && (
+            <div className="flex items-center gap-2">
+              {!isAdmin && !teachingMode && classSectionId && assignmentId && (
+                <Button
+                  onClick={() =>
+                    navigate(`/teacher/class-sections/${classSectionId}/assignments/${assignmentId}/preview`)
+                  }
+                  className="flex items-center gap-1.5 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
+                  icon={<EyeIcon className="h-4 w-4" />}
+                >
+                  Xem như người học
+                </Button>
+              )}
+              <Button
+                onClick={() =>
+                  navigate(`${basePath}/class-sections/${classSectionId}/assignments/${assignmentId}/submissions`)
+                }
+              >
+                Xem Bài Nộp
+              </Button>
+            </div>
+          )}
+        </div>
 
-              <Form form={form} layout="vertical" onFinish={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Form.Item
                     label="Tiêu đề"
                     name="title"

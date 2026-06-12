@@ -35,13 +35,7 @@ const useUserStore = create(
       name: "user-store", // localStorage key
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.setLoading(false);
-        }
-      },
     }
   )
 );

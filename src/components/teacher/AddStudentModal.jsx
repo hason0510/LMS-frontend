@@ -44,7 +44,7 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
       setTotalStudents(totalElements);
     } catch (err) {
       console.error("Failed to fetch available students:", err);
-      message.error("Không thể tải danh sách học viên");
+      message.error("Không thể tải danh sách người học");
     } finally {
       setLoading(false);
     }
@@ -82,14 +82,14 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
     }
 
     if (selectedStudents.length === 0) {
-      message.error("Vui lòng chọn ít nhất một học viên");
+      message.error("Vui lòng chọn ít nhất một người học");
       return;
     }
 
     try {
       setLoading(true);
       await addStudentsToClassSection(selectedCourse, selectedStudents);
-      message.success(`Đã thêm ${selectedStudents.length} học viên vào khóa học`);
+      message.success(`Đã thêm ${selectedStudents.length} người học vào khóa học`);
       
       // Reset form
       form.resetFields();
@@ -104,7 +104,7 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
       }
     } catch (err) {
       console.log("Failed to add students:", err);
-      message.error(err.message || "Thêm học viên thất bại");
+      message.error(err.message || "Thêm người học thất bại");
     } finally {
       setLoading(false);
     }
@@ -167,7 +167,7 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
 
   return (
     <Modal
-      title="Thêm học viên vào khóa học"
+      title="Thêm người học vào khóa học"
       open={visible}
       onCancel={handleCancel}
       width={900}
@@ -210,7 +210,7 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
 
           {/* Search Students */}
           {selectedCourse && (
-            <Form.Item label="Tìm kiếm học viên">
+            <Form.Item label="Tìm kiếm người học">
               <Input
                 placeholder="Tìm kiếm theo tên..."
                 prefix={<SearchOutlined />}
@@ -228,7 +228,7 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
             <Form.Item>
               {selectedStudents.length > 0 && (
                 <Alert
-                  message={`Đã chọn ${selectedStudents.length} học viên`}
+                  message={`Đã chọn ${selectedStudents.length} người học`}
                   type="info"
                   style={{ marginBottom: "16px" }}
                   showIcon

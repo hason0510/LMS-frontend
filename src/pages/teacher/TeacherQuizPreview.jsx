@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Spin, Modal } from "antd";
-import { ArrowLeftIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -101,15 +101,8 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              Chế độ xem trước — Đây là giao diện học viên thấy khi truy cập bài kiểm tra này
+              Chế độ xem trước — Đây là giao diện người học thấy khi truy cập bài kiểm tra này
             </div>
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
-            >
-              <ArrowLeftIcon className="h-3.5 w-3.5" />
-              Quay lại chỉnh sửa
-            </button>
           </div>
 
           <div className="max-w-[1024px] mx-auto px-4 md:px-10 py-8">
@@ -128,7 +121,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                   {quiz.title || "Bài kiểm tra"}
                 </h1>
                 <p className="text-[#617589] dark:text-gray-400 text-lg font-normal leading-normal max-w-3xl">
-                  {quiz.description || "Bài kiểm tra này đánh giá kiến thức của học viên."}
+                  {quiz.description || "Bài kiểm tra này đánh giá kiến thức của người học."}
                 </p>
               </div>
               <button
@@ -225,7 +218,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
         <div className="space-y-3 py-2">
           <p>Bạn sắp bắt đầu xem trước bài kiểm tra <strong>{quiz?.title}</strong> ở chế độ giáo viên.</p>
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-sm text-amber-700 dark:text-amber-400">
-            Kết quả không được ghi nhận vào hệ thống. Đây chỉ là mô phỏng giao diện học viên.
+            Kết quả không được ghi nhận vào hệ thống. Đây chỉ là mô phỏng giao diện người học.
           </div>
         </div>
       </Modal>
