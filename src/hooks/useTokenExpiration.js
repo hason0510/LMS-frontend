@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { refreshToken } from '../api/auth';
+import { refreshAccessToken } from '../api/axiosClient';
 import { useAuth } from '../contexts/AuthContext';
 import useUserStore from '../store/useUserStore';
 
@@ -41,15 +41,13 @@ export function useTokenExpiration() {
     const delayMs = Math.max(0, expiresAtMs - Date.now() - REFRESH_LEEWAY_MS);
     let cancelled = false;
 
-    const refreshAccessToken = async () => {
+    const refreshTokenBeforeExpiry = async () => {
       try {
-        const response = await refreshToken();
-        const payload = response?.data ?? response;
+        const payload = await refreshAccessToken();
         const newAccessToken = payload?.accessToken;
         if (!newAccessToken) {
           throw new Error("Missing access token in refresh response");
         }
-        useUserStore.getState().setAccessToken(newAccessToken);
       } catch (error) {
         if (cancelled) return;
         await logout({ remote: false });
@@ -58,7 +56,7 @@ export function useTokenExpiration() {
     };
 
     const timeoutId = window.setTimeout(() => {
-      void refreshAccessToken();
+      void refreshTokenBeforeExpiry();
     }, delayMs);
 
     return () => {

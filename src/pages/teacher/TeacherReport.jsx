@@ -4,6 +4,7 @@ import { Alert, App, Button, Spin } from "antd";
 import { CheckOutlined, CloseOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import {
+  AcademicCapIcon,
   ChartBarIcon,
   DocumentChartBarIcon,
   PresentationChartLineIcon,
@@ -21,6 +22,12 @@ import {
   getClassSectionPendingRequests,
 } from "../../api/statistics";
 import { collectAllPagedItems, unwrapApiData, unwrapPageItems } from "../../utils/reporting";
+
+const REPORT_POLL_INTERVAL_MS = 30_000;
+
+function getTeachingAssistantCount(classSection) {
+  return (classSection?.teachingMembers || []).filter((member) => member.role === "TA").length;
+}
 
 export default function TeacherReport() {
   const { message: messageApi, modal: modalApi } = App.useApp();
@@ -56,6 +63,21 @@ export default function TeacherReport() {
       return;
     }
     loadReportData(selectedClassSectionId);
+  }, [selectedClassSectionId]);
+
+  useEffect(() => {
+    if (!selectedClassSectionId) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      loadReportData(selectedClassSectionId);
+    }, REPORT_POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
   }, [selectedClassSectionId]);
 
   const updateSearchState = (classSectionId, tab = activeTab) => {
@@ -176,36 +198,43 @@ export default function TeacherReport() {
             sidebarCollapsed ? "pl-20" : "pl-64"
           }`}
         >
-          <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-7xl !px-4 !py-6 sm:!px-6 lg:!px-7">
             <AppBreadcrumb className="mb-5" />
 
-            <section className="overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#0f766e_0%,#1d4ed8_100%)] p-6 text-white shadow-xl sm:p-8">
-              <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <section className="overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#0f766e_0%,#1d4ed8_100%)] !p-5 text-white shadow-xl sm:!p-7">
+              <div className="flex flex-col !gap-5 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-white/80">
-                  <DocumentChartBarIcon className="h-4 w-4" />
-                  {t("reportsPage.teacher.hero.badge")}
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-white/80">
+                    <DocumentChartBarIcon className="h-4 w-4" />
+                    {t("reportsPage.teacher.hero.badge")}
+                  </div>
+                  <h1 className="!m-0 !mt-4 text-3xl font-black tracking-tight sm:text-4xl">
+                    {t("reportsPage.teacher.hero.title")}
+                  </h1>
+                  <p className="!m-0 !mt-3 max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
+                    {t("reportsPage.teacher.hero.subtitle")}
+                  </p>
                 </div>
-                <h1 className="m-0 mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-                  {t("reportsPage.teacher.hero.title")}
-                </h1>
-                <p className="m-0 mt-3 max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
-                  {t("reportsPage.teacher.hero.subtitle")}
-                </p>
-              </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <HeroInsight
-                  icon={<ChartBarIcon className="h-5 w-5" />}
-                  label={t("reportsPage.teacher.hero.scopeLabel")}
-                  value={currentClassSection?.title || t("reportsPage.teacher.hero.scopeValue")}
-                />
-                <HeroInsight
-                  icon={<PresentationChartLineIcon className="h-5 w-5" />}
-                  label={t("reportsPage.teacher.hero.sourceLabel")}
-                  value={t("reportsPage.teacher.hero.sourceValue")}
-                />
-              </div>
+                <div className="grid grid-cols-1 !gap-3 sm:grid-cols-3">
+                  <HeroInsight
+                    icon={<ChartBarIcon className="h-5 w-5" />}
+                    label={t("reportsPage.teacher.hero.scopeLabel")}
+                    value={currentClassSection?.title || t("reportsPage.teacher.hero.scopeValue")}
+                  />
+                  <HeroInsight
+                    icon={<AcademicCapIcon className="h-5 w-5" />}
+                    label={t("reportsPage.teacher.hero.assistantsLabel")}
+                    value={t("reportsPage.teacher.hero.assistantsValue", {
+                      count: getTeachingAssistantCount(currentClassSection),
+                    })}
+                  />
+                  <HeroInsight
+                    icon={<PresentationChartLineIcon className="h-5 w-5" />}
+                    label={t("reportsPage.teacher.hero.sourceLabel")}
+                    value={t("reportsPage.teacher.hero.sourceValue")}
+                  />
+                </div>
             </div>
           </section>
 
@@ -260,12 +289,12 @@ export default function TeacherReport() {
 
 function HeroInsight({ icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-      <div className="flex items-center gap-2 text-white/80">
+    <div className="!rounded-2xl border border-white/15 bg-white/10 !p-4 backdrop-blur-sm">
+      <div className="flex items-center !gap-2 text-white/80">
         {icon}
         <span className="text-xs font-bold uppercase tracking-[0.18em]">{label}</span>
       </div>
-      <p className="m-0 mt-3 text-lg font-black text-white">{value}</p>
+      <p className="!m-0 !mt-3 text-lg font-black text-white">{value}</p>
     </div>
   );
 }

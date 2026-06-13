@@ -265,7 +265,7 @@ export default function AdminUserManagement() {
             </button>
           </div>
 
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden flex flex-col shadow-sm mb-8">
+          <div className="app-table-shell mb-8 flex flex-col">
             {/* Filters Section */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -332,7 +332,7 @@ export default function AdminUserManagement() {
 
             {/* Users Table */}
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+              <table className="app-native-table">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="py-3.5 pl-4 pr-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 w-12" scope="col">
@@ -353,7 +353,7 @@ export default function AdminUserManagement() {
                     <th className="px-3 py-3.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
                       NGÀY TẠO
                     </th>
-                    <th className="relative py-3.5 pl-3 pr-4 text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
+                    <th className="px-3 py-3.5 !text-center text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
                       HÀNH ĐỘNG
                     </th>
                   </tr>
@@ -410,7 +410,7 @@ export default function AdminUserManagement() {
                         <td className="whitespace-nowrap px-3 py-4 text-gray-500 dark:text-gray-400">
                           {user.createdDate}
                         </td>
-                        <td className="whitespace-nowrap py-4 pl-3 pr-4">
+                        <td className="whitespace-nowrap px-3 py-4">
                           <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
                             <button 
                               className="p-1 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" 

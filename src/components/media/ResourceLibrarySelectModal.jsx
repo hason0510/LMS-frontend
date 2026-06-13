@@ -3,6 +3,7 @@ import { Button, Input, Modal, Select, Spin, message } from "antd";
 import { useTranslation } from "react-i18next";
 import { getResourcePage } from "../../api/resource";
 import ResourceRenderer from "./ResourceRenderer";
+import { getDisplayFileType } from "../../utils/fileUtils";
 
 const PAGE_SIZE = 24;
 const ALL_TYPES = ["IMAGE", "VIDEO", "AUDIO", "PDF", "FILE", "LINK"];
@@ -140,7 +141,7 @@ export default function ResourceLibrarySelectModal({
                   {resource.title || t("mediaManager.untitled")}
                 </div>
                 <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span>{t(`mediaManager.types.${resource.type || "FILE"}`)}</span>
+                  <span>{getDisplayFileType(resource)}</span>
                   {resource.fileSize ? <span>{formatBytes(resource.fileSize)}</span> : null}
                 </div>
               </button>

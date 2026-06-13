@@ -2,6 +2,7 @@ import React from "react";
 import { Button, Grid, Input, Modal, Spin, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import ResourceRenderer from "./ResourceRenderer";
+import { getDisplayFileType } from "../../utils/fileUtils";
 
 function DetailSection({ title, children }) {
   return (
@@ -69,6 +70,7 @@ export default function MediaDetailModal({
   const sourceValue = formatSourceLabel(resource.source);
   const createdDate = resource.createdDate ? new Date(resource.createdDate).toLocaleDateString(locale) : "-";
   const lastUsedAt = resource.lastUsedAt ? new Date(resource.lastUsedAt).toLocaleString(locale) : "-";
+  const displayFileType = getDisplayFileType(resource);
 
   return (
     <Modal
@@ -86,7 +88,7 @@ export default function MediaDetailModal({
     >
       <div className="max-h-[calc(90vh-120px)] overflow-y-auto pr-1">
         <div className="mb-4 flex flex-wrap gap-2">
-          <Tag>{typeLabels[resource.type] || resource.type || "-"}</Tag>
+          <Tag>{displayFileType}</Tag>
           <Tag color="blue">{scopeDisplay}</Tag>
           <Tag color={visibilityTagColors[resource.visibility] || "default"}>{visibilityValue}</Tag>
           <Tag color={statusTagColors[resource.status] || "default"}>
@@ -101,7 +103,7 @@ export default function MediaDetailModal({
             </section>
 
             <DetailSection title={t("mediaManager.sections.content")}>
-              <div className="space-y-4">
+              <div className="flex flex-col gap-4">
                 <Input
                   value={editTitle}
                   onChange={(event) => onEditTitleChange(event.target.value)}
@@ -142,24 +144,14 @@ export default function MediaDetailModal({
           <div className="space-y-4">
             <DetailSection title={t("mediaManager.sections.information")}>
               <div className="grid gap-4 sm:grid-cols-2">
-                <DetailField label={t("mediaManager.fields.type")} value={typeLabels[resource.type] || resource.type || "-"} />
+                <DetailField label={t("mediaManager.fields.type")} value={displayFileType} />
                 <DetailField label={t("mediaManager.fields.size")} value={formatBytes(resource.fileSize)} />
                 <DetailField label={t("mediaManager.fields.source")} value={sourceValue} />
                 <DetailField label={t("mediaManager.fields.createdDate")} value={createdDate} />
                 <DetailField label={t("mediaManager.fields.owner")} value={resource.createdBy || "-"} />
                 <DetailField label={t("mediaManager.fields.lastUsedAt")} value={lastUsedAt} />
-              </div>
-            </DetailSection>
-
-            <DetailSection title={t("mediaManager.sections.scope")}>
-              <div className="grid gap-4 sm:grid-cols-2">
                 <DetailField label={t("mediaManager.fields.scope")} value={scopeDisplay} />
                 <DetailField label={t("mediaManager.fields.scopeTarget")} value={scopeTarget} />
-              </div>
-            </DetailSection>
-
-            <DetailSection title={t("mediaManager.sections.access")}>
-              <div className="grid gap-4 sm:grid-cols-2">
                 <DetailField label={t("mediaManager.fields.visibility")} value={visibilityValue} />
                 <DetailField label={t("mediaManager.fields.status")} value={t(`mediaManager.status.${resource.status || "ACTIVE"}`)} />
               </div>

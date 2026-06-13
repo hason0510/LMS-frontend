@@ -50,24 +50,55 @@ function ChartTooltip({ active, payload, label, labelFormatter, valueFormatter }
   );
 }
 
-export function DonutSummaryChart({ data, totalValue, totalLabel, emptyText, valueFormatter = (value) => value }) {
-  const safeData = Array.isArray(data) ? data.filter((item) => Number(item.value) > 0) : [];
-
-  if (!safeData.length) {
+function ChartPanelState({ emptyText, loading = false, rows = 3 }) {
+  if (loading) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 py-12 dark:border-slate-800">
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyText} />
+      <div className="!rounded-2xl border border-slate-200 bg-slate-50 !p-4 dark:border-slate-800 dark:bg-slate-800/60">
+        <div className="space-y-3">
+          {Array.from({ length: rows }).map((_, index) => (
+            <div key={index} className="animate-pulse rounded-2xl border border-slate-200 bg-white !p-4 dark:border-slate-700 dark:bg-slate-900">
+              <div className="h-4 w-28 rounded-lg bg-slate-200 dark:bg-slate-800" />
+              <div className="!mt-3 h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-800" />
+              <div className="!mt-3 h-4 w-20 rounded-lg bg-slate-100 dark:bg-slate-800/80" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="!rounded-2xl border border-dashed border-slate-200 !py-10 dark:border-slate-800">
+      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyText} />
+    </div>
+  );
+}
+
+export function DonutSummaryChart({
+  data,
+  totalValue,
+  totalLabel,
+  emptyText,
+  valueFormatter = (value) => value,
+  loading = false,
+}) {
+  if (loading) {
+    return <ChartPanelState emptyText={emptyText} loading rows={2} />;
+  }
+
+  const safeData = Array.isArray(data) ? data.filter((item) => Number(item.value) > 0) : [];
+
+  if (!safeData.length) {
+    return <ChartPanelState emptyText={emptyText} />;
+  }
+
+  return (
+    <div className="!space-y-4">
+      <div className="!rounded-2xl border border-slate-200 bg-slate-50 !p-4 dark:border-slate-800 dark:bg-slate-800/60">
+        <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="m-0 text-sm font-medium text-slate-500 dark:text-slate-400">{totalLabel}</p>
-            <p className="m-0 mt-2 text-4xl font-black text-slate-950 dark:text-white">{valueFormatter(totalValue)}</p>
+            <p className="!m-0 text-sm font-medium text-slate-500 dark:text-slate-400">{totalLabel}</p>
+            <p className="!m-0 !mt-2 text-3xl font-black text-slate-950 sm:text-4xl dark:text-white">{valueFormatter(totalValue)}</p>
           </div>
 
           <div className="w-full lg:max-w-[28rem]">
@@ -89,13 +120,13 @@ export function DonutSummaryChart({ data, totalValue, totalLabel, emptyText, val
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 !gap-3 md:grid-cols-3">
         {safeData.map((item) => (
           <div
             key={item.key || item.label}
-            className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/60"
+            className="min-w-0 !rounded-2xl border border-slate-200 bg-slate-50 !px-4 !py-3 dark:border-slate-800 dark:bg-slate-800/60"
           >
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between !gap-4">
               <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="min-w-0 truncate">{item.label}</span>
@@ -104,7 +135,7 @@ export function DonutSummaryChart({ data, totalValue, totalLabel, emptyText, val
                 {Math.round((item.value / totalValue) * 100)}%
               </span>
             </div>
-            <p className="m-0 mt-2 text-2xl font-black text-slate-950 dark:text-white">{valueFormatter(item.value)}</p>
+            <p className="!m-0 !mt-2 text-2xl font-black text-slate-950 dark:text-white">{valueFormatter(item.value)}</p>
           </div>
         ))}
       </div>
@@ -117,40 +148,41 @@ export function StackedStatusBarChart({
   series,
   emptyText,
   valueFormatter = (value) => value,
+  loading = false,
 }) {
+  if (loading) {
+    return <ChartPanelState emptyText={emptyText} loading rows={3} />;
+  }
+
   const safeData = Array.isArray(data) ? data.filter((item) => series.some((entry) => Number(item[entry.key]) > 0)) : [];
 
   if (!safeData.length) {
-    return (
-      <div className="rounded-2xl border border-dashed border-slate-200 py-12 dark:border-slate-800">
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyText} />
-      </div>
-    );
+    return <ChartPanelState emptyText={emptyText} />;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-4">
+    <div className="!space-y-4">
+      <div className="!space-y-4">
         {safeData.map((item) => {
           const total = series.reduce((sum, entry) => sum + (Number(item[entry.key]) || 0), 0);
 
           return (
-            <div key={item.id || item.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
-              <div className="flex items-start justify-between gap-4">
+            <div key={item.id || item.label} className="!rounded-2xl border border-slate-200 bg-slate-50 !p-4 dark:border-slate-800 dark:bg-slate-800/60">
+              <div className="flex items-start justify-between !gap-4">
                 <div className="min-w-0">
-                  <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">{item.label}</p>
+                  <p className="!m-0 text-sm font-bold text-slate-900 dark:text-white">{item.label}</p>
                   {item.totalStudents != null ? (
-                    <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="!m-0 !mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {valueFormatter(item.totalStudents)}
                     </p>
                   ) : null}
                 </div>
-                <p className="m-0 shrink-0 text-sm font-semibold text-slate-500 dark:text-slate-300">
+                <p className="!m-0 shrink-0 text-sm font-semibold text-slate-500 dark:text-slate-300">
                   {valueFormatter(total)}
                 </p>
               </div>
 
-              <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div className="!mt-3 h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                 <div className="flex h-full w-full overflow-hidden rounded-full">
                   {series.map((entry) => {
                     const value = Number(item[entry.key]) || 0;
@@ -160,11 +192,11 @@ export function StackedStatusBarChart({
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="!mt-3 flex flex-wrap !gap-2">
                 {series.map((entry) => (
                   <div
                     key={`${item.id || item.label}-${entry.key}-label`}
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300"
+                    className="inline-flex items-center gap-2 rounded-full bg-white !px-3 !py-1 text-xs text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300"
                   >
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
                     <span>{entry.label}</span>
@@ -191,25 +223,31 @@ export function SingleSeriesBarChart({
   yTickFormatter,
   xTickFormatter,
   barPercentKey,
+  loading = false,
 }) {
+  if (loading) {
+    return <ChartPanelState emptyText={emptyText} loading rows={layout === "vertical" ? 4 : 2} />;
+  }
+
   const safeData = Array.isArray(data) ? data.filter((item) => Number(item[dataKey]) >= 0) : [];
 
   if (!safeData.length) {
-    return (
-      <div className="rounded-2xl border border-dashed border-slate-200 py-12 dark:border-slate-800">
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyText} />
-      </div>
-    );
+    return <ChartPanelState emptyText={emptyText} />;
   }
 
   const isVerticalLayout = layout === "vertical";
-  const chartHeight = 220;
+  const chartHeight = getVerticalChartHeight(safeData.length, {
+    min: 220,
+    max: 340,
+    row: 26,
+    base: 84,
+  });
 
   if (isVerticalLayout) {
     const maxValue = Math.max(...safeData.map((item) => Number(item[dataKey]) || 0), 0);
 
     return (
-      <div className="space-y-4">
+      <div className="!space-y-3">
         {safeData.map((item, index) => {
           const value = Number(item[dataKey]) || 0;
           const width = barPercentKey
@@ -218,19 +256,19 @@ export function SingleSeriesBarChart({
             ? Math.max((value / maxValue) * 100, value > 0 ? 8 : 0)
             : 0;
           return (
-            <div key={`${item[labelKey]}-${index}`} className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
-              <div className="flex items-start justify-between gap-4">
+            <div key={`${item[labelKey]}-${index}`} className="min-w-0 !rounded-2xl border border-slate-200 bg-slate-50 !p-4 dark:border-slate-800 dark:bg-slate-800/60">
+              <div className="flex items-start justify-between !gap-4">
                 <div className="min-w-0">
-                  <p className="m-0 break-words text-sm font-bold leading-5 text-slate-900 dark:text-white">
+                  <p className="!m-0 break-words text-sm font-bold leading-5 text-slate-900 dark:text-white">
                     {truncateLabel(item[labelKey], 56)}
                   </p>
                 </div>
-                <p className="m-0 shrink-0 text-right text-sm font-semibold leading-5 text-slate-500 dark:text-slate-300">
+                <p className="!m-0 shrink-0 text-right text-sm font-semibold leading-5 text-slate-500 dark:text-slate-300">
                   {valueFormatter(value, dataKey, item)}
                 </p>
               </div>
 
-              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div className="!mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${width}%`, backgroundColor: item.color || color }}

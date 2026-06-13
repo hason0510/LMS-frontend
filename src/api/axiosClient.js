@@ -37,20 +37,30 @@ const clearLocalAuthState = () => {
   useUserStore.getState().clearUser();
 };
 
-let isRefreshing = false;
-let failedQueue = [];
+let refreshPromise = null;
 
 const getErrorMessage = (error) => error?.response?.data?.message || error?.message;
 
-const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
+export const refreshAccessToken = () => {
+  if (!refreshPromise) {
+    refreshPromise = axios.put(`${API_BASE}/auth/refresh`, null, { withCredentials: true })
+      .then(({ data }) => {
+        const payload = data?.data ?? data;
+        const newAccessToken = payload?.accessToken;
+
+        if (!newAccessToken) {
+          throw new Error("Missing access token in refresh response");
+        }
+
+        useUserStore.getState().setAccessToken(newAccessToken);
+        return payload;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
 };
 
 // Request Interceptor
@@ -93,51 +103,24 @@ axiosClient.interceptors.response.use(
     const isAuthRequest = isAuthHeaderSkipRequest(requestUrl);
 
     if (error.response?.status === 401 && !isAuthRequest && !originalRequest._retry) {
-      
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return axiosClient(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
 
-      return new Promise((resolve, reject) => {
-        axios.put(`${API_BASE}/auth/refresh`, null, { withCredentials: true })
-          .then(({ data }) => {
-            const payload = data?.data ?? data;
-            const newAccessToken = payload.accessToken;
-            if (!newAccessToken) {
-              throw new Error("Missing access token in refresh response");
-            }
+      try {
+        const payload = await refreshAccessToken();
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${payload.accessToken}`;
+        return axiosClient(originalRequest);
+      } catch (err) {
+        console.error("Session expired, redirecting to login...");
+        clearLocalAuthState();
 
-            useUserStore.getState().setAccessToken(newAccessToken);
+        // Only redirect if NOT on login page to avoid infinite loop
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
 
-            processQueue(null, newAccessToken);
-            resolve(axiosClient(originalRequest));
-          })
-          .catch((err) => {
-            processQueue(err, null);
-            console.error("Session expired, redirecting to login...");
-            clearLocalAuthState();
-            
-            // Only redirect if NOT on login page to avoid infinite loop
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login';
-            }
-            
-            reject(err);
-          })
-          .finally(() => {
-            isRefreshing = false;
-          });
-      });
+        return Promise.reject(err);
+      }
     }
 
     return Promise.reject(error);

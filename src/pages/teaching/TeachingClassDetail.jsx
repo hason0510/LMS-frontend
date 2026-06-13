@@ -263,6 +263,7 @@ export default function TeachingClassDetail() {
         open={staffOpen}
         classSectionId={Number(id)}
         canManageStaff={canManageStaffActions}
+        allowPrimaryTeacherAssignment={false}
         onClose={() => setStaffOpen(false)}
         onChanged={load}
       />
@@ -311,7 +312,7 @@ function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, 
       )}
       <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="mb-3 flex flex-wrap items-center gap-1">
             <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass[status] || statusClass.PRIVATE}`}>
               {t(`teaching.status.${String(status || "private").toLowerCase()}`)}
             </span>
@@ -329,12 +330,12 @@ function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, 
 
         <div className="flex flex-wrap gap-2">
           {canPostAnnouncements && (
-            <Button type="primary" icon={<MegaphoneIcon className="h-4 w-4" />} onClick={onOpenAnnouncement}>
-              {t("teaching.classDetail.announcements.create")}
+            <Button type="primary" onClick={onOpenAnnouncement}>
+              {t("teaching.classDetail.actions.createAnnouncement")}
             </Button>
           )}
           {canManageStaff && (
-            <Button icon={<UserGroupIcon className="h-4 w-4" />} onClick={onOpenStaff}>
+            <Button onClick={onOpenStaff}>
               {t("teaching.classes.staff")}
             </Button>
           )}
@@ -348,16 +349,8 @@ function Overview({
   t,
   course,
   summary,
-  canViewPeople,
-  canReview,
-  canManageAssignments,
-  canReviewQuizzes,
-  canPostAnnouncements,
   canManageStaff,
-  isArchived,
-  onNavigate,
   onOpenStaff,
-  onOpenAnnouncement,
 }) {
   if (!course) return <Empty description={t("teaching.classDetail.noClassData")} />;
 
@@ -370,63 +363,37 @@ function Overview({
         <SummaryTile label={t("teaching.classDetail.stats.atRiskStudents")} value={summary?.atRiskStudents ?? 0} icon={<MegaphoneIcon className="h-5 w-5" />} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-          <h2 className="m-0 text-base font-black text-slate-950 dark:text-white">{t("teaching.classDetail.quickStart")}</h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={() => onNavigate(`/teaching/class-sections/${course.id}/content`)}>
-              {t("teaching.classDetail.tabs.content")}
+      <section className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="m-0 text-base font-black text-slate-950 dark:text-white">{t("teaching.staff.title")}</h2>
+          {canManageStaff && (
+            <Button type="link" onClick={onOpenStaff} className="px-0">
+              {t("teaching.staff.actions.manage")}
             </Button>
-            {canViewPeople && (
-              <Button onClick={() => onNavigate(`/teaching/class-sections/${course.id}/people`)}>
-                {t("teaching.classDetail.tabs.people")}
-              </Button>
-            )}
-            {canReview && (
-              <Button type="primary" onClick={() => onNavigate(`/teaching/class-sections/${course.id}/review`)}>
-                {canManageAssignments && canReviewQuizzes ? "Chấm bài" : canManageAssignments ? "Chấm bài tập" : "Review quiz"}
-              </Button>
-            )}
-            {canPostAnnouncements && (
-              <Button onClick={onOpenAnnouncement}>
-                {t("teaching.classDetail.announcements.create")}
-              </Button>
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="m-0 text-base font-black text-slate-950 dark:text-white">{t("teaching.staff.title")}</h2>
-            {canManageStaff && (
-              <Button type="link" onClick={onOpenStaff} className="px-0">
-                {t("teaching.staff.actions.manage")}
-              </Button>
-            )}
-          </div>
-          <div className="space-y-2">
-            {(course.teachingMembers || []).length ? (
-              course.teachingMembers.map((member) => (
-                <div key={member.userId} className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
-                  <UserIdentity
-                    user={member}
-                    variant="teacher"
-                    avatarSizeClass="size-9"
-                    className="min-w-0 flex-1"
-                    nameClassName="m-0 truncate text-sm font-bold text-slate-900 dark:text-white"
-                    secondaryClassName="m-0 mt-1 truncate text-xs text-slate-500"
-                  />
-                  <span className="shrink-0 text-xs font-semibold text-slate-500">
-                    {member.role === "TEACHER" ? t("teaching.roles.primaryTeacher") : t("teaching.roles.teachingAssistant")}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="m-0 text-sm text-slate-500">{t("teaching.classDetail.archived.noStaffData")}</p>
-            )}
-          </div>
-        </section>
-      </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          {(course.teachingMembers || []).length ? (
+            course.teachingMembers.map((member) => (
+              <div key={member.userId} className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                <UserIdentity
+                  user={member}
+                  variant="teacher"
+                  avatarSizeClass="size-9"
+                  className="min-w-0 flex-1"
+                  nameClassName="m-0 truncate text-sm font-bold text-slate-900 dark:text-white"
+                  secondaryClassName="m-0 mt-1 truncate text-xs text-slate-500"
+                />
+                <span className="shrink-0 text-xs font-semibold text-slate-500">
+                  {member.role === "TEACHER" ? t("teaching.roles.primaryTeacher") : t("teaching.roles.teachingAssistant")}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="m-0 text-sm text-slate-500">{t("teaching.classDetail.archived.noStaffData")}</p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

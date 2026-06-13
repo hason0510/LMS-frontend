@@ -27,8 +27,8 @@ export default function AccountSettings() {
   return (
     <div className="account-settings">
       <div className="flex flex-wrap justify-between items-start gap-4 pb-6 border-b border-black/10 dark:border-white/10">
-        <div className="flex min-w-72 flex-col gap-2">
-          <p className="mb-1 text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
+        <div className="flex min-w-72 flex-col gap-0">
+          <p className="mb-0 text-3xl font-bold tracking-tight text-[#111418] dark:text-white">
             {t("settings.caiDatHeThong")}
           </p>
           <p className="mb-1 text-[#617589] dark:text-gray-400 text-base font-normal leading-normal">

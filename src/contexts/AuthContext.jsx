@@ -2,8 +2,8 @@ import React, { createContext, useContext, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import useUserStore from "../store/useUserStore";
 import { getUserById } from "../api/user";
-import { logout as requestLogout, refreshToken } from "../api/auth";
-import { clearAuthHeader } from "../api/axiosClient";
+import { logout as requestLogout } from "../api/auth";
+import { clearAuthHeader, refreshAccessToken } from "../api/axiosClient";
 
 const AuthContext = createContext();
 
@@ -60,8 +60,7 @@ export function AuthProvider({ children }) {
       setLoading(true);
 
       try {
-        const response = await refreshToken();
-        const payload = response?.data ?? response;
+        const payload = await refreshAccessToken();
         const refreshedAccessToken = payload?.accessToken;
         const refreshedUser = payload?.user ?? user;
 

@@ -103,9 +103,9 @@ export default function TeacherAssignmentPreview() {
                 {assignment.dueAt && (
                   <Tag color="blue">Hạn nộp: {dayjs(assignment.dueAt).format("DD/MM/YYYY HH:mm")}</Tag>
                 )}
-                <Tag color={assignment.allowLateSubmission ? "green" : "orange"}>
-                  {assignment.allowLateSubmission ? "Cho phép nộp muộn" : "Không cho nộp muộn"}
-                </Tag>
+                {assignment.closeAt && (
+                  <Tag color="orange">Đóng nhận bài: {dayjs(assignment.closeAt).format("DD/MM/YYYY HH:mm")}</Tag>
+                )}
                 {assignment.maxScore && (
                   <Tag color="purple">Điểm tối đa: {assignment.maxScore}</Tag>
                 )}
@@ -170,8 +170,8 @@ export default function TeacherAssignmentPreview() {
               <div className="space-y-3">
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Đính kèm file / link</p>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 select-none">
-                    Upload file
+                  <span className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium opacity-50 cursor-not-allowed bg-green-600 text-white select-none">
+                    Tải file lên
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

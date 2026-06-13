@@ -113,13 +113,13 @@ export default function ClassReviewTab({ classSectionId, canManageAssignments, c
         </div>
       ),
     },
-    {
-      title: "",
-      width: 110,
-      render: (_, record) => (
-        <Button size="small" onClick={() => openItem(record)} disabled={record.selfOwned}>
-          {record.type === "QUIZ" ? t("teaching.review.actions.review") : t("teaching.review.actions.grade")}
-        </Button>
+      {
+        title: "",
+        width: 110,
+        render: (_, record) => (
+          <Button size="small" className="app-table-action-btn" onClick={() => openItem(record)} disabled={record.selfOwned}>
+            {record.type === "QUIZ" ? t("teaching.review.actions.review") : t("teaching.review.actions.grade")}
+          </Button>
       ),
     },
   ];
@@ -141,14 +141,16 @@ export default function ClassReviewTab({ classSectionId, canManageAssignments, c
       {filtered.length === 0 && !loading ? (
         <Empty description={t("teaching.review.empty")} />
       ) : (
-        <Table
-          rowKey={(record) => `${record.type}-${record.submissionId || record.attemptId}`}
-          loading={loading}
-          columns={columns}
-          dataSource={filtered}
-          scroll={{ x: 920 }}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
-        />
+        <div className="app-table-shell">
+          <Table
+            rowKey={(record) => `${record.type}-${record.submissionId || record.attemptId}`}
+            loading={loading}
+            columns={columns}
+            dataSource={filtered}
+            scroll={{ x: 920 }}
+            pagination={{ pageSize: 10, showSizeChanger: false }}
+          />
+        </div>
       )}
 
     </div>

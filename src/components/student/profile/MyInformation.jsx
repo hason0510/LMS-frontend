@@ -373,17 +373,12 @@ export default function MyInformation({
                 name="gmail"
                 value={formData.gmail}
                 onChange={(e) => handleAntdChange("gmail", e.target.value)}
-                disabled={!isEditing || isEmailLocked}
+                disabled
                 placeholder={t("profile.nhapEmail")}
                 type="email"
                 size="large"
                 className={inputClass}
               />
-              {isEmailLocked && (
-                <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                  {t("profile.emailDaXacThucKhongTheChinhSua")}
-                </p>
-              )}
             </label>
 
             <label className="flex min-w-0 flex-col">

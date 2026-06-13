@@ -496,7 +496,7 @@ export default function TeacherDashboard() {
                       onAction={() => navigate("/teacher/class-sections")}
                     />
 
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-4 flex flex-col gap-5">
                       <button
                         onClick={() => updateSearchState(null)}
                         className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
@@ -505,10 +505,10 @@ export default function TeacherDashboard() {
                             : "border-slate-200 hover:border-slate-300 dark:border-slate-800"
                         }`}
                       >
-                        <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
+                        <p className="!mb-0 leading-tight text-sm font-bold text-slate-900 dark:text-white">
                           {t("teacherDashboard.filters.allClasses")}
                         </p>
-                        <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        <p className="!mb-0 mt-1 leading-tight text-xs text-slate-500 dark:text-slate-400">
                           {t("teacherDashboard.classes.allClassesHint")}
                         </p>
                       </button>
@@ -528,10 +528,10 @@ export default function TeacherDashboard() {
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
+                                <p className="!mb-0 leading-tight truncate text-sm font-bold text-slate-900 dark:text-white">
                                   {item.title || item.classCode}
                                 </p>
-                                <p className="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                                <p className="!mb-0 mt-1 leading-tight truncate text-xs text-slate-500 dark:text-slate-400">
                                   {item.subjectTitle || t("teacherDashboard.defaults.noSubject")} · {t("teacherDashboard.classes.assistants", { count: teachingAssistantCount })}
                                 </p>
                               </div>

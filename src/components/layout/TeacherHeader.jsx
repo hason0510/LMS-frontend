@@ -8,7 +8,6 @@ import ConfirmModal from "../common/ConfirmModal";
 import {
   BellIcon,
   Cog6ToothIcon,
-  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   getMyNotifications,
@@ -40,9 +39,7 @@ export default function TeacherHeader({ toggleSidebar }) {
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
-  const profilePath = user?.role === "ADMIN" ? "/admin/profile" : "/teacher/profile";
   const settingsPath = user?.role === "ADMIN" ? "/admin/settings" : "/teacher/settings";
-  const isProfileActive = location.pathname === profilePath;
   const isSettingsActive = location.pathname === settingsPath;
 
   // Initial fetch and WebSocket connection
@@ -223,31 +220,18 @@ export default function TeacherHeader({ toggleSidebar }) {
             )}
           </div>
 
-          {/* <Link
+          <Link
             to={settingsPath}
             title={t("teacher.caiDatHeThong")}
             aria-label={t("teacher.caiDatHeThong")}
-            className={`flex items-center justify-center size-11 rounded-full transition-colors ${
+            className={`header-settings-icon flex items-center justify-center size-11 rounded-full transition-colors text-slate-700 dark:text-slate-200 ${
               isSettingsActive
-                ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
-                : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70"
+                ? "bg-slate-100 dark:bg-slate-800"
+                : "hover:bg-slate-100 dark:hover:bg-slate-800/70"
             }`}
           >
             <Cog6ToothIcon className="h-6 w-6" />
           </Link>
-
-          <Link
-            to={profilePath}
-            title={t("teacher.hoSo")}
-            aria-label={t("teacher.hoSo")}
-            className={`flex items-center justify-center size-11 rounded-full transition-colors ${
-              isProfileActive
-                ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
-                : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70"
-            }`}
-          >
-            <UserCircleIcon className="h-6 w-6" />
-          </Link> */}
 
           {/* User Profile */}
           <div className="relative" ref={dropdownRef}>

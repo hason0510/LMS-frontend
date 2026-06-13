@@ -100,6 +100,213 @@ body {
   @apply bg-white dark:bg-gray-800 text-[#111418] dark:text-white border border-[#dbe0e6] dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700;
 }
 
+.header-settings-icon {
+  color: rgb(51 65 85) !important;
+}
+
+.dark .header-settings-icon {
+  color: rgb(226 232 240) !important;
+}
+
+.header-settings-icon svg {
+  color: inherit !important;
+}
+
+.app-table-shell {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(229 231 235);
+  background: rgb(255 255 255);
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
+}
+
+.dark .app-table-shell {
+  border-color: rgb(55 65 81);
+  background: rgb(31 41 55 / 0.5);
+}
+
+.app-native-table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  color: rgb(17 24 39);
+}
+
+.app-native-table thead {
+  background: rgb(249 250 251);
+}
+
+.app-native-table thead th {
+  padding: 0.875rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(75 85 99);
+  text-align: left;
+}
+
+.app-native-table tbody td {
+  padding: 1rem 0.75rem;
+  border-top: 1px solid rgb(229 231 235);
+  color: rgb(55 65 81);
+  vertical-align: top;
+}
+
+.app-native-table tbody tr:hover td {
+  background: rgb(249 250 251);
+}
+
+.dark .app-native-table {
+  color: rgb(241 245 249);
+}
+
+.dark .app-native-table thead {
+  background: rgb(55 65 81 / 0.85);
+}
+
+.dark .app-native-table thead th {
+  color: rgb(209 213 219);
+}
+
+.dark .app-native-table tbody td {
+  border-top-color: rgb(55 65 81);
+  color: rgb(203 213 225);
+}
+
+.dark .app-native-table tbody tr:hover td {
+  background: rgb(55 65 81 / 0.5);
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-table,
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-container,
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-content,
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-body {
+  background: transparent !important;
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-container::before,
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-container::after {
+  display: none !important;
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-thead > tr > th {
+  background: rgb(249 250 251) !important;
+  color: rgb(75 85 99) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgb(229 231 235) !important;
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-tbody > tr > td,
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-placeholder .ant-table-cell {
+  border-bottom: 1px solid rgb(229 231 235) !important;
+  color: rgb(51 65 85) !important;
+  background: transparent !important;
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-tbody > tr > td {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-tbody > tr.ant-table-measure-row > td {
+  padding: 0 !important;
+  border: 0 !important;
+  height: 0 !important;
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-tbody > tr.ant-table-row:hover > td,
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-tbody > tr > td.ant-table-cell-row-hover {
+  background: rgb(249 250 251) !important;
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-empty-description,
+:where(.app-ant-table, .ant-table-wrapper) .ant-pagination-total-text,
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-column-sorter,
+:where(.app-ant-table, .ant-table-wrapper) .ant-table-filter-trigger {
+  color: rgb(100 116 139) !important;
+}
+
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-table-thead > tr > th {
+  background: rgb(55 65 81 / 0.85) !important;
+  color: rgb(209 213 219) !important;
+  border-bottom-color: rgb(55 65 81) !important;
+}
+
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-table-tbody > tr > td,
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-table-placeholder .ant-table-cell {
+  border-bottom-color: rgb(55 65 81) !important;
+  color: rgb(203 213 225) !important;
+}
+
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-table-tbody > tr.ant-table-row:hover > td,
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-table-tbody > tr > td.ant-table-cell-row-hover {
+  background: rgb(55 65 81 / 0.5) !important;
+}
+
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-empty-description,
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-pagination-total-text,
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-table-column-sorter,
+.dark :where(.app-ant-table, .ant-table-wrapper) .ant-table-filter-trigger {
+  color: rgb(148 163 184) !important;
+}
+
+:where(.app-ant-table, .ant-table-wrapper) .ant-pagination {
+  margin-bottom: 0 !important;
+}
+
+.app-table-action-btn.ant-btn {
+  border-color: rgb(203 213 225) !important;
+  background: rgb(255 255 255) !important;
+  color: rgb(71 85 105) !important;
+  box-shadow: none !important;
+}
+
+.app-table-action-btn.ant-btn:hover {
+  border-color: rgb(59 130 246) !important;
+  background: rgb(248 250 252) !important;
+  color: rgb(37 99 235) !important;
+}
+
+.dark .app-table-action-btn.ant-btn {
+  border-color: rgb(71 85 105) !important;
+  background: rgb(30 41 59) !important;
+  color: rgb(226 232 240) !important;
+}
+
+.dark .app-table-action-btn.ant-btn:hover {
+  border-color: rgb(96 165 250) !important;
+  background: rgb(51 65 85) !important;
+  color: rgb(147 197 253) !important;
+}
+
+.app-table-action-btn--danger.ant-btn {
+  border-color: rgb(254 202 202) !important;
+  color: rgb(220 38 38) !important;
+}
+
+.app-table-action-btn--danger.ant-btn:hover {
+  border-color: rgb(248 113 113) !important;
+  background: rgb(254 242 242) !important;
+  color: rgb(185 28 28) !important;
+}
+
+.dark .app-table-action-btn--danger.ant-btn {
+  border-color: rgb(127 29 29) !important;
+  color: rgb(252 165 165) !important;
+}
+
+.dark .app-table-action-btn--danger.ant-btn:hover {
+  border-color: rgb(248 113 113) !important;
+  background: rgb(69 10 10 / 0.35) !important;
+  color: rgb(254 202 202) !important;
+}
+
 /* Slight hover for icon-only areas */
 .icon-area:hover {
   @apply bg-gray-50 dark:bg-gray-700;

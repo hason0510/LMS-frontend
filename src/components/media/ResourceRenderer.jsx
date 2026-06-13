@@ -13,7 +13,7 @@ export default function ResourceRenderer({ resource, className = "", compact = f
       <div className={`${wrapperClass} overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900`}>
         <iframe
           src={iframeSrc}
-          className="aspect-video w-full"
+          className={`${compact ? "h-full min-h-[190px]" : "aspect-video"} w-full`}
           allowFullScreen
           title={title || "embed"}
         />
@@ -34,7 +34,7 @@ export default function ResourceRenderer({ resource, className = "", compact = f
   if (mimeType?.startsWith("video/") || type === "VIDEO") {
     return (
       <div className={`${wrapperClass} overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-black`}>
-        <video controls className={`${compact ? "max-h-44" : "max-h-80"} w-full`} src={mediaUrl}>
+        <video controls className={`${compact ? "h-full min-h-[190px] max-h-[240px] object-contain" : "max-h-80"} w-full`} src={mediaUrl}>
           <track kind="captions" />
         </video>
       </div>
@@ -47,7 +47,7 @@ export default function ResourceRenderer({ resource, className = "", compact = f
         src={fileUrl || mediaUrl}
         alt={title || ""}
         className={`${wrapperClass} max-w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 object-contain`}
-        style={{ maxHeight: compact ? 160 : 360 }}
+        style={{ maxHeight: compact ? 220 : 360 }}
       />
     );
   }

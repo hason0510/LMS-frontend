@@ -245,7 +245,6 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
                   onChange: (page) => setCurrentPage(page),
                 }}
                 size="small"
-                bordered
               />
             </Form.Item>
           )}

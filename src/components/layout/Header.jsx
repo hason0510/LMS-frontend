@@ -198,7 +198,7 @@ export default function Header({ menuItems }) {
                       : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                   }`}
                 >
-                  người học
+                  Người học
                 </button>
                 <button
                   type="button"

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { App, Button, DatePicker, Empty, Form, Input, Modal, Popconfirm, Select, Spin, Table } from "antd";
 import { useTranslation } from "react-i18next";
+import { EyeIcon, PlusCircleIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
@@ -15,10 +16,8 @@ import { getAllSubjects } from "../../api/subject";
 import { getAllUsers } from "../../api/user";
 
 const DEFAULT_PAGE_SIZE = 9;
-const ACTION_BUTTON_CLASS =
-  "!rounded-md !border !border-slate-300 !bg-white !px-3 !text-slate-700 hover:!border-slate-400 hover:!bg-slate-50 hover:!text-slate-900 dark:!border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!border-slate-500 dark:hover:!bg-slate-700 dark:hover:!text-white";
-const DANGER_BUTTON_CLASS =
-  "!rounded-md !border !border-red-300 !bg-white !px-3 !text-red-600 hover:!border-red-400 hover:!bg-red-50 hover:!text-red-700 dark:!border-red-900/60 dark:!bg-slate-800 dark:!text-red-300 dark:hover:!border-red-700 dark:hover:!bg-red-950/40 dark:hover:!text-red-200";
+const ACTION_BUTTON_CLASS = "app-table-action-btn";
+const DANGER_BUTTON_CLASS = "app-table-action-btn app-table-action-btn--danger";
 
 function normalizeSubjects(payload) {
   return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
@@ -154,11 +153,13 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         title: t("teacherLists.curriculums.columns.name"),
         key: "name",
         render: (_, record) => (
-          <div className="min-w-0">
-            <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">{getTemplateName(record)}</p>
-            <p className="m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="truncate text-sm font-semibold leading-tight text-slate-900 dark:text-white">
+              {getTemplateName(record)}
+            </div>
+            <div className="truncate text-xs leading-tight text-slate-500 dark:text-slate-400">
               {getTemplateDescription(record) || t("teacherLists.shared.noDescription")}
-            </p>
+            </div>
           </div>
         ),
       },
@@ -166,11 +167,11 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         title: t("teacherLists.curriculums.columns.subject"),
         key: "subject",
         render: (_, record) => (
-          <div className="min-w-0">
-            <div className="truncate text-sm text-slate-800 dark:text-slate-200">
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="truncate text-sm leading-tight text-slate-800 dark:text-slate-200">
               {record.subjectTitle || t("teacherLists.shared.noSubject")}
             </div>
-            <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+            <div className="truncate text-xs leading-tight text-slate-500 dark:text-slate-400">
               {record.categoryTitle || t("teacherLists.shared.noCategory")}
             </div>
           </div>
@@ -179,16 +180,24 @@ export default function TeacherCurriculums({ isAdmin = false }) {
       {
         title: t("teacherLists.curriculums.columns.action"),
         key: "action",
-        width: 280,
-        align: "right",
+        width: 140,
+        align: "center",
         render: (_, record) => (
-          <div className="flex justify-end gap-2">
-            <Button className={ACTION_BUTTON_CLASS} onClick={() => navigate(`${basePath}/curriculums/${record.id}`)}>
-              {t("teacherLists.curriculums.actions.view")}
-            </Button>
-            <Button className={ACTION_BUTTON_CLASS} onClick={() => openInstantiateModal(record)}>
-              {t("teacherLists.curriculums.actions.instantiate")}
-            </Button>
+          <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="p-1 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
+              title={t("teacherLists.curriculums.actions.view")}
+              onClick={() => navigate(`${basePath}/curriculums/${record.id}`)}
+            >
+              <EyeIcon className="h-4 w-4" />
+            </button>
+            <button
+              className="p-1 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
+              title={t("teacherLists.curriculums.actions.instantiate")}
+              onClick={() => openInstantiateModal(record)}
+            >
+              <PlusCircleIcon className="h-4 w-4" />
+            </button>
             <Popconfirm
               title={t("teacherLists.curriculums.confirm.deleteTitle")}
               description={t("teacherLists.curriculums.confirm.deleteDescription")}
@@ -197,7 +206,12 @@ export default function TeacherCurriculums({ isAdmin = false }) {
               okButtonProps={{ danger: true }}
               onConfirm={() => handleDeleteTemplate(record.id)}
             >
-              <Button className={DANGER_BUTTON_CLASS}>{t("teacherLists.shared.delete")}</Button>
+              <button
+                className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                title={t("teacherLists.shared.delete")}
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
             </Popconfirm>
           </div>
         ),
@@ -331,7 +345,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
           <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
             <AppBreadcrumb className="mb-4" />
 
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+            <div className="app-table-shell">
               <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>

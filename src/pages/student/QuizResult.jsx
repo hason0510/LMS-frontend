@@ -13,6 +13,7 @@ import { getAttemptDetail } from "../../api/quiz";
 import Header from "../../components/layout/Header";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
+import InteractionAnswerReview from "../../components/quiz/InteractionAnswerReview";
 import { splitClozeContent } from "../../utils/cloze";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
@@ -81,7 +82,7 @@ const formatInteractiveAnswer = (attemptAnswer) => {
       .map((answerItem) => {
         const prompt = itemsById.get(answerItem.itemId);
         const selected = itemsById.get(answerItem.selectedItemId);
-        return `${itemLabel(prompt, "Prompt")} → ${itemLabel(selected, "Không chọn")}`;
+        return `${itemLabel(prompt, "Prompt")} -> ${itemLabel(selected, "Không chọn")}`;
       })
       .join("; ");
   }
@@ -91,7 +92,7 @@ const formatInteractiveAnswer = (attemptAnswer) => {
       .sort((left, right) => (left.submittedOrderIndex || 0) - (right.submittedOrderIndex || 0))
       .map((answerItem) => itemsById.get(answerItem.itemId)?.content)
       .filter(Boolean)
-      .join(" → ");
+      .join(" -> ");
   }
 
   if (question.type === "CLOZE") {
@@ -227,6 +228,7 @@ export default function QuizResult() {
   };
 
   const renderAttemptUserAnswer = (attemptAnswer) => {
+    const question = attemptAnswer.quizQuestion || {};
     if (attemptAnswer.selectedAnswers?.length) {
       return <HtmlAnswerList items={attemptAnswer.selectedAnswers} />;
     }
@@ -239,6 +241,17 @@ export default function QuizResult() {
       );
     }
 
+    if (["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER"].includes(question.type)) {
+      if (!attemptAnswer.answerItems?.length) {
+        return (
+          <span className="font-medium text-[#111418] dark:text-white max-w-2xl break-words">
+            Không có câu trả lời
+          </span>
+        );
+      }
+      return <InteractionAnswerReview question={question} answerItems={attemptAnswer.answerItems} mode="user" />;
+    }
+
     return (
       <span className="font-medium text-[#111418] dark:text-white max-w-2xl break-words">
         {formatInteractiveAnswer(attemptAnswer) || "Không có câu trả lời"}
@@ -249,6 +262,12 @@ export default function QuizResult() {
   const canShowCorrectAnswerDetails = (attemptAnswer) =>
     (attemptAnswer.quizQuestion?.answers || []).some(
       (answer) => answer?.isCorrect !== null && answer?.isCorrect !== undefined
+    ) ||
+    (attemptAnswer.quizQuestion?.items || []).some(
+      (item) =>
+        item?.correctMatchKey !== null && item?.correctMatchKey !== undefined
+        || item?.correctOrderIndex !== null && item?.correctOrderIndex !== undefined
+        || (Array.isArray(item?.acceptedAnswers) && item.acceptedAnswers.length > 0)
     );
 
   const getCorrectAnswerOptions = (attemptAnswer) =>
@@ -261,7 +280,9 @@ export default function QuizResult() {
 
     const correctAnswers = getCorrectAnswerOptions(attemptAnswer);
     if (correctAnswers.length === 0) {
-      return null;
+      if (!["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER"].includes(attemptAnswer.quizQuestion?.type)) {
+        return null;
+      }
     }
 
     return (
@@ -272,7 +293,15 @@ export default function QuizResult() {
             Đáp án đúng
           </span>
         </div>
-        <HtmlAnswerList items={correctAnswers} />
+        {correctAnswers.length > 0 ? (
+          <HtmlAnswerList items={correctAnswers} />
+        ) : (
+          <InteractionAnswerReview
+            question={attemptAnswer.quizQuestion}
+            answerItems={attemptAnswer.answerItems}
+            mode="correct"
+          />
+        )}
       </div>
     );
   };

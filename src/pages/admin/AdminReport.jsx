@@ -30,6 +30,8 @@ import {
 } from "../../api/statistics";
 import { collectAllPagedItems, unwrapApiData, unwrapPageItems } from "../../utils/reporting";
 
+const REPORT_POLL_INTERVAL_MS = 30_000;
+
 function getTeachingAssistantCount(classSection) {
   return (classSection?.teachingMembers || []).filter((member) => member.role === "TA").length;
 }
@@ -75,6 +77,21 @@ export default function AdminReport() {
       return;
     }
     loadReportData(selectedClassSectionId);
+  }, [selectedClassSectionId]);
+
+  useEffect(() => {
+    if (!selectedClassSectionId) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      loadReportData(selectedClassSectionId);
+    }, REPORT_POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
   }, [selectedClassSectionId]);
 
   const updateSearchState = (classSectionId, tab = activeTab) => {
@@ -182,6 +199,21 @@ export default function AdminReport() {
   const topClasses = [...managedClassSections]
     .sort((left, right) => (Number(right.totalEnrollments) || 0) - (Number(left.totalEnrollments) || 0))
     .slice(0, 5);
+  const assistantCount = useMemo(() => {
+    const assistantIds = new Set();
+
+    systemClassSections.forEach((classSection) => {
+      (classSection?.teachingMembers || []).forEach((member) => {
+        if (member?.role !== "TA") {
+          return;
+        }
+
+        assistantIds.add(member.userId || member.id || member.email || member.username || `${classSection.id}-${member.fullName}`);
+      });
+    });
+
+    return assistantIds.size;
+  }, [systemClassSections]);
   const totalClassCount = systemStats.totalClassSections || systemClassSections.length || 0;
   const statusChartData = useMemo(
     () => [
@@ -289,11 +321,11 @@ export default function AdminReport() {
           sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
         }`}
       >
-        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-7xl !px-4 !py-6 sm:!px-6 lg:!px-7">
           <AppBreadcrumb className="mb-5" />
 
-          <section className="overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#9a3412_0%,#1d4ed8_100%)] p-6 text-white shadow-xl sm:p-8">
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <section className="overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#9a3412_0%,#1d4ed8_100%)] !p-5 text-white shadow-xl sm:!p-7">
+            <div className="flex flex-col !gap-5 xl:flex-row xl:items-end xl:justify-between">
               <div className="max-w-3xl">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-white/80">
                   <DocumentMagnifyingGlassIcon className="h-4 w-4" />
@@ -331,13 +363,14 @@ export default function AdminReport() {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid grid-cols-1 !gap-3 md:grid-cols-2 xl:grid-cols-5">
                   <ReportMetricCard
                     icon={<UserGroupIcon className="h-6 w-6" />}
                     label={t("reportsPage.admin.metrics.totalUsers")}
                     value={systemStats.totalUsers}
                     hint={t("reportsPage.admin.metrics.totalUsersHint")}
                     tone="blue"
+                    loading={loadingPage}
                   />
                   <ReportMetricCard
                     icon={<BuildingLibraryIcon className="h-6 w-6" />}
@@ -349,6 +382,7 @@ export default function AdminReport() {
                       archived: statusCounts.ARCHIVED,
                     })}
                     tone="emerald"
+                    loading={loadingPage}
                   />
                   <ReportMetricCard
                     icon={<ChartBarIcon className="h-6 w-6" />}
@@ -356,6 +390,7 @@ export default function AdminReport() {
                     value={systemStats.totalSubjects}
                     hint={t("reportsPage.admin.metrics.subjectsHint")}
                     tone="amber"
+                    loading={loadingPage}
                   />
                   <ReportMetricCard
                     icon={<ClipboardDocumentListIcon className="h-6 w-6" />}
@@ -363,10 +398,19 @@ export default function AdminReport() {
                     value={systemStats.pendingEnrollments}
                     hint={t("reportsPage.admin.metrics.pendingEnrollmentsHint")}
                     tone="rose"
+                    loading={loadingPage}
+                  />
+                  <ReportMetricCard
+                    icon={<UserGroupIcon className="h-6 w-6" />}
+                    label={t("reportsPage.admin.metrics.assistants")}
+                    value={assistantCount}
+                    hint={t("reportsPage.admin.metrics.assistantsHint", { count: assistantCount })}
+                    tone="slate"
+                    loading={loadingPage}
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <div className="grid grid-cols-1 !gap-4 xl:grid-cols-3">
                   <ReportSectionCard
                     title={t("reportsPage.admin.sections.statusDistribution.title")}
                     subtitle={t("reportsPage.admin.sections.statusDistribution.subtitle")}
@@ -376,6 +420,7 @@ export default function AdminReport() {
                       totalValue={systemStats.totalClassSections}
                       totalLabel={t("reportsPage.admin.charts.statusCenter")}
                       emptyText={t("reportsPage.admin.sections.statusDistribution.empty")}
+                      loading={loadingPage}
                     />
                   </ReportSectionCard>
 
@@ -397,6 +442,7 @@ export default function AdminReport() {
                           students: payload?.students || 0,
                         })
                       }
+                      loading={loadingPage}
                     />
                   </ReportSectionCard>
 
@@ -413,6 +459,7 @@ export default function AdminReport() {
                       emptyText={t("reportsPage.admin.sections.subjectLoad.empty")}
                       color="#8b5cf6"
                       valueFormatter={(value) => t("reportsPage.admin.charts.subjectLoadValue", { count: value })}
+                      loading={loadingPage}
                     />
                   </ReportSectionCard>
                 </div>
@@ -499,12 +546,12 @@ export default function AdminReport() {
 
 function HeroInsight({ icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-      <div className="flex items-center gap-2 text-white/80">
+    <div className="!rounded-2xl border border-white/15 bg-white/10 !p-4 backdrop-blur-sm">
+      <div className="flex items-center !gap-2 text-white/80">
         {icon}
         <span className="text-xs font-bold uppercase tracking-[0.18em]">{label}</span>
       </div>
-      <p className="m-0 mt-3 text-lg font-black text-white">{value}</p>
+      <p className="!m-0 !mt-3 text-lg font-black text-white">{value}</p>
     </div>
   );
 }

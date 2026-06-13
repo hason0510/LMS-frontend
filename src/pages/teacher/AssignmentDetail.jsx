@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { EyeIcon } from "@heroicons/react/24/outline";
-import { App, Button, DatePicker, Form, Input, InputNumber, Spin, Switch } from "antd";
+import { App, Button, DatePicker, Form, Input, InputNumber, Spin } from "antd";
 import dayjs from "dayjs";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -78,7 +78,6 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
             maxScore: assignment.maxScore,
             dueAt: assignment.dueAt ? dayjs(assignment.dueAt) : null,
             closeAt: assignment.closeAt ? dayjs(assignment.closeAt) : null,
-            allowLateSubmission: Boolean(assignment.allowLateSubmission),
           });
 
           setDescription(assignment.description || "");
@@ -102,12 +101,11 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
         } else {
           form.setFieldsValue({
             maxScore: 100,
-            allowLateSubmission: false,
           });
         }
       } catch (error) {
         console.error(error);
-        message.error("Không thể tải thông tin assignment");
+        message.error("Không thể tải thông tin bài tập");
       } finally {
         setLoading(false);
       }
@@ -203,11 +201,11 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
     detachResourceFromAssignment(assignmentId, targetResourceId)
       .then(() => {
         setResources((prev) => prev.filter((resource) => resource.id !== resourceItem?.id));
-        message.success("Đã gỡ media khỏi assignment");
+        message.success("Đã gỡ media khỏi bài tập");
       })
       .catch((error) => {
         console.error(error);
-        message.error(error?.response?.data?.message || "Không thể gỡ media khỏi assignment");
+        message.error(error?.response?.data?.message || "Không thể gỡ media khỏi bài tập");
       });
   };
 
@@ -251,7 +249,6 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
     maxScore: values.maxScore,
     dueAt: values.dueAt ? values.dueAt.toISOString() : null,
     closeAt: values.closeAt ? values.closeAt.toISOString() : null,
-    allowLateSubmission: Boolean(values.allowLateSubmission),
     classSectionId: Number(classSectionId),
     resourceIds: resources
       .map((resource) => Number(resource.resourceId || resource.id))
@@ -267,10 +264,10 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
       if (isEditMode) {
         const updateResponse = await updateAssignment(assignmentId, payload);
         savedAssignment = updateResponse?.data || updateResponse;
-        message.success("Cập nhật assignment thành công");
+        message.success("Cập nhật bài tập thành công");
       } else {
         if (!chapterId) {
-          message.error("Thiếu chapterId để gắn assignment vào nội dung lớp");
+          message.error("Thiếu chapterId để gắn bài tập vào nội dung lớp");
           return;
         }
         const createResponse = await createAssignment(payload);
@@ -280,13 +277,13 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
           assignmentId: savedAssignment.id,
           title: payload.title,
         });
-        message.success("Tạo assignment thành công");
+        message.success("Tạo bài tập thành công");
       }
 
       navigate(`${basePath}/class-sections/${classSectionId}`);
     } catch (error) {
       console.error(error);
-      message.error(error?.response?.data?.message || "Không thể lưu assignment");
+      message.error(error?.response?.data?.message || "Không thể lưu bài tập");
     } finally {
       setSubmitting(false);
     }
@@ -313,7 +310,7 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
         <div className="flex items-center justify-between gap-3 mb-6">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {isEditMode ? "Chỉnh sửa Assignment" : "Tạo Assignment"}
+            {isEditMode ? "Chỉnh sửa bài tập" : "Tạo bài tập"}
           </h1>
           {isEditMode && (
             <div className="flex items-center gap-2">
@@ -344,9 +341,9 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
                   <Form.Item
                     label="Tiêu đề"
                     name="title"
-                    rules={[{ required: true, message: "Vui lòng nhập tiêu đề assignment" }]}
+                    rules={[{ required: true, message: "Vui lòng nhập tiêu đề bài tập" }]}
                   >
-                    <Input placeholder="Ví dụ: Assignment 1 - OOP Basics" />
+                    <Input placeholder="Ví dụ: Bài tập 1 - OOP Basics" />
                   </Form.Item>
 
                   <Form.Item
@@ -379,10 +376,6 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
                   >
                     <DatePicker showTime className="w-full" />
                   </Form.Item>
-
-                  <Form.Item label="Cho phép nộp muộn" name="allowLateSubmission" valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
                 </div>
 
                 <div className="space-y-2 mb-5">
@@ -410,17 +403,17 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
                 </div>
 
                 <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-4 mb-6">
-                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Resources</h2>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">File đính kèm</h2>
 
                   <div className="flex items-center gap-3 flex-wrap">
                     <Button onClick={() => setLibraryPickerOpen(true)}>
                       Chọn từ kho media
                     </Button>
-                    <label className="px-4 py-2 rounded-lg border border-slate-300 text-sm cursor-pointer hover:bg-slate-50">
-                      {uploading ? "Đang tải..." : "Upload file"}
+                    <label className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium cursor-pointer transition-colors shadow-sm duration-200">
+                      {uploading ? "Đang tải..." : "Tải file lên"}
                       <input
                         type="file"
-                        className="hidden"
+                        style={{ display: "none" }}
                         multiple
                         onChange={handleUploadFiles}
                         disabled={uploading}
@@ -472,7 +465,7 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
 
                 <div className="flex justify-end">
                   <Button type="primary" htmlType="submit" loading={submitting}>
-                    {isEditMode ? "Cập nhật Assignment" : "Tạo Assignment"}
+                    {isEditMode ? "Cập nhật bài tập" : "Tạo bài tập"}
                   </Button>
                 </div>
               </Form>

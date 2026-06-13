@@ -12,9 +12,10 @@ export default function UserIdentity({
   avatarClassName = "",
   avatarInitialsClass = "text-base",
   fallbackName = "Người dùng",
-  nameClassName = "m-0 truncate text-sm font-semibold text-slate-900 dark:text-white",
-  secondaryClassName = "m-0 mt-1 truncate text-xs text-slate-500 dark:text-slate-400",
+  nameClassName = "m-0 truncate text-sm font-semibold leading-tight text-slate-900 dark:text-white",
+  secondaryClassName = "m-0 truncate text-xs leading-tight text-slate-500 dark:text-slate-400",
   secondaryText,
+  appendNameNode,
 }) {
   const identity = resolveUserIdentity(user, { variant, fallbackName });
   const resolvedSecondaryText = secondaryText !== undefined ? secondaryText : identity.secondaryText;
@@ -31,10 +32,13 @@ export default function UserIdentity({
         />
       ) : null}
       {showText ? (
-        <div className="min-w-0">
-          <p className={nameClassName}>{identity.name}</p>
+        <div className="min-w-0 flex flex-col justify-center">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={nameClassName}>{identity.name}</div>
+            {appendNameNode && <div className="shrink-0">{appendNameNode}</div>}
+          </div>
           {resolvedSecondaryText ? (
-            <p className={secondaryClassName}>{resolvedSecondaryText}</p>
+            <div className={`${secondaryClassName} !mt-0.5`}>{resolvedSecondaryText}</div>
           ) : null}
         </div>
       ) : null}

@@ -14,6 +14,7 @@
     "banCoChacChanMuonDangXuat": "Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?",
     "huyboDangXuat": "Đăng xuất",
     "huyBo": "Hủy bỏ",
+    "huy": "Hủy",
     "dangXuLy": "Đang xử lý...",
     "thanhVien": "Thành viên"
   },
@@ -356,7 +357,10 @@
     "datMatKhauLocalThanhCong": "Thiết lập mật khẩu đăng nhập thành công!",
     "doiMatKhauThatBai": "Đổi mật khẩu thất bại. Vui lòng thử lại.",
     "dangTaiKhoaHoc": "Đang tải khóa học...",
-    "loi": "Lỗi"
+    "loi": "Lỗi",
+    "lopHocCuaToi": "Lớp học của tôi",
+    "tiepTucHocTap": "Tiếp tục học tập các lớp học của bạn",
+    "khamPhaCacLopHoc": "Khám phá các lớp học"
   },
   "auth": {
     "dangnhapLai": "Chào mừng trở lại!",
@@ -737,10 +741,10 @@
     "untitled": "Chưa đặt tên",
     "usedCount": "{{count}} nơi dùng",
     "pages": {
-        "personal": {
-          "title": "Thư viện media của tôi",
-          "subtitle": "Nơi lưu media bạn đã tạo để dùng lại trong bài giảng, bài tập, quiz và ngân hàng câu hỏi."
-        },
+      "personal": {
+        "title": "Thư viện media của tôi",
+        "subtitle": "Nơi lưu media bạn đã tạo để dùng lại trong bài giảng, bài tập, quiz và ngân hàng câu hỏi."
+      },
       "admin": {
         "title": "Thư viện media",
         "subtitle": "Theo dõi media theo phạm vi, trạng thái, loại file và người tạo."
@@ -761,7 +765,10 @@
       "AUDIO": "Âm thanh",
       "PDF": "PDF",
       "FILE": "Tệp",
-      "LINK": "Liên kết"
+      "LINK": "Liên kết",
+      "DOCX": "Tài liệu (Word)",
+      "SLIDE": "Trình chiếu / Bảng tính",
+      "ARCHIVE": "Tệp nén"
     },
     "scopes": {
       "QUESTION_BANK": "Ngân hàng câu hỏi",
@@ -779,13 +786,13 @@
       "name": "Tên",
       "size": "Dung lượng"
     },
-      "filters": {
-        "scope": "Phạm vi",
-        "scopeTargetClass": "Chọn lớp học cụ thể",
-        "scopeTargetQuestionBank": "Chọn ngân hàng cụ thể",
-        "type": "Loại media",
-        "owner": "Người tạo"
-      },
+    "filters": {
+      "scope": "Phạm vi",
+      "scopeTargetClass": "Chọn lớp học cụ thể",
+      "scopeTargetQuestionBank": "Chọn ngân hàng cụ thể",
+      "type": "Loại media",
+      "owner": "Người tạo"
+    },
     "stats": {
       "currentResult": "Kết quả hiện tại",
       "visibleSize": "Dung lượng hiển thị",
@@ -873,6 +880,7 @@
     "actions": {
       "upload": "Tải media lên",
       "save": "Lưu",
+      "loadMore": "Tải thêm",
       "restore": "Khôi phục",
       "archive": "Ngừng sử dụng",
       "delete": "Xóa"
@@ -927,12 +935,17 @@
     "enterQuestion": "Nhập câu hỏi...",
     "enterAnswer": "Nhập đáp án...",
     "questionInstruction": "Hướng dẫn câu hỏi (tùy chọn)",
+    "acceptedKeywords": "Những từ khóa được chấp nhận",
+    "itemTextPlaceholder": "Nội dung...",
+    "keywordPlaceholder": "Từ khóa {{index}}",
+    "addKeyword": "Thêm từ khóa",
     "types": {
       "SINGLE_CHOICE": "Trắc nghiệm (1 đáp án)",
       "MULTIPLE_CHOICE": "Trắc nghiệm (nhiều đáp án)",
       "TRUE_FALSE": "Đúng / Sai",
       "MATCHING": "Ghép cặp",
       "IMAGE_MATCHING": "Ghép ảnh",
+      "IMAGE_ANSWERING": "Chọn ảnh",
       "SHORT_ANSWER": "Trả lời ngắn",
       "CLOZE": "Điền chỗ trống",
       "DRAG_ORDER": "Sắp xếp",
@@ -958,6 +971,7 @@
     "timTag": "Tìm tag theo tên",
     "importGiftAiken": "Import GIFT/AIKEN (.txt)",
     "exportGift": "Export GIFT (.txt)",
+    "exportAiken": "Export AIKEN (.txt)",
     "themCauHoi": "Thêm câu hỏi",
     "themCauHoiMoi": "Thêm câu hỏi mới",
     "suaCauHoi": "Chỉnh sửa câu hỏi",
@@ -1023,6 +1037,14 @@
     "vuiLongChonItNhatMotDapAnDung": "Vui lòng chọn ít nhất một đáp án đúng",
     "vuiLongNhapNoiDungTatCaDapAn": "Vui lòng nhập nội dung cho tất cả các đáp án",
     "loi": "Lỗi",
+    "coCauHoiBoQua": "Có {{count}} câu bị bỏ qua",
+    "importThanhCong": "Đã import {{count}} câu hỏi",
+    "importCanhBao": "Một số câu hỏi không đúng định dạng GIFT/AIKEN được hỗ trợ.",
+    "importThatBai": "Import GIFT/AIKEN thất bại",
+    "exportThanhCong": "Đã export GIFT",
+    "exportThatBai": "Export GIFT thất bại",
+    "exportAikenThanhCong": "Đã export AIKEN",
+    "exportAikenThatBai": "Export AIKEN thất bại",
     "xoaCauHoiThanhCong": "Đã xóa câu hỏi",
     "capNhatCauHoiThanhCong": "Cập nhật câu hỏi thành công",
     "themCauHoiThanhCong": "Thêm câu hỏi thành công",
@@ -1043,6 +1065,23 @@
     "xacNhanXoaThanhVien": "Xác nhận xóa thành viên",
     "vuiLongNhapTen": "Vui lòng nhập tên",
     "tenQuaDai": "Tên không được vượt quá 200 ký tự"
+  },
+  "questionBankEditor": {
+    "createTitle": "Thêm câu hỏi",
+    "editTitle": "Chỉnh sửa câu hỏi",
+    "save": "Lưu câu hỏi",
+    "cancel": "Hủy",
+    "metadata": "Thuộc tính câu hỏi",
+    "tagsPlaceholder": "Nhập tag và nhấn Enter",
+    "mediaScopeTitle": "Phạm vi media",
+    "mediaScopeDescription": "Media đính kèm trong editor này sẽ được lưu vào kho media của question bank hiện tại.",
+    "clozePlaceholder": "Nhập nội dung với [[đáp án]] hoặc [[đúng|lựa chọn 1|lựa chọn 2]]",
+    "clozeExample": "She was born in [[Paris]] and studied [[science|art|history]].",
+    "preview": "Xem trước",
+    "clozeContentHint": "Với câu hỏi CLOZE, nội dung câu hỏi được cấu hình trực tiếp ở phần đáp án bên dưới.",
+    "questionContentRequired": "Vui lòng nhập nội dung câu hỏi.",
+    "imageCaptionPlaceholder": "Chú thích ảnh (không bắt buộc)",
+    "questionNotFound": "Không tìm thấy câu hỏi trong question bank."
   },
   "quizEditor": {
     "quizBadge": "Quiz",
@@ -1103,7 +1142,7 @@
       "save": "Lưu",
       "openLibrary": "Thư viện câu hỏi",
       "addQuestion": "Thêm câu hỏi",
-      "addQuestionBank": "Thêm question bank"
+      "addQuestionBank": "Thêm ngân hàng câu hỏi"
     },
     "settings": {
       "descriptionLabel": "Mô tả ngắn của quiz",
@@ -1122,6 +1161,7 @@
       "loadBanksFailed": "Không thể tải danh sách question bank",
       "loadBankQuestionsFailed": "Bạn không có quyền truy cập question bank này",
       "titleRequired": "Vui lòng nhập tiêu đề quiz",
+      "atLeastOneQuestionRequired": "Quiz phải có ít nhất một câu hỏi",
       "quizSaved": "Đã lưu quiz",
       "quizCreated": "Đã tạo quiz",
       "saveQuizFailed": "Không thể lưu quiz",
@@ -1173,7 +1213,8 @@
     "messages": {
       "created": "Đã đăng thông báo",
       "updated": "Đã cập nhật thông báo",
-      "deleted": "Đã xóa thông báo"
+      "deleted": "Đã xóa thông báo",
+      "deleteConfirm": "Bạn có chắc muốn xóa thông báo này?"
     },
     "validation": {
       "classRequired": "Vui lòng chọn lớp",
@@ -1229,22 +1270,32 @@
     "type": "Loại",
     "givenAnswer": "Câu trả lời",
     "correctAnswer": "Đáp án đúng",
+    "prompt": "Gợi ý",
+    "notSelected": "Chưa chọn",
+    "noCorrectAnswer": "Chưa có đáp án đúng",
     "completedAt": "Hoàn thành",
     "back": "Quay lại",
-      "search": "Tìm quiz hoặc người học...",
-      "saveReview": "Lưu chấm điểm",
-      "reviewSaved": "Đã lưu chấm điểm",
-      "reviewSaveFailed": "Không thể lưu chấm điểm",
-      "loadFailed": "Không thể tải dữ liệu quiz attempts",
-      "empty": "Không có lượt làm nào khớp với bộ lọc hiện tại.",
-      "answerFeedback": "Nhận xét cho câu trả lời này",
-      "instructorFeedback": "Phản hồi tổng thể của giáo viên",
-      "pagination": {
-        "total": "Tổng số: {{count}}",
-        "pageSize": "Số dòng/trang",
-        "range": "{{start}} - {{end}}"
-      }
+    "filters": {
+      "classSection": "Chọn lớp học",
+      "quiz": "Chọn quiz trong lớp",
+      "studentKeyword": "Tìm theo tên người học hoặc MSSV...",
+      "reset": "Đặt lại"
     },
+    "saveReview": "Lưu chấm điểm",
+    "reviewSaved": "Đã lưu chấm điểm",
+    "reviewSaveFailed": "Không thể lưu chấm điểm",
+    "loadFailed": "Không thể tải dữ liệu quiz attempts",
+    "loadFiltersFailed": "Không thể tải danh sách lớp học",
+    "loadQuizOptionsFailed": "Không thể tải danh sách quiz trong lớp",
+    "empty": "Không có lượt làm nào khớp với bộ lọc hiện tại.",
+    "answerFeedback": "Nhận xét cho câu trả lời này",
+    "instructorFeedback": "Phản hồi tổng thể của giáo viên",
+    "pagination": {
+      "total": "Tổng số: {{count}}",
+      "pageSize": "Số dòng/trang",
+      "range": "{{start}} - {{end}}"
+    }
+  },
   "teaching": {
     "common": {
       "noDeadline": "Không có hạn"
@@ -1333,10 +1384,14 @@
         "pendingReviews": "Mục chờ xử lý"
       },
       "errors": {
-        "loadClass": "Không thể tải lớp học"
+        "loadClass": "Không thể tải lớp học",
+        "createAnnouncement": "Không thể tạo thông báo lớp học"
       },
       "messages": {
         "announcementCreated": "Đã đăng thông báo lớp học."
+      },
+      "actions": {
+        "createAnnouncement": "Tạo thông báo"
       },
       "media": "Media lớp",
       "archived": {
@@ -1594,11 +1649,11 @@
         "open": "Xem bình luận người học"
       }
     },
-      "lessonCompletion": {
-        "title": "Theo dõi hoàn thành bài học",
-        "subtitle": "Xem nhanh người học nào đã học xong bài này và ai còn đang dừng lại ở phía sau.",
-        "actions": {
-          "open": "Xem tiến độ bài học"
+    "lessonCompletion": {
+      "title": "Theo dõi hoàn thành bài học",
+      "subtitle": "Xem nhanh người học nào đã học xong bài này và ai còn đang dừng lại ở phía sau.",
+      "actions": {
+        "open": "Xem tiến độ bài học"
       },
       "filters": {
         "searchPlaceholder": "Tìm theo tên người học, mã sinh viên hoặc email",
@@ -1627,41 +1682,42 @@
         "filtered": "Không có người học nào khớp với bộ lọc hiện tại."
       },
       "messages": {
-        "loadFailed": "Không thể tải danh sách hoàn thành bài học."
+        "loadFailed": "Không thể tải danh sách hoàn thành bài học.",
+        "cannotResolveItem": "Không thể xác định mục nội dung đã chọn."
       },
-        "defaults": {
-          "noStudentInfo": "Chưa có thông tin liên hệ",
-          "notCompletedTime": "Chưa hoàn thành"
-        }
+      "defaults": {
+        "noStudentInfo": "Chưa có thông tin liên hệ",
+        "notCompletedTime": "Chưa hoàn thành"
+      }
+    },
+    "lessonCompletionPicker": {
+      "title": "Chọn bài giảng cần xem tiến độ",
+      "subtitle": "Chọn một bài giảng trong lớp để mở danh sách người học đã hoàn thành hoặc chưa hoàn thành.",
+      "actions": {
+        "open": "Xem tiến độ bài học"
       },
-      "lessonCompletionPicker": {
-        "title": "Chọn bài giảng cần xem tiến độ",
-        "subtitle": "Chọn một bài giảng trong lớp để mở danh sách người học đã hoàn thành hoặc chưa hoàn thành.",
-        "actions": {
-          "open": "Xem tiến độ bài học"
-        },
-        "filters": {
-          "searchPlaceholder": "Tìm theo tên bài giảng hoặc chương"
-        },
-        "table": {
-          "action": "Mở",
-          "chapter": "Chương"
-        },
-        "empty": {
-          "default": "Chưa có bài giảng nào trong lớp.",
-          "filtered": "Không tìm thấy bài giảng phù hợp."
-        },
-        "messages": {
-          "loadFailed": "Không thể tải danh sách bài giảng."
-        },
-        "defaults": {
-          "noChapter": "Chưa xác định chương"
-        }
+      "filters": {
+        "searchPlaceholder": "Tìm theo tên bài giảng hoặc chương"
       },
-      "archived": {
-        "title": "Nội dung lớp đang ở chế độ chỉ xem",
-        "description": "Lớp đã được lưu trữ. Bạn vẫn có thể xem nội dung hiện có nhưng không thể thêm, sửa, xóa hoặc sắp xếp lại."
+      "table": {
+        "action": "Mở",
+        "chapter": "Chương"
       },
+      "empty": {
+        "default": "Chưa có bài giảng nào trong lớp.",
+        "filtered": "Không tìm thấy bài giảng phù hợp."
+      },
+      "messages": {
+        "loadFailed": "Không thể tải danh sách bài giảng."
+      },
+      "defaults": {
+        "noChapter": "Chưa xác định chương"
+      }
+    },
+    "archived": {
+      "title": "Nội dung lớp đang ở chế độ chỉ xem",
+      "description": "Lớp đã được lưu trữ. Bạn vẫn có thể xem nội dung hiện có nhưng không thể thêm, sửa, xóa hoặc sắp xếp lại."
+    },
     "badges": {
       "hidden": "Ẩn",
       "locked": "Khóa",
@@ -1716,10 +1772,13 @@
     },
     "time": {
       "justNow": "vừa xong",
+      "minutesAgo": "{{count}} phút trước",
       "minutesAgo_one": "{{count}} phút trước",
       "minutesAgo_other": "{{count}} phút trước",
+      "hoursAgo": "{{count}} giờ trước",
       "hoursAgo_one": "{{count}} giờ trước",
       "hoursAgo_other": "{{count}} giờ trước",
+      "daysAgo": "{{count}} ngày trước",
       "daysAgo_one": "{{count}} ngày trước",
       "daysAgo_other": "{{count}} ngày trước"
     }
@@ -1829,7 +1888,9 @@
         "averageQuizScore": "Điểm quiz trung bình",
         "averageQuizScoreHint": "Điểm cao nhất hiện có: {{score}}",
         "averageProgress": "Tiến độ trung bình",
-        "averageProgressHint": "{{count}} người học đang ở mức từ {{high}}% trở lên"
+        "averageProgressHint": "{{count}} người học đang ở mức từ {{high}}% trở lên",
+        "teachingAssistants": "Trợ giảng",
+        "teachingAssistantsHint": "{{count}} trợ giảng đang hỗ trợ lớp này"
       },
       "summary": {
         "trackedQuizzes": "Quiz đang theo dõi",
@@ -2045,6 +2106,9 @@
         "notSubmitted": "Chưa nộp",
         "scoreUnit": "đ"
       },
+      "loading": {
+        "gradebook": "Đang tải sổ điểm của lớp này."
+      },
       "empty": {
         "classSections": "Chưa có lớp học để hiển thị báo cáo.",
         "gradebook": "Chưa có dữ liệu quiz trong lớp này.",
@@ -2065,6 +2129,8 @@
         "subtitle": "Theo dõi tiến độ người học, kết quả bài quiz, bài tập và danh sách chờ của từng lớp bạn đang phụ trách.",
         "scopeLabel": "Lớp đang xem",
         "scopeValue": "Chọn một lớp để xem chi tiết",
+        "assistantsLabel": "Trợ giảng lớp",
+        "assistantsValue": "{{count}} trợ giảng",
         "sourceLabel": "Nội dung đang theo dõi",
         "sourceValue": "Tiến độ học tập, bài quiz, bài tập"
       },
@@ -2113,7 +2179,9 @@
         "subjects": "Môn học",
         "subjectsHint": "Những môn đang có lớp hoạt động",
         "pendingEnrollments": "Yêu cầu tham gia chờ duyệt",
-        "pendingEnrollmentsHint": "Tổng số người học đang chờ được vào lớp"
+        "pendingEnrollmentsHint": "Tổng số người học đang chờ được vào lớp",
+        "assistants": "Trợ giảng đang hỗ trợ",
+        "assistantsHint": "Hiện có {{count}} trợ giảng đang tham gia các lớp đang theo dõi."
       },
       "sections": {
         "statusDistribution": {
@@ -2322,7 +2390,7 @@
       }
     },
     "students": {
-      "title": "Người học",
+      "title": "Danh sách người học",
       "subtitle": "Theo dõi yêu cầu tham gia, người học đã duyệt và thao tác quản lý theo từng lớp học.",
       "empty": "Không có người học phù hợp",
       "filters": {

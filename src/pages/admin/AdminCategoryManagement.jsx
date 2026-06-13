@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button, Empty, Form, Input, Modal, Popconfirm, Table, message } from "antd";
 import { useTranslation } from "react-i18next";
+import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
@@ -138,13 +139,14 @@ export default function AdminCategoryManagement() {
       title: t("adminCatalog.columns.action"),
       key: "action",
       width: 150,
-      align: "right",
+      align: "center",
       render: (_, record) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-center gap-2">
           <Button
             type="text"
             size="small"
-            className="!inline-flex !h-8 !items-center !justify-center !rounded-md !border !border-slate-300 !bg-white !px-3 !text-slate-700 hover:!border-slate-400 hover:!bg-slate-50 hover:!text-slate-900 dark:!border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!border-slate-500 dark:hover:!bg-slate-700 dark:hover:!text-white"
+            icon={<PencilIcon className="h-4 w-4" />}
+            className="app-table-action-btn"
             onClick={() => handleOpenEditModal(record)}
           >
             {t("adminCatalog.actions.edit")}
@@ -160,7 +162,8 @@ export default function AdminCategoryManagement() {
             <Button
               type="text"
               size="small"
-              className="!inline-flex !h-8 !items-center !justify-center !rounded-md !border !border-red-300 !bg-white !px-3 !text-red-600 hover:!border-red-400 hover:!bg-red-50 hover:!text-red-700 dark:!border-red-900/60 dark:!bg-slate-800 dark:!text-red-300 dark:hover:!border-red-700 dark:hover:!bg-red-950/40 dark:hover:!text-red-200"
+              icon={<TrashIcon className="h-4 w-4" />}
+              className="app-table-action-btn app-table-action-btn--danger"
             >
               {t("adminCatalog.actions.delete")}
             </Button>
@@ -181,7 +184,7 @@ export default function AdminCategoryManagement() {
       >
         <div className="mx-auto mt-3 max-w-7xl">
           <AppBreadcrumb className="mb-5" />
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+          <div className="app-table-shell">
             <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between sm:px-6">
               <div>
                 <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">

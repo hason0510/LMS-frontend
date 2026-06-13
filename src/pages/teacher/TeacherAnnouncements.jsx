@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { App, Button, DatePicker, Dropdown, Empty, Form, Input, Modal, Select, Table } from "antd";
+import { App, Button, DatePicker, Dropdown, Empty, Form, Input, Modal, Popconfirm, Select, Table } from "antd";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
@@ -236,6 +236,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
       {
         title: t("announcementsPage.columns.announcement"),
         dataIndex: "title",
+        width: 450,
         render: (_, record) => (
           <div className="min-w-0 space-y-1">
             <div className="truncate font-semibold text-slate-900 dark:text-white">
@@ -250,45 +251,46 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
       {
         title: t("announcementsPage.columns.scope"),
         dataIndex: "classSectionTitle",
-        width: 280,
         render: (_, record) => getAnnouncementScope(record, t),
       },
       {
         title: t("announcementsPage.columns.actions"),
-        width: 180,
-        align: "right",
+        width: 140,
+        align: "center",
         render: (_, record) => (
-          <div className="flex justify-end gap-2">
-            <Button
-              icon={<EyeIcon className="h-4 w-4" />}
+          <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="p-1 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
+              title={t("announcementsPage.actions.details")}
               onClick={() => {
                 setSelected(record);
                 setDetailOpen(true);
               }}
             >
-              {t("announcementsPage.actions.details")}
-            </Button>
-            <Dropdown
-              trigger={["click"]}
-              menu={{
-                items: [
-                  { key: "edit", label: t("announcementsPage.actions.edit"), icon: <PencilSquareIcon className="h-4 w-4" /> },
-                  { key: "delete", label: t("announcementsPage.actions.delete"), danger: true, icon: <TrashIcon className="h-4 w-4" /> },
-                ],
-                onClick: ({ key }) => {
-                  if (key === "edit") openEditModal(record);
-                  if (key === "delete") handleDelete(record);
-                },
-              }}
+              <EyeIcon className="h-4 w-4" />
+            </button>
+            <button
+              className="p-1 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
+              title={t("announcementsPage.actions.edit")}
+              onClick={() => openEditModal(record)}
+            >
+              <PencilSquareIcon className="h-4 w-4" />
+            </button>
+            <Popconfirm
+              title={t("announcementsPage.actions.delete")}
+              description={t("announcementsPage.messages.deleteConfirm") || "Bạn có chắc muốn xóa?"}
+              onConfirm={() => handleDelete(record)}
+              okText={t("announcementsPage.actions.delete")}
+              cancelText={t("announcementsPage.modal.cancel")}
+              okButtonProps={{ danger: true }}
             >
               <button
-                type="button"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-                aria-label={t("announcementsPage.actions.more")}
+                className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                title={t("announcementsPage.actions.delete")}
               >
-                <EllipsisVerticalIcon className="h-5 w-5" />
+                <TrashIcon className="h-4 w-4" />
               </button>
-            </Dropdown>
+            </Popconfirm>
           </div>
         ),
       },
@@ -305,7 +307,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
           <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
             <AppBreadcrumb className="mb-4" />
 
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
+            <div className="app-table-shell">
               <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
@@ -316,7 +318,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
                       {t("announcementsPage.subtitle")}
                     </p>
                   </div>
-                  <Button type="primary" icon={<PlusIcon className="h-4 w-4" />} onClick={openCreateModal}>
+                  <Button type="primary" onClick={openCreateModal}>
                     {t("announcementsPage.actions.create")}
                   </Button>
                 </div>
@@ -334,7 +336,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
                     onChange={(value) => setFilters((prev) => ({ ...prev, classSectionId: value }))}
                     options={courses.map((course) => ({
                       value: course.id,
-                      label: [course.title, course.classCode].filter(Boolean).join(" - "),
+                      label: course.title,
                     }))}
                   />
                   <Select
@@ -453,11 +455,11 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
                 placeholder={t("announcementsPage.modal.classPlaceholder")}
                 showSearch
                 optionFilterProp="label"
-                options={courses.map((course) => ({
-                  value: course.id,
-                  label: [course.title, course.classCode].filter(Boolean).join(" - "),
-                }))}
-              />
+                  options={courses.map((course) => ({
+                    value: course.id,
+                    label: course.title,
+                  }))}
+                />
             </Form.Item>
             <Form.Item
               name="title"
@@ -491,7 +493,7 @@ export default function TeacherAnnouncements({ isAdmin = false }) {
                 >
                   {t("announcementsPage.actions.delete")}
                 </Button>,
-                <Button key="edit" type="primary" icon={<PencilSquareIcon className="h-4 w-4" />} onClick={() => openEditModal(selected)}>
+                <Button key="edit" type="primary" onClick={() => openEditModal(selected)}>
                   {t("announcementsPage.actions.edit")}
                 </Button>,
               ]

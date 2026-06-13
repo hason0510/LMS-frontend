@@ -290,7 +290,7 @@ export default function AdminDashboard() {
       <AdminSidebar />
 
       <main
-        className={`pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+        className={`pt-24 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
           sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
         }`}
       >

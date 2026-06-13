@@ -96,6 +96,7 @@ export default function QuizDetail() {
   // Get quiz statistics
   const totalQuestions = quiz.questionCount ?? (quiz.questions?.length || 0);
   const timeLimitMinutes = quiz.timeLimitMinutes || 0;
+  const timeLimitLabel = timeLimitMinutes > 0 ? `${timeLimitMinutes} phút` : "Không giới hạn";
   const minPassScore = quiz.minPassScore || 0;
   const maxAttempts = quiz.maxAttempts; // null nghĩa là không giới hạn
 
@@ -164,7 +165,7 @@ export default function QuizDetail() {
                   Thời gian
                 </p>
                 <p className="text-[#111418] dark:text-white text-2xl font-bold">
-                  {timeLimitMinutes} phút
+                  {timeLimitLabel}
                 </p>
               </div>
             </div>
@@ -205,7 +206,7 @@ export default function QuizDetail() {
             </h2>
             <div className="bg-blue-50 dark:bg-primary/10 p-5 rounded-xl text-[#111418] dark:text-gray-300">
               <ul className="list-disc ml-5 space-y-2 text-sm leading-relaxed">
-                <li>Hệ thống sẽ tự động nộp bài khi hết thời gian quy định.</li>
+                {timeLimitMinutes > 0 && <li>Hệ thống sẽ tự động nộp bài khi hết thời gian quy định.</li>}
                 <li>Nếu trình duyệt bị đóng đột ngột, bạn có thể quay lại làm bài nếu còn thời gian.</li>
                 <li>Kết quả sẽ được hiển thị ngay sau khi bạn nhấn nút "Nộp bài".</li>
                 <li>Bạn cần đạt ít nhất {minPassScore}% số điểm để hoàn thành bài kiểm tra.</li>
@@ -229,7 +230,8 @@ export default function QuizDetail() {
                       <th className="px-6 py-4">Ngày thực hiện</th>
                       <th className="px-6 py-4">Thời gian</th>
                       <th className="px-6 py-4">Điểm số</th>
-                      <th className="px-6 py-4 text-center">Trạng thái</th>
+                      <th className="px-6 py-4">Trạng thái</th>
+                      <th className="px-6 py-4 text-right">Chi tiết</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#dbe0e6] dark:divide-[#2d3748]">
@@ -250,7 +252,7 @@ export default function QuizDetail() {
                           <td className="px-6 py-4 font-bold" style={{ color: attempt.isPassed ? '#1d8f44' : '#d32f2f' }}>
                             {attempt.grade}/100
                           </td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-6 py-4">
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 attempt.isPassed
@@ -260,6 +262,20 @@ export default function QuizDetail() {
                             >
                               {attempt.isPassed ? 'Đạt' : 'Không đạt'}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate(
+                                  `/class-sections/${classSectionId}/quizzes/${id}/attempts/${attempt.id}?classContentItemId=${classContentItemId}`,
+                                  { state: { attemptId: attempt.id, classContentItemId } }
+                                )
+                              }
+                              className="inline-flex items-center rounded-lg border border-primary/20 px-3 py-1.5 text-sm font-semibold text-primary transition hover:bg-primary/5"
+                            >
+                              Xem
+                            </button>
                           </td>
                         </tr>
                       );

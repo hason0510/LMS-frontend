@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Table, Tag } from "antd";
 import { useTranslation } from "react-i18next";
+import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -14,10 +15,8 @@ import { getAllSubjects, getSubjectsByCategory } from "../../api/subject";
 
 const { TextArea } = Input;
 const DEFAULT_PAGE_SIZE = 10;
-const ACTION_BUTTON_CLASS =
-  "!rounded-md !border !border-slate-300 !bg-white !px-3 !text-slate-700 hover:!border-slate-400 hover:!bg-slate-50 hover:!text-slate-900 dark:!border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!border-slate-500 dark:hover:!bg-slate-700 dark:hover:!text-white";
-const DANGER_BUTTON_CLASS =
-  "!rounded-md !border !border-red-300 !bg-white !px-3 !text-red-600 hover:!border-red-400 hover:!bg-red-50 hover:!text-red-700 dark:!border-red-900/60 dark:!bg-slate-800 dark:!text-red-300 dark:hover:!border-red-700 dark:hover:!bg-red-950/40 dark:hover:!text-red-200";
+const ACTION_BUTTON_CLASS = "app-table-action-btn";
+const DANGER_BUTTON_CLASS = "app-table-action-btn app-table-action-btn--danger";
 
 function normalizeCategories(payload) {
   return Array.isArray(payload?.data?.pageList) ? payload.data.pageList : [];
@@ -320,19 +319,27 @@ export default function QuestionBanks({ isAdmin = false }) {
       {
         title: t("teacherLists.questionBanks.columns.action"),
         key: "action",
-        width: 220,
-        align: "right",
+        width: 140,
+        align: "center",
         render: (_, record) => {
           const canManage = isAdmin || record.myRole === "OWNER";
           return (
-            <div className="flex justify-end gap-2">
-              <Button className={ACTION_BUTTON_CLASS} onClick={() => navigate(`/${userRole}/question-banks/${record.id}`)}>
-                {t("teacherLists.shared.view")}
-              </Button>
+            <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="p-1 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
+                title={t("teacherLists.shared.view")}
+                onClick={() => navigate(`/${userRole}/question-banks/${record.id}`)}
+              >
+                <EyeIcon className="h-4 w-4" />
+              </button>
               {canManage && (
-                <Button className={ACTION_BUTTON_CLASS} onClick={() => openEditModal(record)}>
-                  {t("teacherLists.shared.edit")}
-                </Button>
+                <button
+                  className="p-1 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
+                  title={t("teacherLists.shared.edit")}
+                  onClick={() => openEditModal(record)}
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </button>
               )}
               {canManage && (
                 <Popconfirm
@@ -343,7 +350,12 @@ export default function QuestionBanks({ isAdmin = false }) {
                   okButtonProps={{ danger: true }}
                   onConfirm={() => handleDelete(record.id)}
                 >
-                  <Button className={DANGER_BUTTON_CLASS}>{t("teacherLists.shared.delete")}</Button>
+                  <button
+                    className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                    title={t("teacherLists.shared.delete")}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
                 </Popconfirm>
               )}
             </div>
@@ -363,7 +375,7 @@ export default function QuestionBanks({ isAdmin = false }) {
           <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
             <AppBreadcrumb className="mb-4" />
 
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+            <div className="app-table-shell">
               <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>

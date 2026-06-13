@@ -67,6 +67,12 @@ export const exportGiftQuestions = async (bankId) => {
   });
 };
 
+export const exportAikenQuestions = async (bankId) => {
+  return axiosClient.get(`question-banks/${bankId}/export-aiken`, {
+    responseType: "blob",
+  });
+};
+
 // ==========================================
 // Tags Management
 // ==========================================

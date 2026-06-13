@@ -7,28 +7,28 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import QuizRichText from "../../components/common/QuizRichText";
+import ResourcePreview from "../../components/common/ResourcePreview";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   addMember,
-  createQuestion,
   createTag,
   createTagsBatch,
   deleteQuestionBank,
   deleteQuestion,
   deleteTag,
   exportGiftQuestions,
+  exportAikenQuestions,
   getMembers,
   getQuestionBankById,
   getTags,
   importGiftQuestions,
   removeMember,
   updateMemberRole,
-  updateQuestion,
   updateQuestionBank,
   updateTag,
 } from "../../api/questionBank";
 import { searchUsers } from "../../api/user";
-import QuestionModal from "../../components/teacher/QuestionModal";
 
 const toArray = (value) => {
   if (Array.isArray(value)) return value;
@@ -55,9 +55,6 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState(null);
-  const [saveLoading, setSaveLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [deleteBankLoading, setDeleteBankLoading] = useState(false);
@@ -184,31 +181,13 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     }
   };
 
-  const handleSaveQuestion = async (values) => {
-    if (!canEditContent) return;
-    try {
-      setSaveLoading(true);
-      if (editingQuestion) {
-        await updateQuestion(editingQuestion.id, values);
-        message.success(t("questionBank.capNhatCauHoiThanhCong"));
-      } else {
-        await createQuestion(id, values);
-        message.success(t("questionBank.themCauHoiThanhCong"));
-      }
-      setModalVisible(false);
-      setEditingQuestion(null);
-      await fetchBank();
-    } catch (err) {
-      message.error(err?.response?.data?.message || t("questionBank.loi"));
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
   const handleEditQuestion = (record) => {
     if (!canEditContent) return;
-    setEditingQuestion(record);
-    setModalVisible(true);
+    navigate(
+      isAdmin
+        ? `/admin/question-banks/${id}/questions/${record.id}/edit`
+        : `/teacher/question-banks/${id}/questions/${record.id}/edit`
+    );
   };
 
   const handleSaveTag = async () => {
@@ -351,27 +330,45 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     }
   };
 
+  const downloadQuestionBankExport = (response, fallbackFilename) => {
+    const blob = new Blob([response.data], { type: "text/plain;charset=utf-8" });
+    const disposition = response.headers?.["content-disposition"] || "";
+    const match = /filename=\"?([^\"]+)\"?/i.exec(disposition);
+    const filename = match?.[1] || fallbackFilename;
+
+    const downloadUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(downloadUrl);
+  };
+
   const handleExportGift = async () => {
     if (!canEditContent) return;
     try {
       setExportLoading(true);
       const response = await exportGiftQuestions(id);
-      const blob = new Blob([response.data], { type: "text/plain;charset=utf-8" });
-      const disposition = response.headers?.["content-disposition"] || "";
-      const match = /filename=\"?([^\"]+)\"?/i.exec(disposition);
-      const filename = match?.[1] || `question-bank-${id}.gift.txt`;
-
-      const downloadUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = downloadUrl;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(downloadUrl);
+      downloadQuestionBankExport(response, `question-bank-${id}.gift.txt`);
       message.success(t("questionBank.exportThanhCong", "Đã export GIFT"));
     } catch (err) {
       message.error(err?.response?.data?.message || t("questionBank.exportThatBai", "Export GIFT thất bại"));
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportAiken = async () => {
+    if (!canEditContent) return;
+    try {
+      setExportLoading(true);
+      const response = await exportAikenQuestions(id);
+      downloadQuestionBankExport(response, `question-bank-${id}.aiken.txt`);
+      message.success(t("questionBank.exportAikenThanhCong", "Đã export AIKEN"));
+    } catch (err) {
+      message.error(err?.response?.data?.message || t("questionBank.exportAikenThatBai", "Export AIKEN thất bại"));
     } finally {
       setExportLoading(false);
     }
@@ -561,8 +558,9 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     columns.push({
       title: t("questionBank.hanhDong"),
       key: "action",
+      align: "center",
       render: (_, record) => (
-        <div className="flex gap-2">
+        <div className="flex items-center justify-center gap-2">
           <Button size="small" onClick={() => handleEditQuestion(record)}>
             {t("questionBank.sua")}
           </Button>
@@ -592,6 +590,12 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       icon: <ArrowDownTrayIcon className="w-4 h-4" />,
       label: t("questionBank.exportGift") || "Export GIFT (.txt)",
       onClick: handleExportGift,
+    },
+    {
+      key: 'export_aiken',
+      icon: <ArrowDownTrayIcon className="w-4 h-4" />,
+      label: t("questionBank.exportAiken"),
+      onClick: handleExportAiken,
     }] : []),
     ...(canDeleteBank ? [
       { type: 'divider', key: 'divider' },
@@ -605,13 +609,125 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     ] : [])
   ];
 
+  const renderQuestionDetails = (question) => {
+    const options = Array.isArray(question?.options) ? question.options : [];
+    const items = Array.isArray(question?.items) ? question.items : [];
+    const prompts = items.filter((item) => item.role === "PROMPT");
+    const matches = items.filter((item) => item.role === "MATCH");
+    const orderItems = [...items]
+      .filter((item) => item.role === "ORDER_ITEM")
+      .sort((left, right) => (left.correctOrderIndex || left.orderIndex || 0) - (right.correctOrderIndex || right.orderIndex || 0));
+    const blanks = [...items]
+      .filter((item) => item.role === "BLANK")
+      .sort((left, right) => (left.blankIndex || 0) - (right.blankIndex || 0));
+    const matchByKey = new Map(matches.map((item) => [item.itemKey, item]));
+
+    return (
+      <div className="space-y-5 rounded-xl bg-slate-50 p-5 dark:bg-slate-950/50">
+        <div className="space-y-3">
+          <QuizRichText html={question?.content || ""} className="text-sm text-slate-800 dark:text-slate-100" />
+          <ResourcePreview resource={question?.resource} />
+        </div>
+
+        {options.length > 0 && (
+          <div className="space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Đáp án</div>
+            <div className="space-y-3">
+              {options.map((option, index) => (
+                <div key={option.id || `option-${index}`} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Tag color={option.isCorrect ? "green" : "default"} className="m-0">
+                      {option.isCorrect ? "Đúng" : "Sai"}
+                    </Tag>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">#{index + 1}</span>
+                  </div>
+                  <QuizRichText html={option.content || ""} className="text-sm text-slate-800 dark:text-slate-100" />
+                  <ResourcePreview resource={option.resource} className="mt-2" />
+                  {option.explanation && (
+                    <div className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Giải thích</div>
+                      <QuizRichText html={option.explanation} className="text-sm text-slate-600 dark:text-slate-300" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(question?.type === "MATCHING" || question?.type === "IMAGE_MATCHING") && prompts.length > 0 && (
+          <div className="space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Cặp ghép</div>
+            <div className="space-y-3">
+              {prompts.map((prompt, index) => {
+                const matched = matchByKey.get(prompt.correctMatchKey);
+                return (
+                  <div key={prompt.id || `prompt-${index}`} className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900 md:grid-cols-[1fr_auto_1fr]">
+                    <div className="space-y-2">
+                      <QuizRichText html={prompt.content || ""} className="text-sm text-slate-800 dark:text-slate-100" />
+                      <ResourcePreview resource={prompt.resource} />
+                    </div>
+                    <div className="flex items-center justify-center text-sm font-semibold text-slate-400 dark:text-slate-500">-&gt;</div>
+                    <div className="space-y-2">
+                      <QuizRichText html={matched?.content || ""} className="text-sm text-slate-800 dark:text-slate-100" />
+                      <ResourcePreview resource={matched?.resource} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {question?.type === "DRAG_ORDER" && orderItems.length > 0 && (
+          <div className="space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Thứ tự đúng</div>
+            <div className="flex flex-wrap items-center gap-2">
+              {orderItems.map((item, index) => (
+                <React.Fragment key={item.id || `order-${index}`}>
+                  <div className="min-w-[180px] flex-1 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                    <QuizRichText html={item.content || ""} className="text-sm text-slate-800 dark:text-slate-100" />
+                    <ResourcePreview resource={item.resource} className="mt-2" />
+                  </div>
+                  {index < orderItems.length - 1 && (
+                    <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">-&gt;</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {question?.type === "CLOZE" && blanks.length > 0 && (
+          <div className="space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Chỗ trống</div>
+            <div className="space-y-3">
+              {blanks.map((blank, index) => (
+                <div key={blank.id || `blank-${index}`} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                  <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Chỗ trống {blank.blankIndex ?? index + 1}
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                    {Array.isArray(blank.acceptedAnswers) && blank.acceptedAnswers.length > 0
+                      ? blank.acceptedAnswers.join(" / ")
+                      : "-"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="question-bank-detail-page min-h-screen bg-background-light dark:bg-background-dark text-[#111418] dark:text-white">
       <TeacherHeader />
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 bg-slate-50 dark:bg-slate-900 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-          <div className="px-6 py-8 mx-auto max-w-5xl">
+          <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
             <AppBreadcrumb className="mb-6" context={{ questionBankName: bank?.name }} />
 
             {loading ? (
@@ -655,12 +771,14 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                     {canEditContent && (
                       <Button
                         type="primary"
-                        icon={<PlusCircleIcon className="w-5 h-5" />}
                         className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 border-0 px-5 shadow-sm h-9"
-                        onClick={() => {
-                          setEditingQuestion(null);
-                          setModalVisible(true);
-                        }}
+                        onClick={() =>
+                          navigate(
+                            isAdmin
+                              ? `/admin/question-banks/${id}/questions/create`
+                              : `/teacher/question-banks/${id}/questions/create`
+                          )
+                        }
                       >
                         {t("questionBank.themCauHoi")}
                       </Button>
@@ -696,7 +814,22 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                       />
                     </div>
                   </div>
-                  <Table dataSource={safeQuestions} columns={columns} rowKey="id" pagination={{ pageSize: 15 }} className="question-bank-detail-table" />
+                  <Table
+                    dataSource={safeQuestions}
+                    columns={columns}
+                    rowKey="id"
+                    pagination={{ pageSize: 15 }}
+                    className="[&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:font-semibold [&_.ant-table-thead_th]:text-slate-600 dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
+                    scroll={{ x: 800 }}
+                    expandable={{
+                      expandedRowRender: renderQuestionDetails,
+                      rowExpandable: (record) =>
+                        Boolean(record?.content)
+                        || (Array.isArray(record?.options) && record.options.length > 0)
+                        || (Array.isArray(record?.items) && record.items.length > 0)
+                        || Boolean(record?.resource),
+                    }}
+                  />
                 </div>
 
                 {canManageMembers && (
@@ -724,7 +857,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           { value: "VIEWER", label: "VIEWER" },
                         ]}
                       />
-                      <Button type="primary" icon={<UserPlusIcon className="w-4 h-4" />} loading={memberActionLoading} onClick={handleAddMember} className="bg-blue-600 hover:bg-blue-700 h-8 dark:bg-blue-600 dark:hover:bg-blue-500">
+                      <Button type="primary" loading={memberActionLoading} onClick={handleAddMember} className="bg-blue-600 hover:bg-blue-700 h-8 dark:bg-blue-600 dark:hover:bg-blue-500">
                         {t("questionBank.them")}
                       </Button>
                     </div>
@@ -734,7 +867,8 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                       loading={membersLoading}
                       dataSource={safeMembers}
                       pagination={false}
-                      className="border border-gray-100 dark:border-gray-800 rounded-md overflow-hidden"
+                      className="[&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:font-semibold [&_.ant-table-thead_th]:text-slate-600 dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
+                      scroll={{ x: 600 }}
                       columns={[
                         {
                           title: t("common.thanhVien", "Thành viên"),
@@ -755,26 +889,27 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                         {
                           title: t("questionBank.hanhDong"),
                           key: "action",
+                          align: "center",
                           render: (_, record) => {
                             if (record.role === "OWNER") {
-                              return <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300">{t("questionBank.ownerHienTai")}</span>;
+                              return <div className="flex justify-center"><span className="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300">{t("questionBank.ownerHienTai")}</span></div>;
                             }
                             return (
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex flex-wrap items-center justify-center gap-2">
                                 {record.role !== "EDITOR" && (
-                                  <Button size="small" onClick={() => handleSetMemberRole(record, "EDITOR")} loading={memberActionLoading} className="text-xs">
+                                  <Button size="small" onClick={() => handleSetMemberRole(record, "EDITOR")} loading={memberActionLoading} className="app-table-action-btn text-xs font-medium !rounded-lg">
                                     {t("questionBank.datRoleEditor")}
                                   </Button>
                                 )}
                                 {record.role !== "VIEWER" && (
-                                  <Button size="small" onClick={() => handleSetMemberRole(record, "VIEWER")} loading={memberActionLoading} className="text-xs">
+                                  <Button size="small" onClick={() => handleSetMemberRole(record, "VIEWER")} loading={memberActionLoading} className="app-table-action-btn text-xs font-medium !rounded-lg">
                                     {t("questionBank.datRoleViewer")}
                                   </Button>
                                 )}
-                                <Button size="small" onClick={() => handleSetMemberRole(record, "OWNER")} loading={memberActionLoading} className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50 hover:border-amber-400 dark:text-amber-300 dark:border-amber-900/60 dark:hover:bg-amber-950/20 dark:hover:border-amber-700">
+                                <Button size="small" onClick={() => handleSetMemberRole(record, "OWNER")} loading={memberActionLoading} className="text-xs font-medium !rounded-lg !text-amber-600 !border-amber-200 !bg-white hover:!bg-amber-50 hover:!border-amber-400 dark:!text-amber-400 dark:!border-amber-800 dark:!bg-slate-800 dark:hover:!bg-amber-900/40 dark:hover:!border-amber-600 transition-colors">
                                   {t("questionBank.chuyenOwner")}
                                 </Button>
-                                <Button size="small" danger onClick={() => handleRemoveMember(record)} loading={memberActionLoading} className="text-xs">
+                                <Button size="small" danger onClick={() => handleRemoveMember(record)} loading={memberActionLoading} className="app-table-action-btn app-table-action-btn--danger text-xs font-medium !rounded-lg">
                                   {t("questionBank.xoa")}
                                 </Button>
                               </div>
@@ -785,19 +920,6 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                     />
                   </div>
                 )}
-
-                <QuestionModal
-                  open={modalVisible}
-                  onCancel={() => {
-                    setModalVisible(false);
-                    setEditingQuestion(null);
-                  }}
-                  onFinish={handleSaveQuestion}
-                  initialValues={editingQuestion}
-                  loading={saveLoading}
-                  existingTags={safeBankTags}
-                  questionBankId={id}
-                />
 
                 <Modal
                   title={<span className="text-lg font-bold text-gray-800 dark:text-gray-100">{t("questionBank.quanLyTag")}</span>}
@@ -910,14 +1032,16 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                          <PlusCircleIcon className="w-4 h-4 text-emerald-500" />
                          {t("questionBank.taoNhieuTag")}
                       </p>
-                      <Input.TextArea
-                        rows={3}
-                        value={batchInput}
-                        onChange={(e) => setBatchInput(e.target.value)}
-                        placeholder="chuong-1, chuong-2&#10;dinh-ly-pythagore"
-                      />
+                      <div className="mb-4">
+                        <Input.TextArea
+                          rows={3}
+                          value={batchInput}
+                          onChange={(e) => setBatchInput(e.target.value)}
+                          placeholder="chuong-1, chuong-2&#10;dinh-ly-pythagore"
+                        />
+                      </div>
                       <Button
-                        className="mt-3 rounded-lg bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-medium"
+                        className="rounded-lg bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-medium"
                         loading={tagActionLoading}
                         onClick={handleBatchCreate}
                         icon={<PlusCircleIcon className="w-4 h-4" />}

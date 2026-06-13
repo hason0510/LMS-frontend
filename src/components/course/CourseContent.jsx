@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
+import UserIdentity from "../../components/common/UserIdentity";
 import {
   PlusIcon,
   EllipsisVerticalIcon,
@@ -735,18 +736,16 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                 {/* Chapter header */}
                 <div
                   onClick={() => handleToggleChapter(chapter.id)}
-                  className={`flex cursor-pointer items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                    isExpanded ? "bg-slate-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-gray-700" : ""
-                  }`}
+                  className={`flex cursor-pointer items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${isExpanded ? "bg-slate-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-gray-700" : ""
+                    }`}
                 >
                   {/* Left: expand toggle + title */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div
-                      className={`p-1.5 rounded-lg shrink-0 transition-colors ${
-                        isExpanded
-                          ? "bg-primary text-white"
-                          : "bg-gray-100 dark:bg-gray-700 text-gray-500"
-                      }`}
+                      className={`p-1.5 rounded-lg shrink-0 transition-colors ${isExpanded
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-500"
+                        }`}
                     >
                       <PlusIcon
                         className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-45" : ""}`}
@@ -809,9 +808,8 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                     )}
 
                     <span
-                      className={`material-symbols-outlined text-gray-400 transition-transform duration-300 select-none ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
+                      className={`material-symbols-outlined text-gray-400 transition-transform duration-300 select-none ${isExpanded ? "rotate-180" : ""
+                        }`}
                     >
                       expand_more
                     </span>
@@ -841,11 +839,10 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                           return (
                             <div
                               key={item.id}
-                              className={`p-3.5 bg-slate-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 flex items-center gap-3 transition-all ${
-                                isStudentBlocked || isTeachingBlocked
-                                  ? "opacity-70 cursor-not-allowed"
-                                  : "hover:shadow-sm hover:border-primary/30 cursor-pointer"
-                              }`}
+                              className={`p-3.5 bg-slate-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 flex items-center gap-3 transition-all ${isStudentBlocked || isTeachingBlocked
+                                ? "opacity-70 cursor-not-allowed"
+                                : "hover:shadow-sm hover:border-primary/30 cursor-pointer"
+                                }`}
                               onClick={() => handleClickItem(item)}
                             >
                               {/* Type icon */}
@@ -857,17 +854,16 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
                               {/* Title + badges */}
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-[#111418] dark:text-white truncate">
+                                <p className="!m-0 font-semibold leading-none text-sm text-[#111418] dark:text-white truncate">
                                   {item.displayTitle || item.title || t("classContent.unknownItem")}
                                 </p>
-                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                                   <span className="text-xs text-gray-500 dark:text-gray-400">{typeConfig.label}</span>
                                   {completionMeta?.label && (
-                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                                      completionMeta.completed
-                                        ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-300"
-                                        : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                                    }`}>
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${completionMeta.completed
+                                      ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-300"
+                                      : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                                      }`}>
                                       {completionMeta.label}
                                     </span>
                                   )}
@@ -902,9 +898,9 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                               {userRole === "STUDENT" && (
                                 <div className="flex shrink-0 items-center justify-center">
                                   {completionMeta?.completed ? (
-                                      <div className="flex h-9 w-9 items-center justify-center">
-                                        <CheckCircleSolidIcon className="h-7 w-7 text-green-500 dark:text-green-400" />
-                                      </div>
+                                    <div className="flex h-9 w-9 items-center justify-center">
+                                      <CheckCircleSolidIcon className="h-7 w-7 text-green-500 dark:text-green-400" />
+                                    </div>
                                   ) : item.accessible === false ? (
                                     <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                                       <LockClosedIcon className="h-4 w-4" />
@@ -955,24 +951,24 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleMoveItem(chapter.id, itemIndex, "up");
-                                      }}
-                                      disabled={!canManageThisItem || itemIndex === 0 || reorderingItem}
-                                      className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                                      title={tc("tooltips.moveUp")}
-                                    >
-                                      <ChevronUpIcon className="h-4 w-4" />
-                                    </button>
+                                    }}
+                                    disabled={!canManageThisItem || itemIndex === 0 || reorderingItem}
+                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                    title={tc("tooltips.moveUp")}
+                                  >
+                                    <ChevronUpIcon className="h-4 w-4" />
+                                  </button>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleMoveItem(chapter.id, itemIndex, "down");
-                                      }}
-                                      disabled={!canManageThisItem || itemIndex === items.length - 1 || reorderingItem}
-                                      className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                                      title={tc("tooltips.moveDown")}
-                                    >
-                                      <ChevronDownIcon className="h-4 w-4" />
-                                    </button>
+                                    }}
+                                    disabled={!canManageThisItem || itemIndex === items.length - 1 || reorderingItem}
+                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                    title={tc("tooltips.moveDown")}
+                                  >
+                                    <ChevronDownIcon className="h-4 w-4" />
+                                  </button>
                                   <button
                                     onClick={(e) => {
                                       if (canEditAssignmentDefinition) {
@@ -1022,8 +1018,8 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                         })}
                       </div>
                     ) : (
-                    <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                      <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                           {tc("empty.chapterHasNoContent")}
                         </p>
                         {(canMutateContent || canManageAssignmentContent) && (
@@ -1351,27 +1347,15 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                     key={row.studentId}
                     className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 md:flex-row md:items-center md:justify-between"
                   >
-                    <div className="flex min-w-0 items-center gap-3">
-                      {row.avatarUrl ? (
-                        <img
-                          src={row.avatarUrl}
-                          alt={row.studentName || t("classContent.lessonCompletion.table.student")}
-                          className="h-11 w-11 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                        />
-                      ) : (
-                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-                          {initials}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
-                          {row.studentName || t("reportsPage.shared.defaults.noName")}
-                        </p>
-                        <p className="m-0 truncate text-xs text-slate-500 dark:text-slate-400">
-                          {row.studentNumber || row.email || t("classContent.lessonCompletion.defaults.noStudentInfo")}
-                        </p>
-                      </div>
-                    </div>
+                    <UserIdentity
+                      user={{
+                        name: row.studentName || t("reportsPage.shared.defaults.noName"),
+                        avatarUrl: row.avatarUrl
+                      }}
+                      secondaryText={row.studentNumber || row.email || t("classContent.lessonCompletion.defaults.noStudentInfo")}
+                      avatarSizeClass="size-11"
+                      className="min-w-0"
+                    />
 
                     <div className="grid gap-3 md:grid-cols-[140px_180px] md:items-center">
                       <div>
@@ -1379,11 +1363,10 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                           {t("classContent.lessonCompletion.table.status")}
                         </p>
                         <span
-                          className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                            row.completed
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
-                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
-                          }`}
+                          className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${row.completed
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+                            }`}
                         >
                           {row.completed
                             ? t("classContent.lessonCompletion.status.completed")

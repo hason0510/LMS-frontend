@@ -14,6 +14,7 @@
     "banCoChacChanMuonDangXuat": "Are you sure you want to logout from the system?",
     "huyboDangXuat": "Logout",
     "huyBo": "Cancel",
+    "huy": "Cancel",
     "dangXuLy": "Processing...",
     "thanhVien": "Member"
   },
@@ -356,7 +357,10 @@
     "datMatKhauLocalThanhCong": "Login password set successfully!",
     "doiMatKhauThatBai": "Password change failed. Please try again.",
     "dangTaiKhoaHoc": "Loading courses...",
-    "loi": "Error"
+    "loi": "Error",
+    "lopHocCuaToi": "My Classes",
+    "tiepTucHocTap": "Continue learning in your classes.",
+    "khamPhaCacLopHoc": "Explore classes"
   },
   "auth": {
     "dangnhapLai": "Welcome back!",
@@ -761,7 +765,10 @@
       "AUDIO": "Audio",
       "PDF": "PDF",
       "FILE": "File",
-      "LINK": "Link"
+      "LINK": "Link",
+      "DOCX": "Word Document",
+      "SLIDE": "Presentation / Spreadsheet",
+      "ARCHIVE": "Archive"
     },
     "scopes": {
       "QUESTION_BANK": "Question bank",
@@ -873,6 +880,7 @@
     "actions": {
       "upload": "Upload media",
       "save": "Save",
+      "loadMore": "Load more",
       "restore": "Restore",
       "archive": "Archive",
       "delete": "Delete"
@@ -920,6 +928,7 @@
     "option": "Option",
     "add": "Add",
     "addNewAnswer": "Add new answer",
+
     "addExplanation": "+ Add explanation",
     "editExplanation": "Edit explanation",
     "explanationPlaceholder": "Explanation shown after submission...",
@@ -927,12 +936,17 @@
     "enterQuestion": "Enter question...",
     "enterAnswer": "Enter answer...",
     "questionInstruction": "Question instruction (optional)",
+    "acceptedKeywords": "Accepted keywords",
+    "itemTextPlaceholder": "Item text...",
+    "keywordPlaceholder": "Keyword {{index}}",
+    "addKeyword": "Add keyword",
     "types": {
       "SINGLE_CHOICE": "Single choice",
       "MULTIPLE_CHOICE": "Multiple choice",
       "TRUE_FALSE": "True / False",
       "MATCHING": "Matching",
       "IMAGE_MATCHING": "Image matching",
+      "IMAGE_ANSWERING": "Image choice",
       "SHORT_ANSWER": "Short answer",
       "CLOZE": "Fill in the gap",
       "DRAG_ORDER": "Ordering",
@@ -958,6 +972,7 @@
     "timTag": "Search tag by name",
     "importGiftAiken": "Import GIFT/AIKEN (.txt)",
     "exportGift": "Export GIFT (.txt)",
+    "exportAiken": "Export AIKEN (.txt)",
     "themCauHoi": "Add Question",
     "themCauHoiMoi": "Add new question",
     "suaCauHoi": "Edit question",
@@ -1023,6 +1038,14 @@
     "vuiLongChonItNhatMotDapAnDung": "Please select at least one correct answer",
     "vuiLongNhapNoiDungTatCaDapAn": "Please enter content for all answers",
     "loi": "Error",
+    "coCauHoiBoQua": "{{count}} questions were skipped",
+    "importThanhCong": "Imported {{count}} questions successfully",
+    "importCanhBao": "Some questions do not match the supported GIFT/AIKEN format.",
+    "importThatBai": "Import GIFT/AIKEN failed",
+    "exportThanhCong": "GIFT export completed",
+    "exportThatBai": "GIFT export failed",
+    "exportAikenThanhCong": "AIKEN export completed",
+    "exportAikenThatBai": "AIKEN export failed",
     "xoaCauHoiThanhCong": "Question deleted",
     "capNhatCauHoiThanhCong": "Question updated successfully",
     "themCauHoiThanhCong": "Question added successfully",
@@ -1043,6 +1066,23 @@
     "xacNhanXoaThanhVien": "Confirm remove member",
     "vuiLongNhapTen": "Please enter a name",
     "tenQuaDai": "Name cannot exceed 200 characters"
+  },
+  "questionBankEditor": {
+    "createTitle": "Add question",
+    "editTitle": "Edit question",
+    "save": "Save question",
+    "cancel": "Cancel",
+    "metadata": "Question metadata",
+    "tagsPlaceholder": "Enter tags and press Enter",
+    "mediaScopeTitle": "Media scope",
+    "mediaScopeDescription": "Media attached in this editor is stored in the current question bank media library.",
+    "clozePlaceholder": "Enter text with [[answer]] or [[correct|option 1|option 2]]",
+    "clozeExample": "She was born in [[Paris]] and studied [[science|art|history]].",
+    "preview": "Preview",
+    "clozeContentHint": "For CLOZE questions, the question content is configured directly in the answer section below.",
+    "questionContentRequired": "Please enter the question content.",
+    "imageCaptionPlaceholder": "Image caption (optional)",
+    "questionNotFound": "Question not found in this question bank."
   },
   "quizEditor": {
     "quizBadge": "Quiz",
@@ -1122,6 +1162,7 @@
       "loadBanksFailed": "Failed to load question banks",
       "loadBankQuestionsFailed": "You do not have member access to this question bank",
       "titleRequired": "Quiz title is required",
+      "atLeastOneQuestionRequired": "A quiz must contain at least one question",
       "quizSaved": "Quiz saved",
       "quizCreated": "Quiz created",
       "saveQuizFailed": "Failed to save quiz",
@@ -1173,7 +1214,8 @@
     "messages": {
       "created": "Announcement published",
       "updated": "Announcement updated",
-      "deleted": "Announcement deleted"
+      "deleted": "Announcement deleted",
+      "deleteConfirm": "Are you sure you want to delete this announcement?"
     },
     "validation": {
       "classRequired": "Please select a class",
@@ -1229,13 +1271,23 @@
     "type": "Type",
     "givenAnswer": "Given Answer",
     "correctAnswer": "Correct Answer",
+    "prompt": "Prompt",
+    "notSelected": "Not selected",
+    "noCorrectAnswer": "No correct answer",
     "completedAt": "Completed At",
     "back": "Back",
-      "search": "Search quiz or student...",
+      "filters": {
+        "classSection": "Select class",
+        "quiz": "Select quiz in class",
+        "studentKeyword": "Search by student name or student number...",
+        "reset": "Reset"
+      },
       "saveReview": "Save Review",
       "reviewSaved": "Review saved",
       "reviewSaveFailed": "Could not save review",
       "loadFailed": "Could not load quiz attempts",
+      "loadFiltersFailed": "Could not load class list",
+      "loadQuizOptionsFailed": "Could not load quizzes for this class",
       "empty": "No attempts match the current filters.",
       "answerFeedback": "Feedback for this answer",
       "instructorFeedback": "Instructor overall feedback",
@@ -1333,10 +1385,14 @@
         "pendingReviews": "Pending Reviews"
       },
       "errors": {
-        "loadClass": "Unable to load class"
+        "loadClass": "Unable to load class",
+        "createAnnouncement": "Unable to create class announcement"
       },
       "messages": {
         "announcementCreated": "Class announcement posted."
+      },
+      "actions": {
+        "createAnnouncement": "Create announcement"
       },
       "media": "Class Media",
       "archived": {
@@ -1627,7 +1683,8 @@
         "filtered": "No students match the current filter."
       },
       "messages": {
-        "loadFailed": "Unable to load lesson completion."
+        "loadFailed": "Unable to load lesson completion.",
+        "cannotResolveItem": "Unable to resolve the selected content item."
       },
       "defaults": {
         "noStudentInfo": "No contact details yet",
@@ -1716,10 +1773,13 @@
     },
     "time": {
       "justNow": "just now",
+      "minutesAgo": "{{count}} minutes ago",
       "minutesAgo_one": "{{count}} minute ago",
       "minutesAgo_other": "{{count}} minutes ago",
+      "hoursAgo": "{{count}} hours ago",
       "hoursAgo_one": "{{count}} hour ago",
       "hoursAgo_other": "{{count}} hours ago",
+      "daysAgo": "{{count}} days ago",
       "daysAgo_one": "{{count}} day ago",
       "daysAgo_other": "{{count}} days ago"
     }
@@ -1829,7 +1889,9 @@
         "averageQuizScore": "Average quiz score",
         "averageQuizScoreHint": "Highest score recorded: {{score}}",
         "averageProgress": "Average progress",
-        "averageProgressHint": "{{count}} students are at {{high}}% progress or above"
+        "averageProgressHint": "{{count}} students are at {{high}}% progress or above",
+        "teachingAssistants": "Teaching assistants",
+        "teachingAssistantsHint": "{{count}} teaching assistants are helping this class"
       },
       "summary": {
         "trackedQuizzes": "Tracked quizzes",
@@ -2045,6 +2107,9 @@
         "notSubmitted": "Not submitted",
         "scoreUnit": "pts"
       },
+      "loading": {
+        "gradebook": "Loading the gradebook for this class."
+      },
       "empty": {
         "classSections": "There are no class sections to display in this report.",
         "gradebook": "There is no quiz data in this class yet.",
@@ -2065,6 +2130,8 @@
         "subtitle": "Follow student progress, quiz results, assignments, and join requests for each class you lead.",
         "scopeLabel": "Current class",
         "scopeValue": "Choose a class to see details",
+        "assistantsLabel": "Class assistants",
+        "assistantsValue": "{{count}} teaching assistants",
         "sourceLabel": "What you are tracking",
         "sourceValue": "Progress, quizzes, assignments, and requests"
       },
@@ -2113,7 +2180,9 @@
         "subjects": "Subjects",
         "subjectsHint": "Subjects that currently have active classes",
         "pendingEnrollments": "Join requests waiting",
-        "pendingEnrollmentsHint": "Students currently waiting to enter a class"
+        "pendingEnrollmentsHint": "Students currently waiting to enter a class",
+        "assistants": "Teaching assistants helping",
+        "assistantsHint": "{{count}} teaching assistants are currently supporting tracked classes."
       },
       "sections": {
         "statusDistribution": {

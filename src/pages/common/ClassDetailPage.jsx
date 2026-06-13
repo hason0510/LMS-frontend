@@ -729,6 +729,7 @@ export default function ClassSectionDetailPage() {
           open={staffModalOpen}
           classSectionId={Number(id)}
           canManageStaff={canManageStaff && !isArchived}
+          allowPrimaryTeacherAssignment={false}
           onClose={() => setStaffModalOpen(false)}
           onChanged={fetchCourse}
         />
@@ -754,7 +755,7 @@ export default function ClassSectionDetailPage() {
   return (
     <div className="class-section-detail-page min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-gray-100">
       <Header />
-      <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-8 sm:px-6 lg:px-8">
         <AppBreadcrumb className="mb-5" context={{ classTitle: course?.title || course?.classCode }} />
 
         <div className="grid grid-cols-12 gap-6">
@@ -762,7 +763,7 @@ export default function ClassSectionDetailPage() {
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
               <div className="h-1.5 bg-gradient-to-r from-primary via-sky-400 to-cyan-400" />
               <div className="px-6 py-6 sm:px-8">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1">
                   {course.subjectTitle && (
                     <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:bg-primary/20 dark:text-blue-300">
                       {course.subjectTitle}
@@ -885,7 +886,7 @@ export default function ClassSectionDetailPage() {
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
               <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                  Trạng thái
+                  Trạng thái học tập
                 </p>
               </div>
 
@@ -922,61 +923,40 @@ export default function ClassSectionDetailPage() {
                 )}
 
                 {enrollmentStatus === "APPROVED" && (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 dark:border-emerald-900/50 dark:bg-emerald-950/30">
-                      <div className="flex items-center gap-3">
-                        <CheckCircleSolidIcon className="h-5 w-5 text-emerald-500" />
-                        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                          Đã tham gia lớp học
-                        </p>
-                      </div>
+                  <div className="space-y-0">
+                    <div className="flex items-center gap-3 min-h-[68px] border border-emerald-200 rounded-[14px] bg-emerald-50 px-[18px] mb-[22px] dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[13px] font-black text-white">✓</div>
+                      <span className="font-[850] text-emerald-700 dark:text-emerald-300">Đã tham gia lớp học</span>
                     </div>
 
                     <div>
-                      <div className="mb-2 flex items-center justify-between text-sm">
-                        <span className="text-slate-500 dark:text-slate-400">Tiến độ học</span>
-                        <span className="font-semibold text-slate-900 dark:text-white">
-                          {studentProgress.progressValue}%
-                        </span>
+                      <div className="flex justify-between items-baseline mb-[10px] text-[15px] text-slate-600 dark:text-slate-400">
+                        <span>Tiến độ học</span>
+                        <strong className="text-[16px] text-slate-900 dark:text-white">{studentProgress.progressValue}%</strong>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                      <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden mb-[18px]">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-primary to-sky-400 transition-all"
                           style={{ width: `${studentProgress.progressValue}%` }}
                         />
                       </div>
-                      <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                        {studentProgress.progressText}
-                      </p>
+
+                      <div className="grid grid-cols-2 gap-3 mb-[18px]">
+                        <div className="border border-slate-200 rounded-[14px] p-[14px] bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
+                          <span className="block text-[12px] font-[800] uppercase text-slate-500 dark:text-slate-400 mb-2">Hoàn thành</span>
+                          <strong className="text-[22px] tracking-tight text-slate-900 dark:text-white">{studentProgress.completedItemsCount || 0}</strong>
+                        </div>
+                        <div className="border border-slate-200 rounded-[14px] p-[14px] bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
+                          <span className="block text-[12px] font-[800] uppercase text-slate-500 dark:text-slate-400 mb-2">Tổng mục</span>
+                          <strong className="text-[22px] tracking-tight text-slate-900 dark:text-white">{studentProgress.totalItemsCount || 0}</strong>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-              <div className="px-5 py-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                  Thông tin lớp học
-                </p>
-              </div>
-              <div className="space-y-2 px-3 pb-4">
-                {course.subjectTitle && (
-                  <InfoRow icon={<TagIcon className="h-4 w-4" />}>
-                    {course.subjectTitle}
-                  </InfoRow>
-                )}
-                {(course.startDate || course.endDate) && (
-                  <InfoRow icon={<CalendarDaysIcon className="h-4 w-4" />}>
-                    {course.startDate ? dayjs(course.startDate).format("DD/MM/YYYY") : "Chưa xác định"}
-                    {course.endDate ? ` → ${dayjs(course.endDate).format("DD/MM/YYYY")}` : ""}
-                  </InfoRow>
-                )}
-                <InfoRow icon={<UserGroupIcon className="h-4 w-4" />}>
-                  {course.totalEnrollments ?? 0} người học đã đăng ký
-                </InfoRow>
-              </div>
-            </section>
           </aside>
         </div>
       </main>
@@ -997,6 +977,8 @@ function summarizeLearningProgress(course) {
     return {
       progressValue,
       progressText: "Lớp học chưa có lesson hoặc quiz để tính tiến độ.",
+      completedItemsCount: 0,
+      totalItemsCount: 0,
     };
   }
 
@@ -1004,12 +986,16 @@ function summarizeLearningProgress(course) {
     return {
       progressValue,
       progressText: `Bạn chưa hoàn thành nội dung học tập nào (${completedItems.length}/${eligibleItems.length}).`,
+      completedItemsCount: completedItems.length,
+      totalItemsCount: eligibleItems.length,
     };
   }
 
   return {
     progressValue,
     progressText: `Đã hoàn thành ${completedItems.length}/${eligibleItems.length} lesson và quiz.`,
+    completedItemsCount: completedItems.length,
+    totalItemsCount: eligibleItems.length,
   };
 }
 
@@ -1044,42 +1030,23 @@ function StudentStaffPanel({ members, subjectTitle }) {
             key={`${member.userId}-${member.role}`}
             className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 dark:border-slate-700 dark:bg-slate-800/60 sm:flex-row sm:items-center"
           >
-            <div className="flex min-w-0 flex-1 items-center gap-4">
-              {member.avatarUrl ? (
-                <img
-                  src={member.avatarUrl}
-                  alt={member.fullName}
-                  className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/10"
-                />
-              ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
-                  {(member.fullName || "G").charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-base font-semibold text-slate-950 dark:text-white">
-                    {member.fullName || member.username}
-                  </p>
-                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                    member.role === "TEACHER"
-                      ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-300"
-                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                  }`}>
-                    {roleLabel}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {subjectTitle ? `${roleLabel} · ${subjectTitle}` : roleLabel}
-                </p>
-                {member.email && (
-                  <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full bg-white px-3 py-1 text-xs text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-                    <EnvelopeIcon className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{member.email}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+            <UserIdentity
+              user={member}
+              variant="teacher"
+              avatarSizeClass="size-14"
+              className="flex-1 min-w-0"
+              nameClassName="truncate text-base font-semibold text-slate-950 dark:text-white"
+              secondaryClassName="mt-1 truncate text-sm text-slate-500 dark:text-slate-400"
+              appendNameNode={
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  member.role === "TEACHER"
+                    ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-300"
+                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                }`}>
+                  {roleLabel}
+                </span>
+              }
+            />
           </div>
         );
       })}

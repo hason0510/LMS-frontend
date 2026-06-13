@@ -88,6 +88,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
 
   const totalQuestions = quiz.questionCount ?? (quiz.questions?.length || 0);
   const timeLimitMinutes = quiz.timeLimitMinutes || 0;
+  const timeLimitLabel = timeLimitMinutes > 0 ? `${timeLimitMinutes} phút` : "Không giới hạn";
   const minPassScore = quiz.minPassScore || 0;
   const maxAttempts = quiz.maxAttempts;
 
@@ -150,7 +151,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                 </div>
                 <div>
                   <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Thời gian</p>
-                  <p className="text-[#111418] dark:text-white text-2xl font-bold">{timeLimitMinutes} phút</p>
+                  <p className="text-[#111418] dark:text-white text-2xl font-bold">{timeLimitLabel}</p>
                 </div>
               </div>
               <div className="flex flex-col gap-3 rounded-xl p-6 bg-white dark:bg-[#1c2a38] border border-[#dbe0e6] dark:border-[#2d3748] shadow-sm">

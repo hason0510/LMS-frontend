@@ -9,6 +9,7 @@ import TeachingLayout from "../../components/teaching/TeachingLayout";
 import { getAttemptDetail, reviewQuizAttempt } from "../../api/quiz";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
+import InteractionAnswerReview, { getQuestionTypeLabel } from "../../components/quiz/InteractionAnswerReview";
 import { splitClozeContent } from "../../utils/cloze";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 
@@ -50,7 +51,7 @@ const AnswerOptionReviewList = ({ items = [] }) => {
 const formatAnswerItems = (answer) => {
   if (answer.textAnswer) return answer.textAnswer;
   if (answer.selectedAnswers?.length) {
-    return answer.selectedAnswers.map((item) => item.content).join(", ");
+    return <AnswerOptionReviewList items={answer.selectedAnswers} />;
   }
   if (answer.quizQuestion?.type === "CLOZE" && answer.answerItems?.length) {
     const question = answer.quizQuestion || {};
@@ -72,6 +73,12 @@ const formatAnswerItems = (answer) => {
       .map((ai) => `Chỗ trống ${ai.blankIndex}: ${ai.answerText || "Không trả lời"}`)
       .join("; ");
   }
+  if (["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER"].includes(answer.quizQuestion?.type)) {
+    if (!answer.answerItems?.length) {
+      return "-";
+    }
+    return <InteractionAnswerReview question={answer.quizQuestion} answerItems={answer.answerItems} mode="user" />;
+  }
   if (answer.answerItems?.length) {
     return answer.answerItems
       .map((item) => item.answerText || item.submittedOrderIndex || item.selectedItemId || "")
@@ -89,6 +96,9 @@ const formatCorrectAnswer = (answer) => {
     return correct.length ? <AnswerOptionReviewList items={correct} /> : "-";
   }
   if (question.items?.length) {
+    if (["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER"].includes(question.type)) {
+      return <InteractionAnswerReview question={question} answerItems={answer.answerItems || []} mode="correct" />;
+    }
     if (question.type === "CLOZE") {
       const blanks = (question.items || []).filter((item) => item.role === "BLANK");
       const { segments, blankCount } = splitClozeContent(question.content || "");
@@ -197,7 +207,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode
     { title: t("quizAttempts.no"), render: (_, __, index) => index + 1, width: 60 },
     {
       title: t("quizAttempts.type"),
-      render: (_, answer) => answer.quizQuestion?.type || "-",
+      render: (_, answer) => getQuestionTypeLabel(answer.quizQuestion?.type, t),
       width: 140,
     },
     {
@@ -368,6 +378,12 @@ export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode
           <div className="mt-5 space-y-3">
             <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Đáp án và giải thích</h4>
             <AnswerOptionReviewList items={previewQuestion.answers} />
+          </div>
+        )}
+        {!!previewQuestion?.items?.length && ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER"].includes(previewQuestion?.type) && (
+          <div className="mt-5 space-y-3">
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Đáp án đúng</h4>
+            <InteractionAnswerReview question={previewQuestion} answerItems={[]} mode="correct" />
           </div>
         )}
       </Modal>

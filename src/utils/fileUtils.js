@@ -141,6 +141,30 @@ export function getFileExtension(filename) {
   return parts.length > 1 ? parts.pop().toLowerCase() : "";
 }
 
+export function getDisplayFileType(resource) {
+  if (!resource) return "FILE";
+  if (resource.fileType) return resource.fileType;
+  if (resource.type === "LINK" || resource.source === "LINK" || resource.source === "EMBED") return "LINK";
+
+  const extension = getFileExtension(resource.title || resource.fileUrl || resource.embedUrl || "");
+  if (extension) return extension.toUpperCase();
+
+  const mime = (resource.mimeType || "").toLowerCase();
+  if (mime === "application/pdf") return "PDF";
+  if (mime === "application/msword") return "DOC";
+  if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") return "DOCX";
+  if (mime === "application/vnd.ms-powerpoint") return "PPT";
+  if (mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation") return "PPTX";
+  if (mime === "application/vnd.ms-excel") return "XLS";
+  if (mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") return "XLSX";
+  if (mime === "text/plain") return "TXT";
+  if (mime.includes("/")) {
+    return mime.split("/")[1].split("+")[0].toUpperCase();
+  }
+
+  return resource.type || "FILE";
+}
+
 /**
  * Get file type category for handling
  * @param {string} mimeType - MIME type

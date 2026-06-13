@@ -102,14 +102,14 @@ export default function FileItem({
         <div className={`p-2 rounded-lg bg-slate-100 dark:bg-gray-700 shrink-0`}>
           {getIcon()}
         </div>
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 justify-center gap-0.5">
           <p 
-            className={`font-medium truncate text-slate-900 dark:text-slate-100 ${effectiveUrl ? "group-hover:text-primary cursor-pointer" : ""}`}
+            className={`!m-0 font-medium truncate text-slate-900 dark:text-slate-100 leading-snug ${effectiveUrl ? "group-hover:text-primary cursor-pointer" : ""}`}
             title={fileName}
           >
             {fileName}
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="!m-0 text-xs text-slate-500 dark:text-slate-400 leading-snug">
             {getTypeLabel()}
             {fileSize ? ` • ${formatFileSize(fileSize)}` : ""}
           </p>
@@ -173,11 +173,11 @@ export function FileItemPending({
         <div className="p-2 rounded-lg bg-slate-100 dark:bg-gray-700 shrink-0">
           <DocumentTextIcon className="h-5 w-5 text-gray-400" />
         </div>
-        <div className="flex flex-col min-w-0">
-          <p className="font-medium truncate text-slate-900 dark:text-slate-100" title={fileName}>
+        <div className="flex flex-col min-w-0 justify-center gap-0.5">
+          <p className="!m-0 font-medium truncate text-slate-900 dark:text-slate-100 leading-snug" title={fileName}>
             {fileName}
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="!m-0 text-xs text-slate-500 dark:text-slate-400 leading-snug">
             Chưa tải lên • {formatFileSize(fileSize)}
           </p>
         </div>

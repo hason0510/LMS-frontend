@@ -172,11 +172,11 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
         title: t("assignments.table.assignment"),
         key: "assignment",
         render: (_, record) => (
-          <div className="min-w-0">
-            <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
+          <div className="min-w-0 flex flex-col !gap-1">
+            <p className="!m-0 truncate text-sm font-semibold leading-tight text-slate-900 dark:text-white">
               {record.assignmentTitle}
             </p>
-            <p className="m-0 mt-1 text-xs text-slate-500">
+            <p className="!m-0 text-xs leading-tight text-slate-500">
               {t("assignments.classLabel")}: {record.classSectionTitle}
             </p>
           </div>
@@ -242,19 +242,20 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
         title: "",
         key: "action",
         width: 120,
-        align: "right",
+        align: "center",
         render: (_, record) => (
-          <Button
-            icon={<Eye size={16} />}
-            onClick={() =>
-              navigate(
-                `${basePath}/class-sections/${record.classSectionId}/assignments/${record.assignmentId}/submissions`
-              )
-            }
-            className="text-slate-600! dark:text-slate-300! border-slate-300! dark:border-slate-600! hover:border-blue-500! hover:text-blue-500!"
-          >
-            {t("assignments.details")}
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              className="app-table-action-btn"
+              onClick={() =>
+                navigate(
+                  `${basePath}/class-sections/${record.classSectionId}/assignments/${record.assignmentId}/submissions`
+                )
+              }
+            >
+              {t("assignments.details")}
+            </Button>
+          </div>
         ),
       },
     ],
@@ -272,9 +273,8 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main
-          className={`flex-1 pt-16 transition-all duration-300 ${
-            sidebarCollapsed ? "pl-20" : "pl-64"
-          }`}
+          className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"
+            }`}
         >
           <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div className="mx-auto w-full max-w-[1440px] space-y-4">
@@ -286,7 +286,7 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
                 <MetricCard icon={CheckCircle2} label={t("assignments.metrics.graded")} value={metrics.graded} tone="slate" />
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+              <div className="app-table-shell">
                 <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -342,26 +342,26 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
                 </div>
 
                 <div className="px-5 py-4 sm:px-6">
-                {loading ? (
-                  <div className="flex justify-center py-16">
-                    <Spin size="large" />
-                  </div>
-                ) : processedItems.length === 0 ? (
-                  <div className="py-16">
-                    <Empty description={t("assignments.empty")} />
-                  </div>
-                ) : (
-                  <Table
-                    rowKey={(record) =>
-                      `${record.assignmentId}-${record.classSectionId}`
-                    }
-                    columns={columns}
-                    dataSource={pageItems}
-                    pagination={false}
-                    scroll={{ x: 980 }}
-                    className="assignment-teacher-table"
-                  />
-                )}
+                  {loading ? (
+                    <div className="flex justify-center py-16">
+                      <Spin size="large" />
+                    </div>
+                  ) : processedItems.length === 0 ? (
+                    <div className="py-16">
+                      <Empty description={t("assignments.empty")} />
+                    </div>
+                  ) : (
+                    <Table
+                      rowKey={(record) =>
+                        `${record.assignmentId}-${record.classSectionId}`
+                      }
+                      columns={columns}
+                      dataSource={pageItems}
+                      pagination={false}
+                      scroll={{ x: 980 }}
+                      className="assignment-teacher-table"
+                    />
+                  )}
                 </div>
 
                 {!loading && processedItems.length > 0 && (

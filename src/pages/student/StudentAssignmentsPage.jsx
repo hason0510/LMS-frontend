@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { App, AutoComplete, Button, Empty, Input, Select, Spin, Table, Tag } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
@@ -10,6 +10,7 @@ import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getStudentAssignmentFeed } from "../../api/assignment";
 import { getApprovedClassSections } from "../../api/classSection";
 import { useTranslation } from "react-i18next";
+import useForegroundRefresh from "../../hooks/useForegroundRefresh";
 
 const TAB_OPTIONS = [
   { key: "UPCOMING" },
@@ -78,26 +79,29 @@ export default function StudentAssignmentsPage() {
     fetchClasses();
   }, []);
 
-  useEffect(() => {
-    const fetchFeed = async () => {
-      try {
-        setLoading(true);
-        const response = await getStudentAssignmentFeed({
-          tab: activeTab,
-          keyword: debouncedKeyword || undefined,
-          classSectionId: classSectionId || undefined,
-        });
-        const payload = response?.data;
-        setItems(Array.isArray(payload?.pageList) ? payload.pageList : []);
-      } catch (error) {
-        console.error(error);
-        message.error(t("assignments.loadFailed"));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFeed();
+  const fetchFeed = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getStudentAssignmentFeed({
+        tab: activeTab,
+        keyword: debouncedKeyword || undefined,
+        classSectionId: classSectionId || undefined,
+      });
+      const payload = response?.data;
+      setItems(Array.isArray(payload?.pageList) ? payload.pageList : []);
+    } catch (error) {
+      console.error(error);
+      message.error(t("assignments.loadFailed"));
+    } finally {
+      setLoading(false);
+    }
   }, [activeTab, classSectionId, debouncedKeyword, message, t]);
+
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
+
+  useForegroundRefresh(fetchFeed);
 
   useEffect(() => {
     setPage(1);
@@ -175,16 +179,19 @@ export default function StudentAssignmentsPage() {
         title: "",
         key: "action",
         width: 120,
-        align: "right",
+        align: "center",
         render: (_, record) => (
-          <Button
-            icon={<Eye size={16} />}
-            onClick={() =>
-              navigate(`/class-sections/${record.classSectionId}/assignments/${record.assignmentId}`)
-            }
-          >
-            {t("assignments.details")}
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              icon={<Eye size={16} />}
+              className="app-table-action-btn"
+              onClick={() =>
+                navigate(`/class-sections/${record.classSectionId}/assignments/${record.assignmentId}`)
+              }
+            >
+              {t("assignments.details")}
+            </Button>
+          </div>
         ),
       },
     ],
@@ -196,7 +203,7 @@ export default function StudentAssignmentsPage() {
       <Header />
       <main className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-16 sm:px-6 lg:px-8">
         <AppBreadcrumb className="mb-6" />
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+        <div className="app-table-shell">
           <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
             <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
               {t("assignments.studentTitle")}

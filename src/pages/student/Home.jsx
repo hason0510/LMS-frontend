@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Empty } from "antd";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ import { getStudentAssignmentFeed } from "../../api/assignment";
 import { getMyNotificationsPage } from "../../api/notification";
 import { getNotificationPreview, normalizeNotificationItem } from "../../utils/notificationText";
 import { getMySubmissions } from "../../api/submission";
+import useForegroundRefresh from "../../hooks/useForegroundRefresh";
 
 function extractPageItems(response) {
   const payload = response?.data ?? response;
@@ -255,7 +256,7 @@ export default function Home() {
     results: false,
   });
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setLoading(true);
 
     const [classesResult, upcomingResult, overdueResult, notificationsResult, gradedResult, returnedResult] = await Promise.allSettled([
@@ -328,11 +329,13 @@ export default function Home() {
     );
 
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [loadDashboard]);
+
+  useForegroundRefresh(loadDashboard);
 
   const now = dayjs();
   const approvedClasses = myClasses.filter((item) => item?.myEnrollmentStatus === "APPROVED");
@@ -469,7 +472,7 @@ export default function Home() {
                 ) : taskItems.length === 0 ? (
                   <Empty description={t("studentOverview.empty.tasks")} />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="flex flex-col !gap-4">
                     {taskItems.map((item) => {
                       const taskKind = getTaskKind(item, t);
                       return (
@@ -523,7 +526,7 @@ export default function Home() {
                 ) : progressClasses.length === 0 ? (
                   <Empty description={t("studentOverview.empty.classes")} />
                 ) : (
-                  <div className="space-y-4">
+                  <div className="flex flex-col !gap-4">
                     {progressClasses.map((item) => {
                       const progressValue = Math.max(0, Math.min(Number(item.myProgress) || 0, 100));
                       const tone = getProgressTone(progressValue);
@@ -547,7 +550,7 @@ export default function Home() {
                                 : t("studentOverview.progress.onTrack")}
                             </span>
                           </div>
-                          <div className="mt-4">
+                          <div className="mt-2">
                             <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
                               <span>{t("studentOverview.progress.label")}</span>
                               <span>{progressValue}%</span>
@@ -581,7 +584,7 @@ export default function Home() {
                 ) : recentResults.length === 0 ? (
                   <Empty description={t("studentOverview.empty.results")} />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="flex flex-col !gap-4">
                     {recentResults.map((item) => {
                       const classTitle = classTitleMap.get(item.classSectionId) || t("studentOverview.common.classUnknown");
                       return (
@@ -639,7 +642,7 @@ export default function Home() {
                 ) : notifications.length === 0 ? (
                   <Empty description={t("studentOverview.empty.notifications")} />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="flex flex-col !gap-4">
                     {notifications.map((item) => (
                       <button
                         key={item.id}
@@ -660,7 +663,7 @@ export default function Home() {
                               {formatRelativeTime(item.time || item.createdAt, t)}
                             </span>
                           </div>
-                          <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
+                          <p className="mt-1.5 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
                             {getNotificationPreview(item)}
                           </p>
                         </div>

@@ -11,7 +11,7 @@ import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import TeachingLayout from "../../components/teaching/TeachingLayout";
-import Avatar from "../../components/common/Avatar";
+import UserIdentity from "../../components/common/UserIdentity";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getAssignmentById } from "../../api/assignment";
@@ -44,10 +44,6 @@ function getStatusColor(status) {
     GRADED: "success",
     RETURNED: "purple",
   }[status] || "default";
-}
-
-function getStudentAvatar(record) {
-  return record.studentAvatar || record.avatarUrl || record.imageUrl || record.avatar || null;
 }
 
 function SubmissionMetric({ icon: Icon, label, value, tone = "blue" }) {
@@ -227,22 +223,18 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
         dataIndex: "studentName",
         key: "studentName",
         render: (_, record) => (
-          <div className="flex min-w-0 items-center gap-3">
-            <Avatar
-              src={getStudentAvatar(record)}
-              alt={record.studentName}
-              sizeClass="size-10"
-              initialsClass="text-sm"
-            />
-            <div className="min-w-0">
-              <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
-                {record.studentName || t("assignments.submissions.unknownStudent", { id: record.studentId ?? "N/A" })}
-              </p>
-              <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {t("assignments.submissions.studentNumber")}: {record.studentNumber || "N/A"}
-              </p>
-            </div>
-          </div>
+          <UserIdentity
+            user={record}
+            variant="student"
+            avatarSizeClass="size-10"
+            avatarInitialsClass="text-sm"
+            fallbackName={t("assignments.submissions.unknownStudent", { id: record.studentId ?? "N/A" })}
+            secondaryText={
+              record.studentNumber
+                ? `${t("assignments.submissions.studentNumber")}: ${record.studentNumber}`
+                : `${t("assignments.submissions.studentNumber")}: N/A`
+            }
+          />
         ),
       },
       {
@@ -274,14 +266,17 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
         title: t("assignments.submissions.columns.action"),
         key: "action",
         width: 150,
-        align: "right",
+        align: "center",
         render: (_, record) => (
-          <Button
-            disabled={!record.id || record.status === "NOT_SUBMITTED"}
-            onClick={() => openGradeModal(record)}
-          >
-            {t("assignments.submissions.actions.gradeReturn")}
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              disabled={!record.id || record.status === "NOT_SUBMITTED"}
+              className="app-table-action-btn"
+              onClick={() => openGradeModal(record)}
+            >
+              {t("assignments.submissions.actions.gradeReturn")}
+            </Button>
+          </div>
         ),
       },
     ],
@@ -313,7 +308,7 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
         <SubmissionMetric icon={FileCheck2} label={t("assignments.submissions.metrics.graded")} value={metrics.graded} tone="slate" />
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+      <div className="app-table-shell">
         <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
           <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
             {t("assignments.submissions.title", { title: assignment?.title || `#${assignmentId}` })}
@@ -386,21 +381,19 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
         width={880}
       >
         {selectedSubmission && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-sm text-slate-600">
-              <Avatar
-                src={getStudentAvatar(selectedSubmission)}
-                alt={selectedSubmission.studentName}
-                sizeClass="size-12"
+          <div className="space-y-6 pt-2">
+            <div className="flex items-start justify-between">
+              <UserIdentity
+                user={selectedSubmission}
+                variant="student"
+                avatarSizeClass="size-12"
+                avatarInitialsClass="text-base"
+                secondaryClassName="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400"
+                fallbackName={t("assignments.submissions.unknownStudent", { id: selectedSubmission.studentId ?? "N/A" })}
+                secondaryText={`${t("assignments.submissions.studentNumber")}: ${selectedSubmission.studentNumber || "N/A"}`}
               />
-              <div>
-                <p className="m-0 font-semibold text-slate-900">{selectedSubmission.studentName}</p>
-                <p className="m-0 text-xs text-slate-500">
-                  {t("assignments.submissions.studentNumber")}: {selectedSubmission.studentNumber || "N/A"}
-                </p>
-                <p className="m-0 text-xs text-slate-500">
-                  {t("assignments.submissions.columns.submittedAt")}: {formatSubmissionTime(selectedSubmission.submissionTime, t("assignments.submissions.notSubmitted"))}
-                </p>
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                {t("assignments.submissions.columns.submittedAt")}: {formatSubmissionTime(selectedSubmission.submissionTime, t("assignments.submissions.notSubmitted"))}
               </div>
             </div>
 

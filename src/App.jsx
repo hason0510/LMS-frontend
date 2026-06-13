@@ -25,6 +25,7 @@ import TeacherCurriculums from "./pages/teacher/TeacherCurriculums";
 import CreateCurriculumTemplate from "./pages/teacher/CreateCurriculumTemplate";
 import QuestionBanks from "./pages/teacher/QuestionBanks";
 import QuestionBankDetail from "./pages/teacher/QuestionBankDetail";
+import QuestionBankQuestionEditor from "./pages/teacher/QuestionBankQuestionEditor";
 import CreateChapter from "./pages/teacher/CreateChapter";
 import LectureDetail from "./pages/teacher/LectureDetail";
 import AssignmentDetail from "./pages/teacher/AssignmentDetail";
@@ -412,6 +413,14 @@ function AppContent() {
         element={<ProtectedRoute element={<QuestionBankDetail />} allowedRoles={["TEACHER"]} />}
       />
       <Route
+        path="/teacher/question-banks/:id/questions/create"
+        element={<ProtectedRoute element={<QuestionBankQuestionEditor />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/question-banks/:id/questions/:questionId/edit"
+        element={<ProtectedRoute element={<QuestionBankQuestionEditor />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
         path="/teacher/question-banks/:id/media"
         element={<ProtectedRoute element={<Navigate to="/media" replace />} allowedRoles={["TEACHER"]} />}
       />
@@ -532,6 +541,14 @@ function AppContent() {
       <Route
         path="/admin/question-banks/:id"
         element={<ProtectedRoute element={<QuestionBankDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/question-banks/:id/questions/create"
+        element={<ProtectedRoute element={<QuestionBankQuestionEditor isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/question-banks/:id/questions/:questionId/edit"
+        element={<ProtectedRoute element={<QuestionBankQuestionEditor isAdmin={true} />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/question-banks/:id/media"

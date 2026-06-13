@@ -12,18 +12,13 @@ import {
 import Header from "../../components/layout/Header";
 import { getMyTeachingClasses } from "../../api/teaching";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
-
-const statusOptions = [
-  { value: "ALL", label: "Tất cả trạng thái" },
-  { value: "PUBLIC", label: "Công khai" },
-  { value: "PRIVATE", label: "Riêng tư" },
-  { value: "ARCHIVED", label: "Đã lưu trữ" },
-];
+import DataPaginationFooter from "../../components/common/DataPaginationFooter";
+import classPlaceholder from "../../assets/class_placeholder.png";
 
 const sortOptions = [
   { value: "newest", label: "Mới nhất" },
+  { value: "oldest", label: "Cũ nhất" },
   { value: "az", label: "Tên A-Z" },
-  { value: "students", label: "Nhiều người học" },
 ];
 
 const statusLabel = {
@@ -56,10 +51,17 @@ export default function TeachingClasses() {
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [keyword, setKeyword] = useState("");
-  const [status, setStatus] = useState("ALL");
+  const [categoryId, setCategoryId] = useState(null);
+  const [subjectCode, setSubjectCode] = useState(null);
   const [sort, setSort] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, categoryId, subjectCode, sort]);
 
   useEffect(() => {
     const load = async () => {
@@ -77,78 +79,145 @@ export default function TeachingClasses() {
     load();
   }, []);
 
+  const categoryOptions = useMemo(() => {
+    const cats = new Map();
+    classes.forEach(c => {
+      if (c.categoryId) cats.set(c.categoryId, c.categoryTitle || `Danh mục ${c.categoryId}`);
+    });
+    return Array.from(cats.entries()).map(([value, label]) => ({ value, label }));
+  }, [classes]);
+
+  const subjectOptions = useMemo(() => {
+    const subs = new Map();
+    classes.forEach(c => {
+      if (c.subjectCode) subs.set(c.subjectCode, `${c.subjectCode} - ${c.subjectTitle || ""}`);
+    });
+    return Array.from(subs.entries()).map(([value, label]) => ({ value, label }));
+  }, [classes]);
+
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     const items = classes.filter((item) => {
       const text = `${item.title || ""} ${item.classCode || ""} ${item.subjectTitle || ""} ${item.teacherName || ""}`.toLowerCase();
       const matchKeyword = !q || text.includes(q);
-      const matchStatus = status === "ALL" || item.status === status;
-      return matchKeyword && matchStatus;
+      const matchCategory = !categoryId || item.categoryId === categoryId;
+      const matchSubject = !subjectCode || item.subjectCode === subjectCode;
+      return matchKeyword && matchCategory && matchSubject;
     });
 
     return [...items].sort((a, b) => {
       if (sort === "az") return (a.title || a.classCode || "").localeCompare(b.title || b.classCode || "", "vi");
-      if (sort === "students") return (b.totalEnrollments || 0) - (a.totalEnrollments || 0);
+      if (sort === "oldest") return (a.id || 0) - (b.id || 0);
       return (b.id || 0) - (a.id || 0);
     });
-  }, [classes, keyword, sort, status]);
+  }, [classes, keyword, sort, categoryId, subjectCode]);
+
+  const resetFilters = () => {
+    setKeyword("");
+    setCategoryId(null);
+    setSubjectCode(null);
+    setSort("newest");
+  };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fb] text-slate-950 dark:bg-slate-950 dark:text-white">
+    <div className="min-h-screen bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-slate-100">
       <Header />
-      <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
-        <AppBreadcrumb className="mb-5" />
-        <section className="mb-5 flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <p className="m-0 text-xs font-bold uppercase tracking-wide text-primary">Trợ giảng</p>
-              <h1 className="m-0 mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">
-                Lớp trợ giảng
-              </h1>
-              <p className="m-0 mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+      <main className="px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <AppBreadcrumb className="mb-6" />
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h1 className="text-4xl font-black text-slate-900 dark:text-white">Lớp trợ giảng</h1>
+              <p className="mt-2 max-w-3xl text-base text-slate-500 dark:text-slate-400">
                 Các lớp bạn được phân công hỗ trợ. Vào từng lớp để xem nội dung, người học, chấm bài và thông báo theo quyền được giáo viên cấp.
               </p>
             </div>
-            <Button type="primary" onClick={() => navigate("/classes")}>
+            <Button type="primary" onClick={() => navigate("/classes")} className="shrink-0">
               Về lớp người học
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(260px,1fr)_180px_170px]">
-            <Input
-              allowClear
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              placeholder="Tìm theo tên lớp, môn học, giáo viên..."
-              prefix={<MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />}
-              className="h-11"
-            />
-            <Select value={status} onChange={setStatus} options={statusOptions} className="h-11" showSearch optionFilterProp="label" />
-            <Select value={sort} onChange={setSort} options={sortOptions} className="h-11" showSearch optionFilterProp="label" />
-          </div>
-        </section>
-
-        {loading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <Skeleton active paragraph={{ rows: 5 }} />
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_220px_220px_180px_110px]">
+                <Input
+                  allowClear
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder="Tìm theo tên lớp..."
+                  className="w-full h-8"
+                />
+                <Select
+                  value={categoryId}
+                  onChange={setCategoryId}
+                  options={categoryOptions}
+                  placeholder="Danh mục"
+                  className="w-full"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                />
+                <Select
+                  value={subjectCode}
+                  onChange={setSubjectCode}
+                  options={subjectOptions}
+                  placeholder="Mã học phần"
+                  className="w-full"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                />
+                <Select
+                  value={sort}
+                  onChange={setSort}
+                  options={sortOptions}
+                  className="w-full"
+                />
+                <Button onClick={resetFilters}>Đặt lại</Button>
               </div>
-            ))}
-          </div>
-        ) : error ? (
-          <Alert type="error" showIcon message="Không thể tải dữ liệu" description={error} />
-        ) : filtered.length === 0 ? (
-          <section className="rounded-lg border border-dashed border-slate-300 bg-white py-16 dark:border-slate-700 dark:bg-slate-900">
-            <Empty description={keyword || status !== "ALL" ? "Không tìm thấy lớp phù hợp." : "Bạn chưa được phân công trợ giảng lớp nào."} />
+            </div>
+
+            <div className="px-5 py-5 sm:px-6">
+              {loading ? (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: pageSize }).map((_, index) => (
+                    <div key={index} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+                      <Skeleton.Image active className="!aspect-[16/7] !h-auto !w-full !rounded-lg" />
+                      <Skeleton active paragraph={{ rows: 5 }} className="mt-4" />
+                    </div>
+                  ))}
+                </div>
+              ) : error ? (
+                <Alert type="error" showIcon message="Không thể tải dữ liệu" description={error} />
+              ) : filtered.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 py-16 dark:border-slate-700 dark:bg-slate-900/70">
+                  <Empty description="Bạn chưa có lớp học phù hợp với bộ lọc hiện tại." />
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {filtered.slice((page - 1) * pageSize, page * pageSize).map((item) => (
+                    <TeachingClassCard key={item.id} item={item} onOpen={() => navigate(`/teaching/class-sections/${item.id}`)} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DataPaginationFooter
+              currentPage={page}
+              pageSize={pageSize}
+              total={filtered.length}
+              pageSizeOptions={[6, 12, 24]}
+              totalLabel={`Tổng số: ${filtered.length}`}
+              pageSizeLabel=""
+              rangeLabel={filtered.length === 0 ? "0 - 0" : `${(page - 1) * pageSize + 1} - ${Math.min(page * pageSize, filtered.length)}`}
+              onPageChange={setPage}
+              onPageSizeChange={(newPageSize) => {
+                setPageSize(newPageSize);
+                setPage(1);
+              }}
+            />
           </section>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((item) => (
-              <TeachingClassCard key={item.id} item={item} onOpen={() => navigate(`/teaching/class-sections/${item.id}`)} />
-            ))}
-          </div>
-        )}
+        </div>
       </main>
     </div>
   );
@@ -157,52 +226,67 @@ export default function TeachingClasses() {
 function TeachingClassCard({ item, onOpen }) {
   const title = item.title || item.classCode || "Lớp chưa có tên";
   const status = item.status || "PRIVATE";
-  const staffCount = item.teachingMembers?.length ?? item.totalTeachingMembers ?? 1;
+  const subjectText = item?.subjectTitle
+    ? item?.subjectCode
+      ? `${item.subjectCode} - ${item.subjectTitle}`
+      : item.subjectTitle
+    : item?.subjectCode || "Chưa có môn học";
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-primary/50 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-      <div className="relative aspect-video overflow-hidden bg-slate-100 dark:bg-slate-800">
-        {item.imageUrl ? (
-          <img src={item.imageUrl} alt={title} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
-            <AcademicCapIcon className="h-14 w-14" />
-          </div>
-        )}
-        <span className={`absolute right-3 top-3 rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass[status] || statusClass.PRIVATE}`}>
-          {statusLabel[status] || status}
-        </span>
-      </div>
-
+    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 shadow-sm transition hover:border-primary/50 hover:shadow-md">
+      <div
+        className="aspect-[16/7] bg-cover bg-center"
+        style={{ backgroundImage: `url(${item?.imageUrl || classPlaceholder})` }}
+      />
       <div className="flex flex-1 flex-col p-4">
-        <div className="min-w-0">
-          <h2 className="m-0 line-clamp-2 text-lg font-black leading-6 text-slate-950 dark:text-white">{title}</h2>
-          <p className="m-0 mt-1 line-clamp-1 text-sm text-slate-500">{item.subjectTitle || "Chưa có môn học"}</p>
-        </div>
-
-        <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <div className="flex min-w-0 items-center gap-2">
-            <BookOpenIcon className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="truncate">GV: {item.teacherName || "Chưa xác định"}</span>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">
+              {title}
+            </h3>
+            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Mã lớp: {item?.classCode || "-"}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <CalendarDaysIcon className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="truncate">{formatDateRange(item)}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <UserGroupIcon className="h-4 w-4 shrink-0 text-slate-400" />
-            <span>{item.totalEnrollments ?? 0} người học · {staffCount} nhân sự</span>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass[status] || statusClass.PRIVATE}`}>
+              {statusLabel[status] || status}
+            </span>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpen}
-          className="mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-bold text-white transition hover:bg-primary/90"
-        >
-          Vào lớp
-          <ArrowRightIcon className="h-4 w-4" />
-        </button>
+        <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">Danh mục:</span>{" "}
+            {item?.categoryTitle || "Không có"}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">Môn học:</span>{" "}
+            {subjectText}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">Giáo viên:</span>{" "}
+            {item?.teacherName || "Chưa xác định"}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">Thời gian:</span>{" "}
+            {formatDateRange(item)}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-100">Người học:</span>{" "}
+            {item?.totalEnrollments || 0}
+          </div>
+        </div>
+
+        <div className="mt-4 pt-1 flex-1 flex flex-col justify-end">
+          <button
+            type="button"
+            onClick={onOpen}
+            className="flex h-10 w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-primary px-4 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Vào lớp
+          </button>
+        </div>
       </div>
     </article>
   );

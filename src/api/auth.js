@@ -1,4 +1,4 @@
-import axiosClient from "./axiosClient";
+import axiosClient, { refreshAccessToken } from "./axiosClient";
 
 const unwrapApiData = (payload) => payload?.data ?? payload;
 
@@ -33,8 +33,7 @@ export async function googleLogin(credentialResponse) {
 
 // Refresh token manually (if needed outside interceptor)
 export async function refreshToken() {
-  const response = await axiosClient.put('/auth/refresh');
-  return response.data;
+  return refreshAccessToken();
 }
 
 export async function logout() {

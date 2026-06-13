@@ -8,7 +8,6 @@ import {
   CheckCircleIcon,
   ClockIcon,
   DocumentTextIcon,
-  PresentationChartLineIcon,
   QueueListIcon,
   RectangleStackIcon,
   TrophyIcon,
@@ -16,7 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 import ReportMetricCard from "./ReportMetricCard";
 import ReportSectionCard from "./ReportSectionCard";
-import { DonutSummaryChart, SingleSeriesBarChart, StackedStatusBarChart } from "./ReportCharts";
+import { SingleSeriesBarChart, StackedStatusBarChart } from "./ReportCharts";
 import UserIdentity from "../common/UserIdentity";
 import { getAssignmentSubmissions } from "../../api/submission";
 import {
@@ -601,19 +600,19 @@ export default function ClassSectionReportContent({
     key: "assignments",
     label: t("reportsPage.shared.tabs.assignments"),
     children: (
-      <div className="space-y-4">
+      <div className="!space-y-4">
         <ReportSectionCard
           title={t("reportsPage.shared.sections.assignments.title")}
           subtitle={t("reportsPage.shared.sections.assignments.subtitle")}
           actions={
             assignmentOverviews.length > 0 ? (
-              <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
+              <div className="flex w-full flex-col !gap-3 md:w-auto md:flex-row">
                 <Select
                   value={selectedAssignment?.assignmentId}
                   onChange={setSelectedAssignmentId}
                   showSearch
                   optionFilterProp="label"
-                  className="w-full md:w-80"
+                  className="w-full md:!w-80"
                   options={assignmentOverviews.map((item) => ({
                     value: item.assignmentId,
                     label: item.assignmentTitle,
@@ -637,14 +636,15 @@ export default function ClassSectionReportContent({
           {assignmentOverviews.length === 0 || !selectedAssignment ? (
             <Empty description={t("reportsPage.shared.empty.assignments")} />
           ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="!space-y-4">
+              <div className="grid grid-cols-1 !gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <ReportMetricCard
                   icon={<UserGroupIcon className="h-6 w-6" />}
                   label={t("reportsPage.shared.assignmentMetrics.totalStudents")}
                   value={selectedAssignment.totalStudents || 0}
                   hint={t("reportsPage.shared.assignmentMetrics.totalStudentsHint")}
                   tone="blue"
+                  loading={loading}
                 />
                 <ReportMetricCard
                   icon={<DocumentTextIcon className="h-6 w-6" />}
@@ -652,6 +652,7 @@ export default function ClassSectionReportContent({
                   value={selectedAssignment.turnedInCount || 0}
                   hint={t("reportsPage.shared.assignmentMetrics.submittedHint")}
                   tone="emerald"
+                  loading={loading}
                 />
                 <ReportMetricCard
                   icon={<ClockIcon className="h-6 w-6" />}
@@ -659,6 +660,7 @@ export default function ClassSectionReportContent({
                   value={selectedAssignment.pendingReviewCount || 0}
                   hint={t("reportsPage.shared.assignmentMetrics.waitingFeedbackHint")}
                   tone="amber"
+                  loading={loading}
                 />
                 <ReportMetricCard
                   icon={<CheckCircleIcon className="h-6 w-6" />}
@@ -666,6 +668,7 @@ export default function ClassSectionReportContent({
                   value={selectedAssignment.gradedCount || 0}
                   hint={t("reportsPage.shared.assignmentMetrics.gradedHint")}
                   tone="rose"
+                  loading={loading}
                 />
               </div>
 
@@ -693,22 +696,24 @@ export default function ClassSectionReportContent({
                     },
                   ]}
                   emptyText={t("reportsPage.shared.empty.assignments")}
+                  loading={loading}
                 />
               </ReportSectionCard>
 
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+              <div className="grid grid-cols-1 !gap-4 xl:grid-cols-[0.95fr_1.05fr]">
                 <ReportSectionCard
                   title={t("reportsPage.shared.sections.assignmentDetails.title")}
                   subtitle={t("reportsPage.shared.sections.assignmentDetails.subtitle")}
                 >
-                  <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                    <MetaRow label={t("reportsPage.shared.meta.assignmentTitle")} value={selectedAssignment.assignmentTitle} />
+                  <div className="!space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                    <MetaRow label={t("reportsPage.shared.meta.assignmentTitle")} value={selectedAssignment.assignmentTitle} loading={loading} />
                     <MetaRow
                       label={t("reportsPage.shared.meta.assignmentDueDate")}
                       value={formatDateTimeWithOptions(selectedAssignment.dueAt, {
                         locale,
                         emptyLabel: emptyDateLabel,
                       })}
+                      loading={loading}
                     />
                     <MetaRow
                       label={t("reportsPage.shared.meta.assignmentCloseDate")}
@@ -716,8 +721,9 @@ export default function ClassSectionReportContent({
                         locale,
                         emptyLabel: emptyDateLabel,
                       })}
+                      loading={loading}
                     />
-                    <MetaRow label={t("reportsPage.shared.meta.assignmentScore")} value={selectedAssignment.maxScore || 0} />
+                    <MetaRow label={t("reportsPage.shared.meta.assignmentScore")} value={selectedAssignment.maxScore || 0} loading={loading} />
                   </div>
                 </ReportSectionCard>
 
@@ -738,24 +744,27 @@ export default function ClassSectionReportContent({
                     ) : null
                   }
                 >
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="grid grid-cols-1 !gap-3 sm:grid-cols-3">
                     <MiniSummary
                       icon={<DocumentTextIcon className="h-5 w-5" />}
                       label={t("reportsPage.shared.assignmentSummary.notSubmitted")}
                       value={assignmentSubmissionSummary.notSubmitted}
+                      loading={loadingAssignmentSubmissions}
                     />
                     <MiniSummary
                       icon={<ClockIcon className="h-5 w-5" />}
                       label={t("reportsPage.shared.assignmentSummary.late")}
                       value={assignmentSubmissionSummary.late}
+                      loading={loadingAssignmentSubmissions}
                     />
                     <MiniSummary
                       icon={<CheckCircleIcon className="h-5 w-5" />}
                       label={t("reportsPage.shared.assignmentSummary.returned")}
                       value={assignmentSubmissionSummary.returned}
+                      loading={loadingAssignmentSubmissions}
                     />
                   </div>
-                  <p className="m-0 pt-2 text-sm text-slate-500 dark:text-slate-400">
+                  <p className="!m-0 !pt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                     {loadingAssignmentSubmissions
                       ? t("reportsPage.shared.sections.assignmentSubmissions.loading")
                       : t("reportsPage.shared.sections.assignmentSubmissions.note")}
@@ -778,13 +787,13 @@ export default function ClassSectionReportContent({
         subtitle={t("reportsPage.shared.sections.quizzes.subtitle")}
         actions={
           quizSummaries.length > 0 ? (
-            <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
+            <div className="flex w-full flex-col !gap-3 md:w-auto md:flex-row">
               <Select
                 value={selectedQuizSummary?.id}
                 onChange={setSelectedQuizId}
                 showSearch
                 optionFilterProp="label"
-                className="w-full md:w-80"
+                className="w-full md:!w-80"
                 options={quizSummaries.map((item) => ({
                   value: item.id,
                   label: item.title,
@@ -800,14 +809,15 @@ export default function ClassSectionReportContent({
         {quizSummaries.length === 0 || !selectedQuizSummary ? (
           <Empty description={t("reportsPage.shared.empty.quizzes")} />
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="!space-y-4">
+            <div className="grid grid-cols-1 !gap-3 md:grid-cols-2 xl:grid-cols-4">
               <ReportMetricCard
                 icon={<QueueListIcon className="h-6 w-6" />}
                 label={t("reportsPage.shared.quizMetrics.attempts")}
                 value={selectedQuizSummary.totalAttempts}
                 hint={t("reportsPage.shared.quizMetrics.attemptsHint")}
                 tone="blue"
+                loading={loading}
               />
               <ReportMetricCard
                 icon={<ClockIcon className="h-6 w-6" />}
@@ -815,6 +825,7 @@ export default function ClassSectionReportContent({
                 value={selectedQuizSummary.waitingReview}
                 hint={t("reportsPage.shared.quizMetrics.waitingReviewHint")}
                 tone="amber"
+                loading={loading}
               />
               <ReportMetricCard
                 icon={<CheckCircleIcon className="h-6 w-6" />}
@@ -822,6 +833,7 @@ export default function ClassSectionReportContent({
                 value={selectedQuizSummary.passed}
                 hint={t("reportsPage.shared.quizMetrics.passedHint")}
                 tone="emerald"
+                loading={loading}
               />
               <ReportMetricCard
                 icon={<TrophyIcon className="h-6 w-6" />}
@@ -831,10 +843,11 @@ export default function ClassSectionReportContent({
                   score: selectedQuizSummary.highestScore,
                 })}
                 tone="rose"
+                loading={loading}
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <div className="grid grid-cols-1 !gap-4 xl:grid-cols-2">
               <ReportSectionCard
                 title={t("reportsPage.shared.sections.quizDistribution.title")}
                 subtitle={t("reportsPage.shared.sections.quizDistribution.subtitle")}
@@ -847,6 +860,7 @@ export default function ClassSectionReportContent({
                   color="#137fec"
                   valueFormatter={(value) => t("reportsPage.shared.charts.studentsCount", { count: value })}
                   yTickFormatter={(value) => value}
+                  loading={loading}
                 />
               </ReportSectionCard>
 
@@ -869,6 +883,7 @@ export default function ClassSectionReportContent({
                       total: (payload?.passed || 0) + (payload?.notPassed || 0),
                     })
                   }
+                  loading={loading}
                 />
               </ReportSectionCard>
             </div>
@@ -877,40 +892,45 @@ export default function ClassSectionReportContent({
               title={t("reportsPage.shared.sections.quizParticipation.title")}
               subtitle={t("reportsPage.shared.sections.quizParticipation.subtitle")}
             >
-              <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="!mb-4 grid grid-cols-1 !gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <MiniSummary
                   icon={<UserGroupIcon className="h-5 w-5" />}
                   label={t("reportsPage.shared.quizParticipationSummary.started")}
                   value={quizParticipationCounts.started}
+                  loading={loading}
                 />
                 <MiniSummary
                   icon={<RectangleStackIcon className="h-5 w-5" />}
                   label={t("reportsPage.shared.quizParticipationSummary.notStarted")}
                   value={quizParticipationCounts.notStarted}
+                  loading={loading}
                 />
                 <MiniSummary
                   icon={<ClockIcon className="h-5 w-5" />}
                   label={t("reportsPage.shared.quizParticipationSummary.waitingReview")}
                   value={quizParticipationCounts.waitingReview}
+                  loading={loading}
                 />
                 <MiniSummary
                   icon={<CheckCircleIcon className="h-5 w-5" />}
                   label={t("reportsPage.shared.quizParticipationSummary.passed")}
                   value={quizParticipationCounts.passed}
+                  loading={loading}
                 />
                 <MiniSummary
                   icon={<TrophyIcon className="h-5 w-5" />}
                   label={t("reportsPage.shared.quizParticipationSummary.notPassed")}
                   value={quizParticipationCounts.notPassed}
+                  loading={loading}
                 />
               </div>
 
-              <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="!mb-4 flex flex-col !gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="min-w-0">
-                  <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
+                  <p className="!m-0 text-sm font-bold text-slate-900 dark:text-white">
                     {t("reportsPage.shared.filters.quizParticipation.label")}
                   </p>
-                  <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="!m-0 !mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
                     {t("reportsPage.shared.filters.quizParticipation.hint")}
                   </p>
                 </div>
@@ -941,44 +961,47 @@ export default function ClassSectionReportContent({
               title={t("reportsPage.shared.sections.quizAttempts.title")}
               subtitle={t("reportsPage.shared.sections.quizAttempts.subtitle")}
             >
-              <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="!mb-4 grid grid-cols-1 !gap-3 sm:grid-cols-3">
                 <MiniSummary
                   icon={<UserGroupIcon className="h-5 w-5" />}
                   label={t("reportsPage.shared.quizSummary.bestResults")}
                   value={selectedQuizBestAttempts.length}
+                  loading={loading}
                 />
                 <MiniSummary
                   icon={<CheckCircleIcon className="h-5 w-5" />}
                   label={t("reportsPage.shared.quizSummary.passed")}
                   value={selectedQuizBestAttempts.filter((item) => item.isPassed === true && item.gradingStatus !== "NEEDS_REVIEW").length}
+                  loading={loading}
                 />
                 <MiniSummary
                   icon={<ClockIcon className="h-5 w-5" />}
                   label={t("reportsPage.shared.quizSummary.waitingReview")}
                   value={selectedQuizBestAttempts.filter((item) => item.gradingStatus === "NEEDS_REVIEW").length}
+                  loading={loading}
                 />
               </div>
               {recentQuizAttempts.length === 0 ? (
                 <Empty description={t("reportsPage.shared.empty.quizAttempts")} />
               ) : (
-                <div className="space-y-3">
+                <div className="!space-y-3">
                   {recentQuizAttempts.map((attempt) => (
                     <div
                       key={attempt.id}
-                      className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60 md:flex-row md:items-center md:justify-between"
+                      className="flex flex-col !gap-3 !rounded-2xl border border-slate-200 bg-slate-50 !p-4 dark:border-slate-800 dark:bg-slate-800/60 md:flex-row md:items-center md:justify-between"
                     >
                       <div className="min-w-0">
-                        <p className="m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
+                        <p className="!m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
                           {attempt.studentName || t("reportsPage.shared.defaults.noName")}
                         </p>
-                        <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        <p className="!m-0 !mt-1 text-xs text-slate-500 dark:text-slate-400">
                           {formatDateTimeWithOptions(attempt.completedTime || attempt.startTime, {
                             locale,
                             emptyLabel: emptyDateLabel,
                           })}
                         </p>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center !gap-3">
                         <QuizResultTag attempt={attempt} t={t} />
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                           {attempt.grade == null ? t("reportsPage.shared.defaults.dash") : `${attempt.grade}%`}
@@ -1002,7 +1025,7 @@ export default function ClassSectionReportContent({
     key: "overview",
     label: t("reportsPage.shared.tabs.overview"),
     children: (
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_0.9fr]">
+      <div className="grid grid-cols-1 !gap-4 xl:grid-cols-[1.35fr_0.9fr]">
         <ReportSectionCard
           title={t("reportsPage.shared.sections.progressDistribution.title")}
           subtitle={t("reportsPage.shared.sections.progressDistribution.subtitle", {
@@ -1010,24 +1033,55 @@ export default function ClassSectionReportContent({
             high: progressThresholds.high,
           })}
         >
-          <DonutSummaryChart
-            data={progressChartData}
-            totalValue={reportStudents.length}
-            totalLabel={t("reportsPage.shared.charts.progressOverviewCenter")}
-            emptyText={t("reportsPage.shared.empty.progressChart")}
-          />
+          <div className="!space-y-4">
+            <div className="grid grid-cols-1 !gap-3 sm:grid-cols-3">
+              {progressChartData.map((item) => (
+                <MiniSummary
+                  key={item.key}
+                  icon={<RectangleStackIcon className="h-5 w-5" />}
+                  label={item.label}
+                  value={item.value}
+                  loading={loading}
+                  accentColor={item.color}
+                />
+              ))}
+            </div>
+            <SingleSeriesBarChart
+              data={progressChartData}
+              dataKey="value"
+              labelKey="label"
+              layout="vertical"
+              emptyText={t("reportsPage.shared.empty.progressChart")}
+              valueFormatter={(value) => t("reportsPage.shared.charts.studentsCount", { count: value })}
+              loading={loading}
+            />
+          </div>
         </ReportSectionCard>
 
         <ReportSectionCard
           title={t("reportsPage.shared.sections.classProfile.title")}
           subtitle={t("reportsPage.shared.sections.classProfile.subtitle")}
         >
-          <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 dark:text-slate-300">
-            <MetaRow label={t("reportsPage.shared.meta.className")} value={currentClassSection?.title || t("reportsPage.shared.defaults.untitledClass")} />
-            <MetaRow label={t("reportsPage.shared.meta.classCode")} value={currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} />
-            <MetaRow label={t("reportsPage.shared.meta.subject")} value={currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} />
-            <MetaRow label={t("reportsPage.shared.meta.primaryTeacher")} value={currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} />
-            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={teachingAssistantCount} />
+          <div className="!mb-4 grid grid-cols-1 !gap-3 sm:grid-cols-2">
+            <MiniSummary
+              icon={<UserGroupIcon className="h-5 w-5" />}
+              label={t("reportsPage.shared.metrics.teachingAssistants")}
+              value={teachingAssistantCount}
+              loading={loading}
+            />
+            <MiniSummary
+              icon={<ClockIcon className="h-5 w-5" />}
+              label={t("reportsPage.shared.metrics.pendingRequests")}
+              value={stats.pendingCount}
+              loading={loading}
+            />
+          </div>
+          <div className="grid grid-cols-1 !gap-3 text-sm text-slate-600 dark:text-slate-300">
+            <MetaRow label={t("reportsPage.shared.meta.className")} value={currentClassSection?.title || t("reportsPage.shared.defaults.untitledClass")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.classCode")} value={currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.subject")} value={currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.primaryTeacher")} value={currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={teachingAssistantCount} loading={loading} />
             <MetaRow
               label={t("reportsPage.shared.meta.status")}
               value={
@@ -1035,10 +1089,11 @@ export default function ClassSectionReportContent({
                   {statusLabelMap[currentClassSection?.status] || currentClassSection?.status || t("reportsPage.shared.defaults.noStudentNumber")}
                 </Tag>
               }
+              loading={loading}
             />
-            <MetaRow label={t("reportsPage.shared.meta.startDate")} value={formatDateTimeWithOptions(currentClassSection?.startDate, { locale, emptyLabel: emptyDateLabel })} />
-            <MetaRow label={t("reportsPage.shared.meta.endDate")} value={formatDateTimeWithOptions(currentClassSection?.endDate, { locale, emptyLabel: emptyDateLabel })} />
-            <MetaRow label={t("reportsPage.shared.meta.trackedQuizzes")} value={stats.trackedQuizzes} />
+            <MetaRow label={t("reportsPage.shared.meta.startDate")} value={formatDateTimeWithOptions(currentClassSection?.startDate, { locale, emptyLabel: emptyDateLabel })} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.endDate")} value={formatDateTimeWithOptions(currentClassSection?.endDate, { locale, emptyLabel: emptyDateLabel })} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.trackedQuizzes")} value={stats.trackedQuizzes} loading={loading} />
           </div>
         </ReportSectionCard>
       </div>
@@ -1053,7 +1108,9 @@ export default function ClassSectionReportContent({
         title={t("reportsPage.shared.sections.gradebook.title")}
         subtitle={t("reportsPage.shared.sections.gradebook.subtitle")}
       >
-        {gradebookTable.rows.length === 0 ? (
+        {loading ? (
+          <div className="!py-10 text-center text-sm text-slate-500 dark:text-slate-400">{t("reportsPage.shared.loading.gradebook")}</div>
+        ) : gradebookTable.rows.length === 0 ? (
           <Empty description={t("reportsPage.shared.empty.gradebook")} />
         ) : (
           <Table
@@ -1074,13 +1131,13 @@ export default function ClassSectionReportContent({
       ? t("reportsPage.shared.tabs.progressWithCount", { count: reportStudents.length })
       : t("reportsPage.shared.tabs.studentsWithCount", { count: reportStudents.length }),
     children: (
-      <div className="space-y-4">
+      <div className="!space-y-4">
         <ReportSectionCard
           title={t("reportsPage.shared.sections.progressThresholds.title")}
           subtitle={t("reportsPage.shared.sections.progressThresholds.subtitle")}
         >
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto] xl:items-end">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 !gap-4 xl:grid-cols-[1fr_auto] xl:items-end">
+            <div className="grid grid-cols-1 !gap-4 md:grid-cols-2">
               <ThresholdField
                 label={t("reportsPage.shared.thresholds.low.label")}
                 hint={t("reportsPage.shared.thresholds.low.hint")}
@@ -1105,7 +1162,7 @@ export default function ClassSectionReportContent({
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+            <div className="flex flex-wrap items-center !gap-2 xl:justify-end">
               <Button onClick={resetProgressThresholds}>
                 {t("reportsPage.shared.actions.resetThresholds")}
               </Button>
@@ -1119,7 +1176,7 @@ export default function ClassSectionReportContent({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="!mt-4 flex flex-wrap items-center !gap-2">
             <ThresholdBadge
               label={t("reportsPage.shared.buckets.low.label")}
               hint={t("reportsPage.shared.buckets.low.hint", { low: progressThresholds.low })}
@@ -1159,13 +1216,13 @@ export default function ClassSectionReportContent({
               : t("reportsPage.shared.sections.students.subtitle")
           }
         >
-          <div className="mb-4 space-y-4">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="!mb-4 !space-y-4">
+            <div className="flex flex-col !gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="min-w-0">
-                <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
+                <p className="!m-0 text-sm font-bold text-slate-900 dark:text-white">
                   {t("reportsPage.shared.filters.studentGroups.label")}
                 </p>
-                <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                <p className="!m-0 !mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
                   {t("reportsPage.shared.filters.studentGroups.hint")}
                 </p>
               </div>
@@ -1182,17 +1239,17 @@ export default function ClassSectionReportContent({
               />
             </div>
 
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-col !gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="min-w-0">
-                <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
+                <p className="!m-0 text-sm font-bold text-slate-900 dark:text-white">
                   {t("reportsPage.shared.filters.studentStatus.label")}
                 </p>
-                <p className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                <p className="!m-0 !mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
                   {t("reportsPage.shared.filters.studentStatus.hint")}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+              <div className="flex flex-wrap items-center !gap-2 xl:justify-end">
                 <FilterChip
                   active={studentStatusFilters.includes("MISSING_ASSIGNMENTS")}
                   label={t("reportsPage.shared.filters.studentStatus.options.missingAssignments")}
@@ -1221,21 +1278,24 @@ export default function ClassSectionReportContent({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 !gap-3 sm:grid-cols-3">
               <MiniSummary
                 icon={<UserGroupIcon className="h-5 w-5" />}
                 label={t("reportsPage.shared.summary.filteredStudents")}
                 value={filteredStudents.length}
+                loading={loading}
               />
               <MiniSummary
                 icon={<RectangleStackIcon className="h-5 w-5" />}
                 label={t("reportsPage.shared.summary.activeStudentFilters")}
                 value={activeStudentFilterCount}
+                loading={loading}
               />
               <MiniSummary
                 icon={<TrophyIcon className="h-5 w-5" />}
                 label={t("reportsPage.shared.summary.scoreWatchMark")}
                 value={`${lowScoreThreshold}${t("reportsPage.shared.defaults.scoreUnit")}`}
+                loading={loading}
               />
             </div>
           </div>
@@ -1290,7 +1350,7 @@ export default function ClassSectionReportContent({
         title={t("reportsPage.shared.sections.filters.title")}
         subtitle={t("reportsPage.shared.sections.filters.subtitle")}
         actions={
-          <div className="w-full md:w-80">
+          <div className="w-full md:!w-80">
             <Select
               value={selectedClassSectionId}
               onChange={onSelectClassSection}
@@ -1306,7 +1366,7 @@ export default function ClassSectionReportContent({
           </div>
         }
       >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 !gap-3 md:grid-cols-2 xl:grid-cols-5">
           <ReportMetricCard
             icon={<UserGroupIcon className="h-6 w-6" />}
             label={t("reportsPage.shared.metrics.totalStudents")}
@@ -1316,6 +1376,7 @@ export default function ClassSectionReportContent({
               low: progressThresholds.low,
             })}
             tone="blue"
+            loading={loading}
           />
           <ReportMetricCard
             icon={<ClockIcon className="h-6 w-6" />}
@@ -1323,6 +1384,7 @@ export default function ClassSectionReportContent({
             value={stats.pendingCount}
             hint={t("reportsPage.shared.metrics.pendingRequestsHint")}
             tone="amber"
+            loading={loading}
           />
           <ReportMetricCard
             icon={<TrophyIcon className="h-6 w-6" />}
@@ -1330,6 +1392,7 @@ export default function ClassSectionReportContent({
             value={stats.averageQuizScore}
             hint={t("reportsPage.shared.metrics.averageQuizScoreHint", { score: stats.topScore })}
             tone="emerald"
+            loading={loading}
           />
           <ReportMetricCard
             icon={<CheckCircleIcon className="h-6 w-6" />}
@@ -1340,30 +1403,48 @@ export default function ClassSectionReportContent({
               high: progressThresholds.high,
             })}
             tone="rose"
+            loading={loading}
+          />
+          <ReportMetricCard
+            icon={<AcademicCapIcon className="h-6 w-6" />}
+            label={t("reportsPage.shared.metrics.teachingAssistants")}
+            value={teachingAssistantCount}
+            hint={t("reportsPage.shared.metrics.teachingAssistantsHint", { count: teachingAssistantCount })}
+            tone="slate"
+            loading={loading}
           />
         </div>
       </ReportSectionCard>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_0.9fr]">
+      <div className="grid grid-cols-1 !gap-4 xl:grid-cols-[1.35fr_0.9fr]">
         <ReportSectionCard
           title={t("reportsPage.shared.sections.operations.title")}
           subtitle={t("reportsPage.shared.sections.operations.subtitle")}
         >
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 !gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MiniSummary
               icon={<AcademicCapIcon className="h-5 w-5" />}
               label={t("reportsPage.shared.summary.trackedQuizzes")}
               value={stats.trackedQuizzes}
+              loading={loading}
             />
             <MiniSummary
               icon={<RectangleStackIcon className="h-5 w-5" />}
               label={t("reportsPage.shared.summary.atRiskStudents")}
               value={stats.atRiskStudents}
+              loading={loading}
             />
             <MiniSummary
               icon={<UserGroupIcon className="h-5 w-5" />}
               label={t("reportsPage.shared.summary.engagedStudents")}
               value={stats.engagedStudents}
+              loading={loading}
+            />
+            <MiniSummary
+              icon={<AcademicCapIcon className="h-5 w-5" />}
+              label={t("reportsPage.shared.metrics.teachingAssistants")}
+              value={teachingAssistantCount}
+              loading={loading}
             />
           </div>
         </ReportSectionCard>
@@ -1372,12 +1453,12 @@ export default function ClassSectionReportContent({
           title={t("reportsPage.shared.sections.context.title")}
           subtitle={t("reportsPage.shared.sections.context.subtitle")}
         >
-          <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
-            <MetaRow label={t("reportsPage.shared.meta.currentClass")} value={currentClassSection?.title || t("reportsPage.shared.defaults.noSelectedClass")} />
-            <MetaRow label={t("reportsPage.shared.meta.classCode")} value={currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} />
-            <MetaRow label={t("reportsPage.shared.meta.subject")} value={currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} />
-            <MetaRow label={t("reportsPage.shared.meta.teacher")} value={currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} />
-            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={teachingAssistantCount} />
+          <div className="!space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <MetaRow label={t("reportsPage.shared.meta.currentClass")} value={currentClassSection?.title || t("reportsPage.shared.defaults.noSelectedClass")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.classCode")} value={currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.subject")} value={currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.teacher")} value={currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={teachingAssistantCount} loading={loading} />
           </div>
         </ReportSectionCard>
       </div>
@@ -1462,23 +1543,33 @@ function FilterChip({ active, label, onClick }) {
   );
 }
 
-function MiniSummary({ icon, label, value }) {
+function MiniSummary({ icon, label, value, loading = false, accentColor = null }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/70">
-      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+    <div className="!rounded-2xl border border-slate-200 bg-slate-50 !p-4 dark:border-slate-800 dark:bg-slate-800/70">
+      <div className="flex items-center !gap-2 text-slate-500 dark:text-slate-400">
         {icon}
         <span className="text-xs font-bold uppercase tracking-[0.16em]">{label}</span>
       </div>
-      <p className="m-0 mt-3 text-3xl font-black text-slate-950 dark:text-white">{value}</p>
+      {loading ? (
+        <div className="!mt-3 h-8 w-20 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800" />
+      ) : (
+        <p className="!m-0 !mt-3 text-3xl font-black text-slate-950 dark:text-white" style={accentColor ? { color: accentColor } : undefined}>
+          {value}
+        </p>
+      )}
     </div>
   );
 }
 
-function MetaRow({ label, value }) {
+function MetaRow({ label, value, loading = false }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-dashed border-slate-200 pb-3 last:border-b-0 last:pb-0 dark:border-slate-800">
+    <div className="flex items-start justify-between !gap-4 border-b border-dashed border-slate-200 !pb-3 last:border-b-0 last:!pb-0 dark:border-slate-800">
       <span className="text-slate-500 dark:text-slate-400">{label}</span>
-      <div className="text-right font-semibold text-slate-900 dark:text-white">{value}</div>
+      {loading ? (
+        <div className="h-4 w-28 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
+      ) : (
+        <div className="text-right font-semibold text-slate-900 dark:text-white">{value}</div>
+      )}
     </div>
   );
 }

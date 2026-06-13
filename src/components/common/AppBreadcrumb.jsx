@@ -714,6 +714,30 @@ function buildWorkspaceBreadcrumb(pathname, context, t) {
     ];
   }
 
+  params = matchExact("/question-banks/:id/questions/create", relativePath)?.params;
+  if (params) {
+    return [
+      item(t("breadcrumbs.questionBanks"), `${prefix}/question-banks`),
+      item(
+        labelOrFallback(context.questionBankName, t("breadcrumbs.currentQuestionBank")),
+        `${prefix}/question-banks/${params.id}`
+      ),
+      current(t("questionBankEditor.createTitle")),
+    ];
+  }
+
+  params = matchExact("/question-banks/:id/questions/:questionId/edit", relativePath)?.params;
+  if (params) {
+    return [
+      item(t("breadcrumbs.questionBanks"), `${prefix}/question-banks`),
+      item(
+        labelOrFallback(context.questionBankName, t("breadcrumbs.currentQuestionBank")),
+        `${prefix}/question-banks/${params.id}`
+      ),
+      current(t("questionBankEditor.editTitle")),
+    ];
+  }
+
   params = matchExact("/question-banks/:id/media", relativePath)?.params;
   if (params) {
     return [

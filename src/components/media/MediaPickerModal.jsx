@@ -8,6 +8,7 @@ import {
   uploadStandaloneResource,
 } from "../../api/resource";
 import ResourceRenderer from "./ResourceRenderer";
+import { getDisplayFileType } from "../../utils/fileUtils";
 
 const TYPE_ACCEPT = {
   IMAGE: "image/*",
@@ -32,6 +33,7 @@ const normalizeUploadResponse = (response) => {
     fileUrl: payload.fileUrl || payload.url,
     hlsUrl: payload.hlsUrl,
     mimeType: payload.mimeType,
+    fileType: payload.fileType,
     fileSize: payload.fileSize,
     type: payload.type,
     source: "UPLOAD",
@@ -58,6 +60,7 @@ const createDraftFileResource = (file, mediaType, scopedParams) => {
     title: file.name,
     fileUrl: objectUrl,
     mimeType: file.type,
+    fileType: getExtension(file.name).toUpperCase() || mediaType,
     fileSize: file.size,
     type: mediaType,
     source: "UPLOAD",
@@ -323,7 +326,9 @@ export default function MediaPickerModal({
                 })}
               </div>
             ) : null}
-            <Button type="primary" className="mt-4">{t("quizMedia.browseFiles")}</Button>
+            <div className="mt-4">
+              <Button type="primary">{t("quizMedia.browseFiles")}</Button>
+            </div>
           </>
         )}
         <input ref={fileInputRef} type="file" accept={accept} className="hidden" onChange={handleUpload} />
@@ -405,7 +410,7 @@ export default function MediaPickerModal({
                 </div>
                 <div className="mt-2 truncate text-sm font-medium text-gray-800 dark:text-gray-100">{resource.title || t("quizMedia.untitled")}</div>
                 <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span>{resource.type || resource.mimeType}</span>
+                  <span>{getDisplayFileType(resource)}</span>
                   {resource.fileSize ? <span>{formatBytes(resource.fileSize)}</span> : null}
                 </div>
               </button>

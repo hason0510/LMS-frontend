@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, App, Button, Checkbox, Modal, Select, Tag, Tooltip, Spin } from "antd";
 import { useTranslation } from "react-i18next";
 import { addMember, getMembers, removeMember, updateMemberPermissions, updateMemberRole } from "../../api/classSection";
 import { searchUsers } from "../../api/user";
-import { UserPlusIcon, TrashIcon, ShieldCheckIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import { TrashIcon, ShieldCheckIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import UserIdentity from "../common/UserIdentity";
 
 const TA_PERMISSION_KEYS = [
@@ -16,15 +16,26 @@ const TA_PERMISSION_KEYS = [
   "REPLY_COMMENTS",
 ];
 
-export default function ClassStaffModal({ open, classSectionId, canManageStaff = false, onClose, onChanged }) {
+export default function ClassStaffModal({
+  open,
+  classSectionId,
+  canManageStaff = false,
+  allowPrimaryTeacherAssignment = true,
+  onClose,
+  onChanged,
+}) {
   const { message } = App.useApp();
   const { t } = useTranslation();
   const [members, setMembers] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState();
+  const [searchText, setSearchText] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState("TA");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const userSearchRef = useRef(null);
   
   // Expandable row state for permissions
   const [expandedMemberId, setExpandedMemberId] = useState(null);
@@ -48,16 +59,61 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
     if (open) {
       loadMembers();
       setExpandedMemberId(null);
+    } else {
+      setSelectedUserId(undefined);
+      setSearchText("");
+      setSearchOpen(false);
+      setUsers([]);
     }
   }, [open, classSectionId]);
 
+  useEffect(() => {
+    if (!allowPrimaryTeacherAssignment && selectedRole !== "TA") {
+      setSelectedRole("TA");
+    }
+  }, [allowPrimaryTeacherAssignment, selectedRole]);
+
+  useEffect(() => {
+    if (!open || !searchOpen) {
+      return undefined;
+    }
+
+    const handleDocumentMouseDown = (event) => {
+      const target = event.target;
+      if (userSearchRef.current?.contains(target)) {
+        return;
+      }
+      closeUserSearch();
+    };
+
+    document.addEventListener("mousedown", handleDocumentMouseDown);
+    return () => document.removeEventListener("mousedown", handleDocumentMouseDown);
+  }, [open, searchOpen, selectedUserId]);
+
+  const resetUserSearch = () => {
+    setSearchText("");
+    setSearchOpen(false);
+    setUsers([]);
+  };
+
+  const closeUserSearch = () => {
+    setSearchText("");
+    setSearchOpen(false);
+    if (!selectedUserId) {
+      setUsers([]);
+    }
+  };
+
   const searchAvailableUsers = async (value) => {
     try {
+      setSearchLoading(true);
       const response = await searchUsers({ keyword: value, pageNumber: 1, pageSize: 20 });
       const pageList = response?.pageList || response?.data?.pageList || (Array.isArray(response) ? response : []);
       setUsers(pageList);
     } catch {
       setUsers([]);
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -69,7 +125,7 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
       label: (
         <UserIdentity
           user={user}
-          variant="teacher"
+          variant="auto"
           showAvatar={false}
           fallbackName={t("teaching.layout.defaultUser")}
           nameClassName="m-0 text-sm font-medium text-gray-800 dark:text-white"
@@ -88,6 +144,7 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
       await addMember(classSectionId, { userId: selectedUserId, role: selectedRole });
       message.success(t("teaching.staff.messages.added"));
       setSelectedUserId(undefined);
+      resetUserSearch();
       await loadMembers();
       onChanged?.();
     } catch (err) {
@@ -149,12 +206,47 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
     { value: "TA", label: t("teaching.roles.teachingAssistant") },
     { value: "TEACHER", label: t("teaching.roles.primaryTeacher") },
   ];
+  const assignableRoleOptions = allowPrimaryTeacherAssignment
+    ? roleOptions
+    : roleOptions.filter((option) => option.value === "TA");
 
   const permissionOptions = TA_PERMISSION_KEYS.map((permission) => ({
     value: permission,
     label: t(`teaching.staff.permissions.${permission}`),
     disabled: permission === "VIEW_CLASS",
   }));
+
+  const handleUserSelect = (value) => {
+    setSelectedUserId(value);
+    setSearchText("");
+    setSearchOpen(false);
+  };
+
+  const handleUserSearch = (value) => {
+    setSearchText(value);
+    setSearchOpen(true);
+    searchAvailableUsers(value);
+  };
+
+  const handleUserFocus = () => {
+    setSearchOpen(true);
+    searchAvailableUsers(searchText);
+  };
+
+  const handleUserOpenChange = (nextOpen) => {
+    setSearchOpen(nextOpen);
+    if (!nextOpen) {
+      closeUserSearch();
+    }
+  };
+
+  const handleUserBlur = () => {
+    window.setTimeout(() => {
+      if (!userSearchRef.current?.contains(document.activeElement)) {
+        closeUserSearch();
+      }
+    }, 0);
+  };
 
   return (
     <Modal
@@ -195,35 +287,50 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
 
         {/* Add Bar */}
         {canManageStaff && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex flex-col sm:flex-row gap-3">
-            <Select
-              showSearch
-              filterOption={false}
-              value={selectedUserId}
-              onSearch={searchAvailableUsers}
-              onFocus={() => searchAvailableUsers("")}
-              onChange={setSelectedUserId}
-              options={userOptions}
-              placeholder={t("teaching.staff.searchPlaceholder")}
-              className="flex-1 min-w-[200px]"
-              size="large"
-            />
-            <Select
-              value={selectedRole}
-              onChange={setSelectedRole}
-              options={roleOptions}
-              className="w-full sm:w-40 shrink-0"
-              size="large"
-              showSearch
-              optionFilterProp="label"
-            />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[minmax(0,1fr)_170px_auto]">
+            <div ref={userSearchRef} className="min-w-0">
+              <Select
+                showSearch
+                filterOption={false}
+                value={selectedUserId}
+                searchValue={searchText}
+                open={searchOpen}
+                loading={searchLoading}
+                onSearch={handleUserSearch}
+                onFocus={handleUserFocus}
+                onChange={handleUserSelect}
+                onOpenChange={handleUserOpenChange}
+                onBlur={handleUserBlur}
+                options={userOptions}
+                notFoundContent={searchLoading ? <Spin size="small" /> : null}
+                placeholder={t("teaching.staff.searchPlaceholder")}
+                className="w-full"
+                popupClassName="class-staff-user-search-popup"
+                getPopupContainer={() => userSearchRef.current || document.body}
+                size="large"
+              />
+            </div>
+            {allowPrimaryTeacherAssignment ? (
+              <Select
+                value={selectedRole}
+                onChange={setSelectedRole}
+                options={assignableRoleOptions}
+                className="w-full"
+                size="large"
+                showSearch
+                optionFilterProp="label"
+              />
+            ) : (
+              <div className="flex min-h-10 w-full items-center rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                {t("teaching.roles.teachingAssistant")}
+              </div>
+            )}
             <Button 
               type="primary" 
               loading={saving} 
               onClick={handleAdd} 
               size="large"
-              icon={<UserPlusIcon className="w-5 h-5" />}
-              className="shrink-0 flex items-center justify-center font-medium bg-primary hover:bg-primary/90"
+              className="h-10 w-full px-5 font-medium bg-primary hover:bg-primary/90 sm:w-auto sm:min-w-[112px]"
             >
               {t("teaching.staff.actions.add")}
             </Button>
@@ -258,7 +365,7 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <UserIdentity
                           user={member}
-                          variant="teacher"
+                          variant="auto"
                           avatarSizeClass="size-10"
                           fallbackName={t("teaching.layout.defaultUser")}
                           nameClassName="m-0 truncate text-sm font-bold text-gray-900 dark:text-white"
@@ -268,24 +375,34 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
 
                       {/* Controls */}
                       <div className="flex items-center gap-3 sm:justify-end shrink-0 flex-wrap">
-                        <Select
-                          value={member.role}
-                          disabled={!canManageStaff || isTeacher}
-                          options={roleOptions}
-                          onChange={(role) => handleUpdateRole(member, role)}
-                          size="middle"
-                          className="w-36"
-                          bordered={false}
-                          style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
-                          showSearch
-                          optionFilterProp="label"
-                        />
-                        
-                        {isTeacher ? (
+                        {allowPrimaryTeacherAssignment ? (
+                          <Select
+                            value={member.role}
+                            disabled={!canManageStaff || isTeacher}
+                            options={roleOptions}
+                            onChange={(role) => handleUpdateRole(member, role)}
+                            size="middle"
+                            className="w-36"
+                            bordered={false}
+                            style={{ backgroundColor: "rgba(0,0,0,0.02)" }}
+                            showSearch
+                            optionFilterProp="label"
+                          />
+                        ) : isTeacher ? (
                           <Tag color="blue" className="m-0 py-1 px-2.5 rounded-full border-none bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                             Giáo viên chính
                           </Tag>
                         ) : (
+                          <Tag color="green" className="m-0 py-1 px-2.5 rounded-full border-none bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                            {t("teaching.roles.teachingAssistant")}
+                          </Tag>
+                        )}
+
+                        {allowPrimaryTeacherAssignment && isTeacher ? (
+                          <Tag color="blue" className="m-0 py-1 px-2.5 rounded-full border-none bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            Giáo viên chính
+                          </Tag>
+                        ) : !isTeacher ? (
                           <Tooltip title={t("teaching.staff.actions.permissions")}>
                             <button
                               onClick={() => togglePermissionEditor(member)}
@@ -301,7 +418,7 @@ export default function ClassStaffModal({ open, classSectionId, canManageStaff =
                               {isExpanded ? <ChevronUpIcon className="w-3.5 h-3.5 ml-1" /> : <ChevronDownIcon className="w-3.5 h-3.5 ml-1" />}
                             </button>
                           </Tooltip>
-                        )}
+                        ) : null}
 
                         <Tooltip title={t("teaching.staff.actions.remove")}>
                           <button

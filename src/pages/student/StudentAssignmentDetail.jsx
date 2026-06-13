@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { App, Button, Spin } from "antd";
 import dayjs from "dayjs";
@@ -11,6 +11,7 @@ import { getMySubmission, submitAssignment } from "../../api/submission";
 import { uploadStandaloneResource } from "../../api/resource";
 import FileItem from "../../components/common/FileItem";
 import { buildQuillModules, createQuillTableControl, extendQuillFormats } from "../../utils/quillTable";
+import useForegroundRefresh from "../../hooks/useForegroundRefresh";
 
 const quillModules = buildQuillModules([
   [{ header: [2, 3, false] }],
@@ -122,7 +123,7 @@ export default function StudentAssignmentDetail() {
     setLinkUrl("");
   };
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     try {
       setLoading(true);
       const [assignmentResponse, submissionResponse] = await Promise.all([
@@ -143,11 +144,13 @@ export default function StudentAssignmentDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [assignmentId, classContentItemId, classSectionId, message]);
 
   useEffect(() => {
     refreshData();
-  }, [assignmentId, classSectionId, classContentItemId]);
+  }, [refreshData]);
+
+  useForegroundRefresh(refreshData);
 
   const status = submission?.status || "NOT_SUBMITTED";
   const hasSubmitted = status !== "NOT_SUBMITTED" && Boolean(submission?.submissionTime);
@@ -279,7 +282,7 @@ export default function StudentAssignmentDetail() {
   return (
     <div className="student-assignment-detail min-h-screen bg-slate-50 dark:bg-slate-900">
       <Header />
-      <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-12 sm:px-6 lg:px-8">
         <AppBreadcrumb
           className="mb-5"
           context={{
@@ -304,7 +307,7 @@ export default function StudentAssignmentDetail() {
                   <StatusPill status={status} />
                 </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                   <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/40">
                     <p className="m-0 text-xs text-slate-500">Hạn nộp</p>
                     <p className="m-0 mt-1 font-semibold text-slate-900 dark:text-white">
@@ -315,12 +318,6 @@ export default function StudentAssignmentDetail() {
                     <p className="m-0 text-xs text-slate-500">Đóng nhận bài</p>
                     <p className="m-0 mt-1 font-semibold text-slate-900 dark:text-white">
                       {formatDate(assignment?.closeAt, "Không giới hạn")}
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/40">
-                    <p className="m-0 text-xs text-slate-500">Nộp muộn</p>
-                    <p className="m-0 mt-1 font-semibold text-slate-900 dark:text-white">
-                      {assignment?.allowLateSubmission ? "Được phép" : "Không cho phép"}
                     </p>
                   </div>
                 </div>
@@ -470,11 +467,11 @@ export default function StudentAssignmentDetail() {
                       Đính kèm file / link
                     </p>
                     <div className="flex items-center gap-3">
-                      <label className="cursor-pointer rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/60">
-                        {uploading ? "Đang tải..." : "Upload file"}
+                      <label className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium cursor-pointer transition-colors shadow-sm duration-200">
+                        {uploading ? "Đang tải..." : "Tải file lên"}
                         <input
                           type="file"
-                          className="hidden"
+                          style={{ display: "none" }}
                           multiple
                           onChange={handleUploadFiles}
                           disabled={uploading}
@@ -518,7 +515,7 @@ export default function StudentAssignmentDetail() {
                     )}
                   </div>
 
-                  <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 dark:border-slate-700 sm:flex-row sm:justify-end">
+                  <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 dark:border-slate-700 sm:flex-row sm:justify-center">
                     {hasSubmitted && (
                       <Button onClick={handleCancelEditing} disabled={submitting}>
                         Hủy

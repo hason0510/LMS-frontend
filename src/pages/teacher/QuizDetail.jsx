@@ -308,6 +308,15 @@ const toBankSourcesPayload = (sources = []) =>
       orderIndex: idx + 1,
     }));
 
+const getConfiguredRuleQuestionCount = (sources = [], bankDetailsMap = {}) =>
+  (sources || []).reduce((total, source) => {
+    const matchingQuestions = getRuleMatchedQuestions(source, bankDetailsMap);
+    if (source.selectionMode === "RANDOM") {
+      return total + Math.min(source.questionCount || 0, matchingQuestions.length);
+    }
+    return total + matchingQuestions.length;
+  }, 0);
+
 const getRuleMatchedQuestions = (source, bankDetailsMap) => {
   if (!source?.questionBankId) return [];
 
@@ -820,7 +829,7 @@ function MatchingPairs({ question, onChange, mediaContext }) {
           </div>
         ))}
       </div>
-      <button onClick={addPair} className="mt-3 flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm font-medium">
+      <button onClick={addPair} className="mt-4 flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm font-medium">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
@@ -831,6 +840,7 @@ function MatchingPairs({ question, onChange, mediaContext }) {
 }
 
 function SortableOrderItem({ item, onChangeContent, onDelete }) {
+  const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.localId });
   return (
     <div
@@ -843,7 +853,7 @@ function SortableOrderItem({ item, onChangeContent, onDelete }) {
         className="flex-1 border-none shadow-none bg-transparent text-sm"
         value={item.content}
         onChange={(e) => onChangeContent(e.target.value)}
-        placeholder="Item text..."
+        placeholder={t("quizBuilder.itemTextPlaceholder")}
       />
       <button onClick={onDelete} className="text-red-400 hover:text-red-600 p-1">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -855,6 +865,7 @@ function SortableOrderItem({ item, onChangeContent, onDelete }) {
 }
 
 function OrderingItems({ question, onChange }) {
+  const { t } = useTranslation();
   const { items } = question;
   const sensors = useSensors(useSensor(PointerSensor));
   const handleDragEnd = (event) => {
@@ -889,14 +900,15 @@ function OrderingItems({ question, onChange }) {
           </div>
         </SortableContext>
       </DndContext>
-      <button onClick={add} className="mt-2 flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm">
-        + Add item
+      <button onClick={add} className="mt-4 flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm">
+        + {t("quizBuilder.add")}
       </button>
     </div>
   );
 }
 
 function ShortAnswerSection({ question, onChange }) {
+  const { t } = useTranslation();
   const { answers } = question;
   const update = (idx, content) =>
     onChange({ answers: answers.map((a, i) => (i === idx ? { ...a, content } : a)) });
@@ -905,7 +917,7 @@ function ShortAnswerSection({ question, onChange }) {
 
   return (
     <div>
-      <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Accepted Keywords</div>
+      <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{t("quizBuilder.acceptedKeywords")}</div>
       <div className="space-y-2">
         {answers.map((a, idx) => (
           <div key={a.localId} className="flex items-center gap-2">
@@ -913,7 +925,7 @@ function ShortAnswerSection({ question, onChange }) {
               className="flex-1 text-sm"
               value={a.content}
               onChange={(e) => update(idx, e.target.value)}
-              placeholder={`Keyword ${idx + 1}`}
+              placeholder={t("quizBuilder.keywordPlaceholder", { index: idx + 1 })}
             />
             <button onClick={() => remove(idx)} className="text-red-400 hover:text-red-600 p-1">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -923,7 +935,7 @@ function ShortAnswerSection({ question, onChange }) {
           </div>
         ))}
       </div>
-      <button onClick={add} className="mt-2 text-blue-500 hover:text-blue-700 text-sm">+ Add keyword</button>
+      <button onClick={add} className="mt-4 text-blue-500 hover:text-blue-700 text-sm">+ {t("quizBuilder.addKeyword")}</button>
     </div>
   );
 }
@@ -1046,7 +1058,7 @@ function QuestionCard({ question, index, mediaContext, onChange, onDelete, dragH
                 const fresh = makeQuestion(v);
                 onChange({ type: v, answers: fresh.answers, items: fresh.items, clozeSyntax: "" });
               }}
-              className="w-36"
+              className="w-64"
               popupMatchSelectWidth={false}
             />
             <div className="flex items-center gap-1">
@@ -1266,7 +1278,6 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
                 onChange={(value) => onUpdate({ questionCount: value ?? null })}
                 className="w-full"
                 size="large"
-                placeholder={t("quizEditor.placeholders.randomCount")}
               />
             </div>
           )}
@@ -1291,7 +1302,7 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
           {selectedTags.length > 0 && (
             <div className="flex flex-1 flex-wrap gap-2">
               {selectedTags.map((tag) => (
-                <Tag key={tag.id} className="m-0 rounded-full border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                <Tag key={tag.id} className="m-0 rounded-full border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-700">
                   {tag.name}
                 </Tag>
               ))}
@@ -1736,7 +1747,7 @@ export default function QuizDetail() {
           answers: [],
           items: [],
         };
-        if (["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TRUE_FALSE", "SHORT_ANSWER"].includes(q.type)) {
+        if (["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TRUE_FALSE", "SHORT_ANSWER", "IMAGE_ANSWERING"].includes(q.type)) {
           base.answers = q.answers.map((a) => ({
             id: a.id,
             content: a.content,
@@ -1770,6 +1781,16 @@ export default function QuizDetail() {
       const processedBankSources = isBankRuleMode ? toBankSourcesPayload(bankSources) : [];
       if (isBankRuleMode && processedBankSources.length === 0) {
         message.warning("Vui lòng thêm ít nhất một rule question bank.");
+        setSaving(false);
+        return;
+      }
+      if (!isBankRuleMode && processedQuestions.length === 0) {
+        message.warning(t("quizEditor.messages.atLeastOneQuestionRequired"));
+        setSaving(false);
+        return;
+      }
+      if (isBankRuleMode && getConfiguredRuleQuestionCount(processedBankSources, bankDetailsMap) === 0) {
+        message.warning(t("quizEditor.messages.atLeastOneQuestionRequired"));
         setSaving(false);
         return;
       }
@@ -1858,7 +1879,7 @@ export default function QuizDetail() {
           [...new Set(createdResourceIds)].map((resourceId) => deleteResource(resourceId))
         );
       }
-      message.error(t("quizEditor.messages.saveQuizFailed"));
+      message.error(err?.response?.data?.message || t("quizEditor.messages.saveQuizFailed"));
       console.error(err);
     } finally {
       setSaving(false);

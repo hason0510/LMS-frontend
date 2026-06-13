@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { App, Button, Empty, Input, Modal, Select, Table, Tag } from "antd";
 import { useTranslation } from "react-i18next";
+import { CheckIcon, EyeIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -19,10 +20,8 @@ import {
 import { getAllCourses, getTeacherCourses } from "../../api/classSection";
 
 const DEFAULT_PAGE_SIZE = 10;
-const ACTION_BUTTON_CLASS =
-  "border-slate-300! bg-white! text-slate-700! dark:border-slate-600! dark:bg-slate-800! dark:text-slate-200! hover:border-blue-500! hover:text-blue-500! dark:hover:border-blue-400! dark:hover:text-blue-300!";
-const DANGER_ACTION_BUTTON_CLASS =
-  "border-red-200! bg-white! text-red-600! dark:border-red-900/70! dark:bg-slate-800! dark:text-red-300! hover:border-red-500! hover:text-red-500! dark:hover:border-red-400! dark:hover:text-red-200!";
+const ACTION_BUTTON_CLASS = "app-table-action-btn";
+const DANGER_ACTION_BUTTON_CLASS = "app-table-action-btn app-table-action-btn--danger";
 
 function normalizeClasses(payload) {
   const items = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
@@ -225,12 +224,14 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
     {
       title: t("teacherLists.students.columns.student"),
       key: "student",
+      width: 300,
       render: (_, record) => <UserIdentity user={record} variant="student" avatarSizeClass="size-10" />,
     },
     {
       title: t("teacherLists.students.columns.classSection"),
       dataIndex: "classSectionName",
       key: "classSectionName",
+      width: 350,
       render: (value) => <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{value}</span>,
     },
     {
@@ -249,7 +250,6 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
       title: t("teacherLists.students.columns.enrolledAt"),
       dataIndex: "enrollmentDate",
       key: "enrollmentDate",
-      width: 140,
       render: (value) =>
         value ? (
           <span className="text-sm text-slate-700 dark:text-slate-300">{new Date(value).toLocaleDateString("vi-VN")}</span>
@@ -261,25 +261,25 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
       title: t("teacherLists.students.columns.action"),
       key: "action",
       width: 230,
-      align: "right",
+      align: "center",
       render: (_, record) =>
         record.approvalStatus === "PENDING" ? (
-          <div className="flex justify-end gap-2">
-                            <Button className={ACTION_BUTTON_CLASS} onClick={() => handleApprove(record)}>
-                              {t("teacherLists.students.actions.approve")}
-                            </Button>
-                            <Button danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleReject(record)}>
-                              {t("teacherLists.students.actions.reject")}
-                            </Button>
+          <div className="flex justify-center gap-2">
+            <Button icon={<CheckIcon className="h-4 w-4" />} className={ACTION_BUTTON_CLASS} onClick={() => handleApprove(record)}>
+              {t("teacherLists.students.actions.approve")}
+            </Button>
+            <Button icon={<XMarkIcon className="h-4 w-4" />} danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleReject(record)}>
+              {t("teacherLists.students.actions.reject")}
+            </Button>
           </div>
         ) : (
-          <div className="flex justify-end gap-2">
-                            <Button className={ACTION_BUTTON_CLASS} onClick={() => openStudentDetail(record)}>
-                              {t("teacherLists.shared.view")}
-                            </Button>
-                            <Button danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleDeleteStudents([record])}>
-                              {t("teacherLists.shared.delete")}
-                            </Button>
+          <div className="flex justify-center gap-2">
+            <Button icon={<EyeIcon className="h-4 w-4" />} className={ACTION_BUTTON_CLASS} onClick={() => openStudentDetail(record)}>
+              {t("teacherLists.shared.view")}
+            </Button>
+            <Button icon={<TrashIcon className="h-4 w-4" />} danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleDeleteStudents([record])}>
+              {t("teacherLists.shared.delete")}
+            </Button>
           </div>
         ),
     },
@@ -294,7 +294,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
           <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
             <AppBreadcrumb className="mb-4" />
 
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-800">
+            <div className="app-table-shell">
               <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -389,19 +389,19 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
                       <div className="mt-4 flex flex-wrap gap-2">
                         {record.approvalStatus === "PENDING" ? (
                           <>
-            <Button className={ACTION_BUTTON_CLASS} onClick={() => handleApprove(record)}>
+            <Button icon={<CheckIcon className="h-4 w-4" />} className={ACTION_BUTTON_CLASS} onClick={() => handleApprove(record)}>
               {t("teacherLists.students.actions.approve")}
             </Button>
-            <Button danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleReject(record)}>
+            <Button icon={<XMarkIcon className="h-4 w-4" />} danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleReject(record)}>
               {t("teacherLists.students.actions.reject")}
             </Button>
                           </>
                         ) : (
                           <>
-            <Button className={ACTION_BUTTON_CLASS} onClick={() => openStudentDetail(record)}>
+            <Button icon={<EyeIcon className="h-4 w-4" />} className={ACTION_BUTTON_CLASS} onClick={() => openStudentDetail(record)}>
               {t("teacherLists.shared.view")}
             </Button>
-            <Button danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleDeleteStudents([record])}>
+            <Button icon={<TrashIcon className="h-4 w-4" />} danger className={DANGER_ACTION_BUTTON_CLASS} onClick={() => handleDeleteStudents([record])}>
               {t("teacherLists.shared.delete")}
             </Button>
                           </>

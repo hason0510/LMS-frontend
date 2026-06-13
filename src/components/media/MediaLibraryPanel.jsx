@@ -18,6 +18,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import DataPaginationFooter from "../common/DataPaginationFooter";
 import MediaDetailModal from "./MediaDetailModal";
 import ResourceRenderer from "./ResourceRenderer";
+import { getDisplayFileType } from "../../utils/fileUtils";
 
 const DEFAULT_PAGE_SIZE = 24;
 const PAGE_SIZE_OPTIONS = [12, 24, 48];
@@ -485,7 +486,7 @@ export default function MediaLibraryPanel({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 md:flex-row md:items-center">
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 md:flex-row md:items-center overflow-x-auto scrollbar-hide">
         <Input.Search
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -494,13 +495,15 @@ export default function MediaLibraryPanel({
           className="md:max-w-xs"
         />
         {governance ? (
-          <Input
-            value={ownerFilter}
-            onChange={(event) => setOwnerFilter(event.target.value)}
-            placeholder={t("mediaManager.filters.owner")}
-            allowClear
-            className="w-full md:w-48"
-          />
+          <div className="w-[250px] min-w-[250px] flex-shrink-0">
+            <Input
+              value={ownerFilter}
+              onChange={(event) => setOwnerFilter(event.target.value)}
+              placeholder={t("mediaManager.filters.owner")}
+              allowClear
+              className="w-full"
+            />
+          </div>
         ) : null}
         {!fixedScope ? (
           <Select
@@ -509,7 +512,8 @@ export default function MediaLibraryPanel({
             value={scopeFilter}
             onChange={setScopeFilter}
             options={scopeOptions}
-            className="w-full md:w-48"
+            className="w-full md:w-auto"
+            style={{ minWidth: 260, maxWidth: 260 }}
             showSearch
             optionFilterProp="label"
           />
@@ -527,7 +531,8 @@ export default function MediaLibraryPanel({
             value={scopeTargetFilter}
             onChange={setScopeTargetFilter}
             options={activeScopeTargetOptions}
-            className="w-full md:w-64"
+            className="w-full md:w-auto"
+            style={{ minWidth: 260, maxWidth: 260 }}
             optionFilterProp="label"
             notFoundContent={
               scopeTargetLoading ? (
@@ -544,7 +549,8 @@ export default function MediaLibraryPanel({
           value={type}
           onChange={setType}
           options={typeOptions}
-          className="w-full md:w-40"
+          className="w-full md:w-auto"
+          style={{ minWidth: 150, maxWidth: 150 }}
           showSearch
           optionFilterProp="label"
         />
@@ -557,7 +563,8 @@ export default function MediaLibraryPanel({
             { value: "ACTIVE", label: t("mediaManager.status.ACTIVE") },
             { value: "ARCHIVED", label: t("mediaManager.status.ARCHIVED") },
           ]}
-          className="w-full md:w-40"
+          className="w-full md:w-auto"
+          style={{ minWidth: 200, maxWidth: 200 }}
         />
         <Select
           value={sortBy}
@@ -569,7 +576,8 @@ export default function MediaLibraryPanel({
             { value: "name", label: t("mediaManager.sort.name") },
             { value: "size", label: t("mediaManager.sort.size") },
           ]}
-          className="w-full md:w-40"
+          className="w-full md:w-auto"
+          style={{ minWidth: 150, maxWidth: 150 }}
         />
       </div>
 
@@ -587,29 +595,25 @@ export default function MediaLibraryPanel({
         ) : resources.length > 0 ? (
           <div className="p-4 sm:p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {resources.map((resource) => (
+                      {resources.map((resource) => (
                 <button
                   key={resource.id}
                   type="button"
                   onClick={() => openDetails(resource)}
                   className="overflow-hidden rounded-lg border border-slate-200 bg-white text-left transition hover:border-blue-400 hover:shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:hover:border-blue-500"
                 >
-                  <div className="flex h-44 items-center justify-center overflow-hidden bg-slate-50 p-3 dark:bg-slate-900">
-                    <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
+                  <div className="flex min-h-[220px] items-center justify-center overflow-hidden bg-slate-50 p-3 dark:bg-slate-900">
+                    <ResourceRenderer resource={resource} compact className="m-0 h-full w-full" />
                   </div>
                   <div className="space-y-3 p-4">
                     <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-slate-800 dark:text-white">
                       {resource.title || t("mediaManager.untitled")}
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      <Tag>{typeLabels[resource.type] || resource.mimeType || t("mediaManager.types.FILE")}</Tag>
+                      <Tag>{getDisplayFileType(resource)}</Tag>
                       <Tag>{formatBytes(resource.fileSize)}</Tag>
                       <Tag color="blue">{formatScopeDisplay(resource)}</Tag>
-                      {resource.visibility ? (
-                        <Tag color={resource.visibility === "INSTITUTION" ? "gold" : resource.visibility === "SHARED" ? "blue" : "default"}>
-                          {visibilityLabels[resource.visibility] || resource.visibility}
-                        </Tag>
-                      ) : null}
+
                     </div>
                     <div className="flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
                       <span className="truncate">{resource.createdBy || "-"}</span>
