@@ -319,8 +319,8 @@
     "thongTinGiaoVien": "Teacher Information",
     "noiCongTac": "Workplace",
     "viDuTruong": "Example: ABC University",
-    "soNamKinhNghiem": "Years of Experience",
-    "viDuNam": "Example: 5",
+    "ngayVaoLam": "Join Date",
+    "chonNgayVaoLam": "Select date",
     "linhVucChuyenMon": "Field of Expertise",
     "viDuChuyenMon": "Example: Web Development, Mathematics",
     "gioiThieuVeBanThan": "About Yourself",
@@ -741,10 +741,10 @@
     "untitled": "Untitled",
     "usedCount": "{{count}} uses",
     "pages": {
-        "personal": {
-          "title": "My media library",
-          "subtitle": "A reusable library of media you created for lessons, assignments, quizzes, and question banks."
-        },
+      "personal": {
+        "title": "My media library",
+        "subtitle": "A reusable library of media you created for lessons, assignments, quizzes, and question banks."
+      },
       "admin": {
         "title": "Media library",
         "subtitle": "Track media by scope, status, file type, and creator."
@@ -786,13 +786,13 @@
       "name": "Name",
       "size": "Size"
     },
-      "filters": {
-        "scope": "Scope",
-        "scopeTargetClass": "Select a class",
-        "scopeTargetQuestionBank": "Select a question bank",
-        "type": "Media type",
-        "owner": "Creator"
-      },
+    "filters": {
+      "scope": "Scope",
+      "scopeTargetClass": "Select a class",
+      "scopeTargetQuestionBank": "Select a question bank",
+      "type": "Media type",
+      "owner": "Creator"
+    },
     "stats": {
       "currentResult": "Current results",
       "visibleSize": "Visible size",
@@ -875,7 +875,9 @@
       "UPDATE": "Updated",
       "ARCHIVE": "Archived",
       "RESTORE": "Restored",
-      "DELETE": "Deleted"
+      "DELETE": "Deleted",
+      "ATTACH": "Attached",
+      "DETACH": "Detached"
     },
     "actions": {
       "upload": "Upload media",
@@ -910,7 +912,6 @@
       "scopeTargetClass": "Select a class to view media in that class scope.",
       "scopeTargetQuestionBank": "Select a question bank to view media in that bank scope."
     },
-    "untitled": "Untitled",
     "unused": "Unused"
   },
   "quizBuilder": {
@@ -928,7 +929,6 @@
     "option": "Option",
     "add": "Add",
     "addNewAnswer": "Add new answer",
-
     "addExplanation": "+ Add explanation",
     "editExplanation": "Edit explanation",
     "explanationPlaceholder": "Explanation shown after submission...",
@@ -1276,27 +1276,27 @@
     "noCorrectAnswer": "No correct answer",
     "completedAt": "Completed At",
     "back": "Back",
-      "filters": {
-        "classSection": "Select class",
-        "quiz": "Select quiz in class",
-        "studentKeyword": "Search by student name or student number...",
-        "reset": "Reset"
-      },
-      "saveReview": "Save Review",
-      "reviewSaved": "Review saved",
-      "reviewSaveFailed": "Could not save review",
-      "loadFailed": "Could not load quiz attempts",
-      "loadFiltersFailed": "Could not load class list",
-      "loadQuizOptionsFailed": "Could not load quizzes for this class",
-      "empty": "No attempts match the current filters.",
-      "answerFeedback": "Feedback for this answer",
-      "instructorFeedback": "Instructor overall feedback",
-      "pagination": {
-        "total": "Total: {{count}}",
-        "pageSize": "Rows per page",
-        "range": "{{start}} - {{end}}"
-      }
+    "filters": {
+      "classSection": "Select class",
+      "quiz": "Select quiz in class",
+      "studentKeyword": "Search by student name or student number...",
+      "reset": "Reset"
     },
+    "saveReview": "Save Review",
+    "reviewSaved": "Review saved",
+    "reviewSaveFailed": "Could not save review",
+    "loadFailed": "Could not load quiz attempts",
+    "loadFiltersFailed": "Could not load class list",
+    "loadQuizOptionsFailed": "Could not load quizzes for this class",
+    "empty": "No attempts match the current filters.",
+    "answerFeedback": "Feedback for this answer",
+    "instructorFeedback": "Instructor overall feedback",
+    "pagination": {
+      "total": "Total: {{count}}",
+      "pageSize": "Rows per page",
+      "range": "{{start}} - {{end}}"
+    }
+  },
   "teaching": {
     "common": {
       "noDeadline": "No deadline"
@@ -1598,6 +1598,21 @@
       "editChapter": "Edit chapter",
       "deleteChapter": "Delete chapter"
     },
+    "modals": {
+      "createChapter": {
+        "title": "Add new chapter"
+      },
+      "editChapter": {
+        "title": "Edit chapter"
+      },
+      "deleteChapter": {
+        "title": "Delete chapter",
+        "description": "Are you sure you want to delete this chapter? All content inside will be permanently deleted."
+      },
+      "editContent": {
+        "title": "Edit content settings"
+      }
+    },
     "tooltips": {
       "moveUp": "Move up",
       "moveDown": "Move down",
@@ -1754,7 +1769,11 @@
       "add": "Add new comment",
       "submit": "Comment",
       "reply": "Reply",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "save": "Save",
+      "edit": "Edit",
+      "revoke": "Revoke",
+      "options": "Options"
     },
     "placeholders": {
       "comment": "Share your thoughts...",
@@ -1762,14 +1781,25 @@
     },
     "messages": {
       "created": "Comment posted successfully",
-      "replied": "Reply posted successfully"
+      "replied": "Reply posted successfully",
+      "updated": "Comment updated successfully",
+      "revoked": "Comment revoked successfully"
     },
     "errors": {
       "loadFailed": "Unable to load comments",
       "emptyComment": "Please enter a comment",
       "emptyReply": "Please enter a reply",
       "createFailed": "Unable to post comment",
-      "replyFailed": "Unable to post reply"
+      "replyFailed": "Unable to post reply",
+      "updateFailed": "Unable to update comment",
+      "revokeFailed": "Unable to revoke comment"
+    },
+    "confirmRevoke": {
+      "title": "Revoke this comment?",
+      "content": "This comment will show as revoked and its replies will be kept."
+    },
+    "labels": {
+      "edited": "(Edited)"
     },
     "time": {
       "justNow": "just now",
@@ -1795,431 +1825,480 @@
   },
   "reportsPage": {
     "shared": {
-      "alertTitle": "Unable to load report",
-      "actions": {
-        "approve": "Approve",
-        "reject": "Reject",
-        "openAssignment": "Open assignment",
-        "openAttempt": "Open attempt",
-        "openAssignmentSubmissions": "Open submissions list",
-        "openQuizAttempts": "Open attempts list",
-        "resetThresholds": "Use default thresholds",
-        "applyThresholds": "Apply new thresholds",
-        "clearStudentFilters": "Clear student filters"
-      },
-      "messages": {
-        "approveSuccess": "Student approved.",
-        "rejectSuccess": "Request rejected."
-      },
-      "errors": {
-        "approveFailed": "Approval failed.",
-        "rejectFailed": "Rejection failed."
-      },
-      "modals": {
-        "approve": {
-          "title": "Approve class enrollment"
-        },
-        "reject": {
-          "title": "Reject enrollment request"
-        }
-      },
+      "alertTitle": "Data Load Error",
       "filter": {
-        "placeholder": "Select class"
-      },
-      "filters": {
-        "studentGroups": {
-          "label": "Progress group",
-          "hint": "Start with the group of students you want to watch first.",
-          "options": {
-            "all": "All students"
-          }
-        },
-        "studentStatus": {
-          "label": "Learning status",
-          "hint": "You can combine several conditions to narrow down the group that needs attention.",
-          "options": {
-            "missingAssignments": "Has missing work",
-            "pendingReviews": "Waiting for feedback",
-            "lowLatestScore": "Latest score below {{score}}",
-            "noLatestScore": "No recent score yet"
-          }
-        },
-        "quizParticipation": {
-          "label": "Quiz participation",
-          "hint": "Quickly split students by whether they have attempted the quiz and what the current outcome looks like.",
-          "options": {
-            "all": "All students"
-          }
-        }
+        "placeholder": "Select a class"
       },
       "tabs": {
         "overview": "Overview",
-        "gradebookWithCount": "Quiz Gradebook ({{count}})",
-        "studentsWithCount": "Students ({{count}})",
-        "requestsWithCount": "Requests ({{count}})",
         "assignments": "Assignments",
         "quizzes": "Quizzes",
-        "progressWithCount": "Student progress ({{count}})"
-      },
-      "tables": {
-        "student": "Student",
-        "progress": "Progress",
-        "quizAverage": "Quiz Avg",
-        "studentNumber": "Student ID",
-        "status": "Status",
-        "currentProgress": "Current progress",
-        "actions": "Actions",
-        "missingAssignments": "Missing work",
-        "pendingFeedback": "Waiting for feedback",
-        "latestScore": "Latest score",
-        "assignmentStatus": "Submission status",
-        "submittedAt": "Submitted at",
-        "score": "Score",
-        "completedAt": "Completed at",
-        "quizResult": "Result",
-        "quizParticipation": "Quiz status",
-        "attemptsCount": "Attempts",
-        "bestScore": "Best score"
+        "gradebookWithCount": "Gradebook ({{count}})",
+        "progressWithCount": "Student Progress ({{count}})",
+        "studentsWithCount": "Students ({{count}})",
+        "requestsWithCount": "Requests ({{count}})"
       },
       "metrics": {
-        "totalStudents": "Total students",
-        "totalStudentsHint": "{{count}} students are below the {{low}}% mark",
-        "pendingRequests": "Pending requests",
-        "pendingRequestsHint": "Students currently waiting to join the class",
-        "averageQuizScore": "Average quiz score",
-        "averageQuizScoreHint": "Highest score recorded: {{score}}",
-        "averageProgress": "Average progress",
-        "averageProgressHint": "{{count}} students are at {{high}}% progress or above",
-        "teachingAssistants": "Teaching assistants",
-        "teachingAssistantsHint": "{{count}} teaching assistants are helping this class"
+        "totalStudents": "Total Students",
+        "totalStudentsHint": "{{count}} students with low progress (<{{low}}%)",
+        "pendingRequests": "Pending Requests",
+        "pendingRequestsHint": "Unprocessed join requests",
+        "averageQuizScore": "Avg Quiz Score",
+        "averageQuizScoreHint": "Highest score: {{score}}%",
+        "averageProgress": "Average Progress",
+        "averageProgressHint": "{{count}} students with high progress (>{{high}}%)",
+        "teachingAssistants": "Teaching Assistants",
+        "teachingAssistantsHint": "{{count}} TAs supporting this class"
       },
-      "summary": {
-        "trackedQuizzes": "Tracked quizzes",
-        "atRiskStudents": "Below target",
-        "engagedStudents": "Stable students",
-        "filteredStudents": "Students shown",
-        "activeStudentFilters": "Active filters",
-        "scoreWatchMark": "Score watch mark"
+      "assignmentMetrics": {
+        "totalStudents": "Total Students",
+        "totalStudentsHint": "Number of students in class",
+        "graded": "Graded",
+        "gradedHint": "Submissions that have been graded",
+        "pending": "Pending Review",
+        "pendingHint": "Submissions waiting to be graded",
+        "notSubmitted": "Not Submitted",
+        "notSubmittedHint": "Submissions not yet turned in",
+        "submitted": "Submitted",
+        "submittedHint": "Students who have submitted",
+        "waitingFeedback": "Needs Grading",
+        "waitingFeedbackHint": "Submissions waiting to be graded"
+      },
+      "quizMetrics": {
+        "attempts": "Attempts",
+        "attemptsHint": "Total number of quiz attempts",
+        "waitingReview": "Waiting Review",
+        "waitingReviewHint": "Essay-type answers waiting to be graded",
+        "passed": "Passed",
+        "passedHint": "Attempts that passed the passing score",
+        "averageScore": "Avg Score",
+        "averageScoreHint": "Highest score: {{score}}%"
+      },
+      "quizParticipationSummary": {
+        "started": "Started",
+        "notStarted": "Not Started",
+        "waitingReview": "Waiting Review",
+        "passed": "Passed",
+        "notPassed": "Not Passed"
+      },
+      "quizSummary": {
+        "bestResults": "Best Results",
+        "passed": "Passed",
+        "waitingReview": "Waiting Review"
+      },
+      "quizParticipationStatus": {
+        "notStarted": "Not Started",
+        "waitingReview": "Waiting Review",
+        "passed": "Passed",
+        "notPassed": "Not Passed"
+      },
+      "quizResult": {
+        "waitingReview": "Waiting Review",
+        "passed": "Passed",
+        "notPassed": "Not Passed"
       },
       "buckets": {
         "low": {
-          "label": "Needs support",
-          "hint": "Progress below {{low}}%"
+          "label": "Low",
+          "hint": "Progress < {{low}}%"
         },
         "medium": {
-          "label": "Monitoring",
-          "hint": "Progress from {{low}}% to under {{high}}%"
+          "label": "Medium",
+          "hint": "Progress {{low}}% – {{high}}%"
         },
         "high": {
-          "label": "Stable",
-          "hint": "Progress at {{high}}% or above"
+          "label": "High",
+          "hint": "Progress > {{high}}%"
         }
       },
       "thresholds": {
         "low": {
-          "label": "Needs-support mark",
-          "hint": "Students below this mark will be grouped as needing support."
+          "label": "Low Threshold",
+          "hint": "Students below this threshold are placed in the Low group."
         },
         "high": {
-          "label": "Stable mark",
-          "hint": "Students at or above this mark will be treated as stable."
+          "label": "High Threshold",
+          "hint": "Students above this threshold are placed in the High group."
         },
-        "validation": "The needs-support mark must stay below the stable mark."
-      },
-      "meta": {
-        "className": "Class name",
-        "classCode": "Class code",
-        "subject": "Subject",
-        "primaryTeacher": "Lead teacher",
-        "teacher": "Teacher",
-        "teachingAssistants": "Teaching assistants",
-        "status": "Status",
-        "startDate": "Start date",
-        "endDate": "End date",
-        "trackedQuizzes": "Tracked quizzes",
-        "currentClass": "Current class",
-        "assignmentTitle": "Assignment",
-        "assignmentDueDate": "Due date",
-        "assignmentCloseDate": "Close date",
-        "assignmentScore": "Maximum score"
-      },
-      "charts": {
-        "progressOverviewCenter": "Students in class",
-        "studentsCount": "{{count}} students",
-        "quizPassRateValue": "{{rate}}% passed ({{passed}}/{{total}} students)",
-        "assignmentLegend": {
-          "feedbackSent": "Feedback sent",
-          "waitingFeedback": "Waiting for feedback",
-          "notSubmitted": "Not submitted"
-        }
+        "validation": "The low threshold must be less than the high threshold."
       },
       "sections": {
         "filters": {
-          "title": "Report filters",
-          "subtitle": "Choose a class to view the learning picture for that class."
+          "title": "Class Report",
+          "subtitle": "Select a class to view detailed analysis of progress, assignments, and quizzes."
         },
         "operations": {
-          "title": "Operational summary",
-          "subtitle": "These numbers help you read class quality quickly without dropping into detailed tables."
+          "title": "Activity Summary",
+          "subtitle": "Quick statistics on the operational status of the class."
         },
         "context": {
-          "title": "Class context",
-          "subtitle": "Helps you stay clear on which class you are viewing."
+          "title": "Class Information",
+          "subtitle": "Overview information of the currently selected class."
         },
         "details": {
-          "title": "Report details"
-        },
-        "progressDistribution": {
-          "title": "Progress distribution",
-          "subtitle": "Quickly split students using the {{low}}% and {{high}}% marks."
-        },
-        "classProfile": {
-          "title": "Class profile",
-          "subtitle": "Key class details to help you read the results more clearly."
-        },
-        "gradebook": {
-          "title": "Student gradebook",
-          "subtitle": "Each column is a quiz, and each cell is the highest recorded score for that student."
-        },
-        "students": {
-          "title": "Approved students",
-          "subtitle": "Focus on actual progress instead of a raw roster."
-        },
-        "requests": {
-          "title": "Pending join requests",
-          "subtitle": "You can approve or decline requests without leaving this view."
-        },
-        "assignments": {
-          "title": "Assignment progress",
-          "subtitle": "Quickly see which assignments have strong submission coverage and which ones still need feedback."
-        },
-        "quizzes": {
-          "title": "Quiz progress",
-          "subtitle": "Focus on attempts, items still waiting for review, and the overall picture for each quiz."
-        },
-        "assignmentDetails": {
-          "title": "Assignment details",
-          "subtitle": "Keeps the timing and score context for the assignment you are reviewing."
-        },
-        "assignmentSubmissions": {
-          "title": "Submission picture",
-          "subtitle": "A quick view of who is still behind or may need a reminder.",
-          "loading": "Updating the submission picture for this class.",
-          "note": "The full student list and grading actions stay in the submissions management view."
-        },
-        "assignmentCoverage": {
-          "title": "How assignments are moving overall",
-          "subtitle": "Compare which assignments are already well covered and which ones still need more follow-up."
-        },
-        "assignmentTable": {
-          "title": "Students on this assignment",
-          "subtitle": "This table helps teachers see who has submitted, who has not, and who is still waiting for feedback."
-        },
-        "quizDistribution": {
-          "title": "Score spread for the selected quiz",
-          "subtitle": "A quick way to see where most students are landing."
-        },
-        "quizPassRate": {
-          "title": "Pass level across quizzes",
-          "subtitle": "Compare which quizzes are giving students the most trouble."
-        },
-        "quizAttempts": {
-          "title": "Recent attempts",
-          "subtitle": "See who has taken the quiz, how they did, and open an attempt when you need a closer look."
-        },
-        "quizParticipation": {
-          "title": "Who has taken this quiz",
-          "subtitle": "Quickly see who has started, who has not, and which students still need a closer review."
-        },
-        "progressStudents": {
-          "title": "Student progress",
-          "subtitle": "Track progress, missing work, and the latest score for each student."
-        },
-        "progressThresholds": {
-          "title": "Adjust tracking marks",
-          "subtitle": "You can tune these marks to match how you follow this class."
+          "title": "Detailed Analysis"
         },
         "emptyState": {
-          "title": "Class report",
-          "subtitle": "There is no data to display yet."
+          "title": "No Classes",
+          "subtitle": "There are no classes available to display a report for."
+        },
+        "progressDistribution": {
+          "title": "Student Progress Distribution",
+          "subtitle": "Students in low (<{{low}}%), medium ({{low}}–{{high}}%), and high (>{{high}}%) groups"
+        },
+        "classProfile": {
+          "title": "Class Profile",
+          "subtitle": "Information and current status of the class."
+        },
+        "assignments": {
+          "title": "Assignments",
+          "subtitle": "Summary of submission status for each assignment in the class."
+        },
+        "assignmentSubmissions": {
+          "title": "Assignment Detail",
+          "subtitle": "Select an assignment to view each student's submission status.",
+          "loading": "Loading details...",
+          "note": "Select an assignment above to view the detailed submission list."
+        },
+        "quizzes": {
+          "title": "Quizzes",
+          "subtitle": "Summary of quiz results for each quiz in the class."
+        },
+        "quizDistribution": {
+          "title": "Quiz Score Distribution",
+          "subtitle": "Score histogram from each student's best attempt."
+        },
+        "quizPassRate": {
+          "title": "Pass Rate by Quiz",
+          "subtitle": "Percentage of passed/failed/waiting review for each quiz."
+        },
+        "quizParticipation": {
+          "title": "Quiz Participation by Student",
+          "subtitle": "Each student's quiz participation status in the class."
+        },
+        "quizAttempts": {
+          "title": "Recent Attempts",
+          "subtitle": "Most recent quiz attempts by best result."
+        },
+        "gradebook": {
+          "title": "Gradebook",
+          "subtitle": "Each student's best quiz score per quiz."
+        },
+        "progressThresholds": {
+          "title": "Progress Group Configuration",
+          "subtitle": "Adjust thresholds to classify students by progress level."
+        },
+        "progressStudents": {
+          "title": "Students by Progress Group",
+          "subtitle": "Filter and view each student's progress by group or status."
+        },
+        "students": {
+          "title": "Student List",
+          "subtitle": "View and filter all students enrolled in the class."
+        },
+        "requests": {
+          "title": "Pending Join Requests",
+          "subtitle": "List of students waiting to be approved into the class."
+        },
+        "assignmentCoverage": {
+          "subtitle": "Overview of submission statuses for class assignments.",
+          "title": "Submission Coverage"
+        },
+        "assignmentDetails": {
+          "subtitle": "Select an assignment to view individual student progress.",
+          "title": "Assignment Details"
         }
       },
-      "assignmentMetrics": {
-        "totalStudents": "Students in class",
-        "totalStudentsHint": "All students being tracked on this assignment",
-        "submitted": "Submitted",
-        "submittedHint": "Students who already turned work in",
-        "waitingFeedback": "Waiting for feedback",
-        "waitingFeedbackHint": "Submissions teachers have not finished responding to",
-        "graded": "Feedback sent",
-        "gradedHint": "Submissions already graded or returned"
+      "summary": {
+        "filteredStudents": "Students Shown",
+        "activeStudentFilters": "Active Filters",
+        "scoreWatchMark": "Score Watch Mark",
+        "trackedQuizzes": "Tracked Quizzes",
+        "atRiskStudents": "At-Risk Students",
+        "engagedStudents": "High-Progress Students"
       },
-      "assignmentSummary": {
-        "notSubmitted": "Not submitted",
-        "late": "Late",
-        "returned": "Returned"
+      "filters": {
+        "quizParticipation": {
+          "label": "Filter by quiz participation status",
+          "hint": "Show students by their selected quiz participation status.",
+          "options": {
+            "all": "All"
+          }
+        },
+        "studentGroups": {
+          "label": "Filter by progress group",
+          "hint": "Only show students belonging to the selected group.",
+          "options": {
+            "all": "All"
+          }
+        },
+        "studentStatus": {
+          "label": "Filter by learning status",
+          "hint": "Multiple filter conditions can be selected at once.",
+          "options": {
+            "missingAssignments": "Missing assignments",
+            "pendingReviews": "Has pending reviews",
+            "lowLatestScore": "Recent score is low (<{{score}}%)",
+            "noLatestScore": "No score yet"
+          }
+        }
       },
-      "quizMetrics": {
-        "attempts": "Attempts",
-        "attemptsHint": "All attempts recorded so far",
-        "waitingReview": "Waiting to be checked",
-        "waitingReviewHint": "Quiz work teachers still need to open and review",
-        "passed": "Passed",
-        "passedHint": "Attempts that already met the target",
-        "averageScore": "Average score",
-        "averageScoreHint": "Highest score recorded: {{score}}%"
+      "tables": {
+        "student": "Student",
+        "progress": "Progress",
+        "quizAverage": "Avg Quiz Score",
+        "missingAssignments": "Missing Assignments",
+        "pendingFeedback": "Pending Feedback",
+        "latestScore": "Latest Score",
+        "studentNumber": "Student ID",
+        "currentProgress": "Progress",
+        "status": "Status",
+        "actions": "Actions",
+        "quizParticipation": "Status",
+        "attemptsCount": "Attempts",
+        "completedAt": "Completed At",
+        "bestScore": "Best Score",
+        "assignment": "Assignment",
+        "totalSubmissions": "Submitted",
+        "gradedCount": "Graded",
+        "pendingCount": "Pending",
+        "notSubmittedCount": "Not Submitted"
       },
-      "quizResult": {
-        "waitingReview": "Waiting to be checked",
-        "passed": "Passed",
-        "notPassed": "Not passed"
+      "charts": {
+        "studentsCount": "{{count}} students",
+        "quizPassRateValue": "{{rate}}% ({{passed}}/{{total}} passed)",
+        "assignmentLegend": {
+          "feedbackSent": "Feedback Sent",
+          "notSubmitted": "Not Submitted",
+          "waitingFeedback": "Waiting Feedback"
+        }
       },
-      "quizSummary": {
-        "bestResults": "Results being counted",
-        "passed": "Students who passed",
-        "waitingReview": "Needs a closer look"
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "openAttempt": "View Attempt",
+        "openAssignment": "View Assignment",
+        "openQuizAttempts": "View Attempts",
+        "exportCsv": "Export CSV",
+        "resetThresholds": "Reset",
+        "applyThresholds": "Apply",
+        "clearStudentFilters": "Clear Filters",
+        "openAssignmentSubmissions": "Open Submissions"
       },
-      "quizParticipationSummary": {
-        "started": "Started",
-        "notStarted": "Not started",
-        "waitingReview": "Needs review",
-        "passed": "Passed",
-        "notPassed": "Not passed"
+      "messages": {
+        "approveSuccess": "Join request approved.",
+        "rejectSuccess": "Join request rejected."
       },
-      "quizParticipationStatus": {
-        "notStarted": "Not started",
-        "waitingReview": "Waiting to be checked",
-        "passed": "Passed",
-        "notPassed": "Not passed"
+      "errors": {
+        "approveFailed": "Unable to approve the request.",
+        "rejectFailed": "Unable to reject the request."
+      },
+      "modals": {
+        "approve": {
+          "title": "Confirm Approval"
+        },
+        "reject": {
+          "title": "Confirm Rejection"
+        }
+      },
+      "meta": {
+        "className": "Class Name",
+        "classCode": "Class Code",
+        "subject": "Subject",
+        "primaryTeacher": "Primary Teacher",
+        "teacher": "Teacher",
+        "teachingAssistants": "TAs",
+        "status": "Status",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "trackedQuizzes": "Tracked Quizzes",
+        "currentClass": "Current Class",
+        "assignmentCloseDate": "Close Date",
+        "assignmentDueDate": "Due Date",
+        "assignmentScore": "Max Score",
+        "assignmentTitle": "Assignment Title"
+      },
+      "loading": {
+        "gradebook": "Loading gradebook..."
+      },
+      "empty": {
+        "classSections": "No classes to display.",
+        "assignments": "No assignments in this class yet.",
+        "quizzes": "No quizzes in this class yet.",
+        "quizDistribution": "No score distribution data.",
+        "quizPassRate": "No pass rate data.",
+        "quizParticipation": "No quiz participation data.",
+        "quizAttempts": "No recent attempts.",
+        "gradebook": "No gradebook data.",
+        "progressChart": "No progress data.",
+        "filteredStudents": "No students match the current filters."
       },
       "defaults": {
+        "noData": "No data",
         "noName": "No name",
-        "noStudentNumber": "N/A",
-        "quizTitle": "Quiz",
-        "assignmentTitle": "Assignment",
-        "noData": "No data available",
+        "noStudentNumber": "No student ID",
+        "quizTitle": "Untitled Quiz",
+        "assignmentTitle": "Untitled Assignment",
         "dash": "—",
-        "untitledClass": "Untitled class",
-        "noSubject": "Uncategorized",
+        "scoreUnit": "%",
+        "noSubject": "No subject assigned",
         "unknownTeacher": "Unknown teacher",
         "classTitle": "Class {{id}}",
         "noSelectedClass": "No class selected",
-        "notSubmitted": "Not submitted",
-        "scoreUnit": "pts"
+        "untitledClass": "Untitled class"
       },
-      "loading": {
-        "gradebook": "Loading the gradebook for this class."
-      },
-      "empty": {
-        "classSections": "There are no class sections to display in this report.",
-        "gradebook": "There is no quiz data in this class yet.",
-        "progressChart": "There is not enough data to show the progress chart yet.",
-        "assignments": "There are no assignments in this class to review here.",
-        "quizzes": "There is no quiz data in this class to review here.",
-        "quizDistribution": "There is not enough data to show the score spread yet.",
-        "quizPassRate": "There is not enough data to compare pass levels yet.",
-        "quizAttempts": "There are no recent attempts to show yet.",
-        "filteredStudents": "No students match the current filters.",
-        "quizParticipation": "No students match the current quiz filter."
-      }
-    },
-    "teacher": {
-      "hero": {
-        "badge": "Class Report",
-        "title": "Class reports",
-        "subtitle": "Follow student progress, quiz results, assignments, and join requests for each class you lead.",
-        "scopeLabel": "Current class",
-        "scopeValue": "Choose a class to see details",
-        "assistantsLabel": "Class assistants",
-        "assistantsValue": "{{count}} teaching assistants",
-        "sourceLabel": "What you are tracking",
-        "sourceValue": "Progress, quizzes, assignments, and requests"
-      },
-      "selectorLabel": "Select a teaching class",
-      "emptyMessage": "You do not have any classes to review here yet.",
-      "actions": {
-        "reload": "Reload current class data"
-      },
-      "errors": {
-        "loadClasses": "Unable to load class list.",
-        "loadReport": "Unable to load report data for this class."
-      },
-      "modals": {
-        "approve": {
-          "content": "Approve student \"{{name}}\" into the current class?"
-        },
-        "reject": {
-          "content": "Reject student \"{{name}}\" from the waiting list?"
-        }
+      "assignmentSummary": {
+        "late": "Submitted Late",
+        "notSubmitted": "Not Submitted",
+        "returned": "Returned"
       }
     },
     "admin": {
+      "tabs": {
+        "overview": "Overview",
+        "report": "Class Report",
+        "stats": "System Statistics"
+      },
       "hero": {
-        "badge": "Class Review",
-        "title": "Class management reports",
-        "subtitle": "Start with the overall picture, then choose a class to review student progress, quizzes, assignments, and join requests.",
-        "scopeLabel": "Classes in view",
+        "badge": "System Administration",
+        "title": "Administrator Dashboard",
+        "subtitle": "Overview of all learning, teaching, and management activities in the LMS.",
+        "scopeLabel": "Scope",
         "scopeValue": "{{count}} classes",
-        "modeLabel": "View",
-        "modeValue": "Overall picture and class details"
+        "teachersLabel": "Teachers",
+        "modeLabel": "Data Source",
+        "modeValue": "Real-time"
       },
-      "selectorLabel": "Select a class for details",
-      "emptyMessage": "There are no classes to review yet.",
-      "actions": {
-        "reload": "Reload admin report"
+      "overviewMetrics": {
+        "teachers": "Teachers",
+        "teachersHint": "In the system",
+        "pendingReviews": "Pending Review",
+        "pendingReviewsHint": "Assignments + quizzes to grade"
       },
-      "errors": {
-        "loadPage": "Unable to load admin report data.",
-        "loadReport": "Unable to load the selected class data."
+      "statsTab": {
+        "assignmentSubmission": {
+          "title": "Submission Rate by Class",
+          "subtitle": "Graded / Pending / Not Submitted"
+        },
+        "subjectClasses": {
+          "title": "Classes per Subject",
+          "subtitle": "Top subjects with the most classes"
+        },
+        "teacherSummary": {
+          "title": "Teacher Workload",
+          "subtitle": "Number of classes and students per teacher"
+        },
+        "statusSummary": {
+          "title": "Class Status Distribution",
+          "subtitle": "Overview of all classes in the system"
+        }
       },
       "metrics": {
-        "totalUsers": "Total users",
-        "totalUsersHint": "All accounts currently available",
+        "totalUsers": "Total Users",
+        "totalUsersHint": "Active users in the system",
         "classSections": "Classes",
-        "classSectionsHint": "{{public}} open now / {{private}} approval needed / {{archived}} stored",
+        "classSectionsHint": "{{public}} public · {{private}} private · {{archived}} archived",
         "subjects": "Subjects",
-        "subjectsHint": "Subjects that currently have active classes",
-        "pendingEnrollments": "Join requests waiting",
-        "pendingEnrollmentsHint": "Students currently waiting to enter a class",
-        "assistants": "Teaching assistants helping",
-        "assistantsHint": "{{count}} teaching assistants are currently supporting tracked classes."
+        "subjectsHint": "Subjects currently in use",
+        "pendingEnrollments": "Pending Approval",
+        "pendingEnrollmentsHint": "Join requests awaiting processing",
+        "assistants": "Teaching Assistants",
+        "assistantsHint": "{{count}} TAs active system-wide"
       },
       "sections": {
         "statusDistribution": {
-          "title": "Class status distribution",
-          "subtitle": "A quick view of classes that are open now, approval-based, or kept for reference.",
-          "empty": "There are no classes to display yet."
+          "title": "Class Status Distribution",
+          "subtitle": "Proportion of public, private and archived classes.",
+          "empty": "No class data available."
         },
         "teacherLoad": {
-          "title": "How many classes each teacher is leading",
-          "subtitle": "A quick view of who is carrying more classes and may need support.",
-          "empty": "There is no teacher class data yet."
+          "title": "Teacher Workload",
+          "subtitle": "Number of classes and students each teacher is managing.",
+          "empty": "No teacher data available."
         },
         "subjectLoad": {
-          "title": "Which subjects have the most classes",
-          "subtitle": "Shows which subjects may need closer attention because of class volume.",
-          "empty": "There is no subject data to compare yet."
+          "title": "Subject Workload",
+          "subtitle": "Number of open classes per subject.",
+          "empty": "No subject data available."
         },
         "topClasses": {
-          "title": "Largest classes",
-          "subtitle": "Useful for spotting the classes that may need support earlier.",
-          "empty": "There are no classes to rank yet.",
+          "title": "Top Classes by Enrollment",
+          "subtitle": "Sorted by approved student count. Click to view detailed report.",
+          "empty": "No class data available.",
           "students": "{{count}} students",
-          "assistants": "{{count}} teaching assistants"
+          "assistants": "{{count}} TAs"
         }
       },
       "charts": {
-        "statusCenter": "Total classes",
+        "statusCenter": "Total Classes",
         "teacherLoadValue": "{{classes}} classes · {{students}} students",
         "subjectLoadValue": "{{count}} classes"
       },
+      "errors": {
+        "loadPage": "Unable to load system overview data.",
+        "loadReport": "Unable to load class report."
+      },
       "modals": {
         "approve": {
-          "content": "Approve student \"{{name}}\" into this class?"
+          "content": "Approve the join request from {{name}}?"
         },
         "reject": {
-          "content": "Reject student \"{{name}}\" from this class?"
+          "content": "Reject the join request from {{name}}?"
         }
+      },
+      "selectorLabel": "Select a class to view its report",
+      "emptyMessage": "No classes found in the system.",
+      "actions": {
+        "reload": "Refresh Data"
+      }
+    },
+    "teacher": {
+      "tabs": {
+        "overview": "Overview",
+        "report": "Class Report",
+        "stats": "Statistics"
+      },
+      "hero": {
+        "badge": "Teacher Reports",
+        "title": "Teacher Dashboard",
+        "subtitle": "Track progress, assignments and quizzes for all classes you manage.",
+        "scopeLabel": "Current Class",
+        "scopeValue": "All my classes",
+        "assistantsLabel": "Teaching Assistants",
+        "assistantsValue": "{{count}} TAs",
+        "sourceLabel": "Data Source",
+        "sourceValue": "Real-time"
+      },
+      "overviewMetrics": {
+        "totalClasses": "Total Classes",
+        "totalStudents": "Total Students",
+        "pendingSubmissions": "Pending Grading",
+        "pendingQuizzes": "Quiz Pending Review",
+        "atRisk": "At-Risk Students",
+        "pendingRequests": "Pending Requests"
+      },
+      "sections": {
+        "myClasses": "My Classes",
+        "myClassesSubtitle": "Classes you are currently managing",
+        "atRisk": "Students Needing Attention",
+        "atRiskSubtitle": "Low progress or missing submissions"
+      },
+      "errors": {
+        "loadClasses": "Unable to load class list.",
+        "loadReport": "Unable to load class report."
+      },
+      "modals": {
+        "approve": {
+          "content": "Approve the join request from {{name}}?"
+        },
+        "reject": {
+          "content": "Reject the join request from {{name}}?"
+        }
+      },
+      "selectorLabel": "Select a class to view its report",
+      "emptyMessage": "You are not managing any classes yet.",
+      "actions": {
+        "reload": "Refresh Data"
       }
     }
   },

@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import useUserStore from "../../store/useUserStore";
 import Avatar from "../common/Avatar";
 import ConfirmModal from "../common/ConfirmModal";
+import NotificationDetailModal from "../common/NotificationDetailModal";
 import {
   BellIcon,
   Cog6ToothIcon,
@@ -16,6 +17,23 @@ import {
 } from "../../api/notification";
 
 import useNotificationStore from "../../store/useNotificationStore";
+
+// Format timestamp to readable format (HH:mm:ss DD/MM/YYYY)
+const formatNotificationTime = (timestamp) => {
+  if (!timestamp) return "N/A";
+  try {
+    const date = new Date(timestamp);
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+  } catch (err) {
+    return timestamp;
+  }
+};
 
 export default function TeacherHeader({ toggleSidebar }) {
   const { t } = useTranslation();
@@ -37,19 +55,19 @@ export default function TeacherHeader({ toggleSidebar }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [isNotificationDetailOpen, setIsNotificationDetailOpen] = useState(false);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const settingsPath = user?.role === "ADMIN" ? "/admin/settings" : "/teacher/settings";
   const isSettingsActive = location.pathname === settingsPath;
 
-  // Initial fetch and WebSocket connection
+  // Initial fetch
   useEffect(() => {
     if (isLoggedIn && user?.id) {
       fetchUnreadCount();
-      connect();
     }
-    return () => disconnect();
-  }, [isLoggedIn, user?.id, fetchUnreadCount, connect, disconnect]);
+  }, [isLoggedIn, user?.id, fetchUnreadCount]);
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
@@ -66,6 +84,11 @@ export default function TeacherHeader({ toggleSidebar }) {
   const handleMarkAsRead = async (notificationId) => {
     await markAsRead(notificationId);
   };
+
+  const formattedNotifications = notifications.map((n) => ({
+    ...n,
+    time: formatNotificationTime(n.time || n.createdAt),
+  }));
 
   // Dummy notifications - reuse from Header.jsx or fetch from API
   const mockNotifications = [
@@ -173,12 +196,14 @@ export default function TeacherHeader({ toggleSidebar }) {
                     <div className="px-4 py-3 text-center text-sm text-gray-500">
                       {t("notifications.dangTaiThongBao")}
                     </div>
-                  ) : notifications.length > 0 ? (
-                    notifications.map((notification) => (
+                  ) : formattedNotifications.length > 0 ? (
+                    formattedNotifications.map((notification) => (
                     <div
                       key={notification.id}
                       className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0 relative transition-colors"
                       onClick={() => {
+                        setSelectedNotification(notification);
+                        setIsNotificationDetailOpen(true);
                         if (!notification.isRead) {
                           handleMarkAsRead(notification.id);
                         }
@@ -302,6 +327,14 @@ export default function TeacherHeader({ toggleSidebar }) {
         color="red"
         onConfirm={handleLogoutConfirm}
         onCancel={() => setShowLogoutConfirm(false)}
+      />
+      <NotificationDetailModal
+        open={isNotificationDetailOpen}
+        notification={selectedNotification}
+        onClose={() => {
+          setIsNotificationDetailOpen(false);
+          setSelectedNotification(null);
+        }}
       />
     </>
   );

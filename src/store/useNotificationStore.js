@@ -16,6 +16,7 @@ const useNotificationStore = create((set, get) => ({
   unreadCount: 0,
   stompClient: null,
   isConnected: false,
+  isConnecting: false,
 
   fetchNotifications: async () => {
     try {
@@ -59,11 +60,16 @@ const useNotificationStore = create((set, get) => ({
 
   connect: () => {
     const token = useUserStore.getState().accessToken;
-    if (get().isConnected || !token) return;
+    if (get().isConnected || get().isConnecting || !token) return;
+
+    set({ isConnecting: true });
 
     const socket = new SockJS(`${BACKEND_URL}/ws`);
     const client = new Client({
       webSocketFactory: () => socket,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
       debug: (str) => {
         // console.log(str);
       },
@@ -73,12 +79,12 @@ const useNotificationStore = create((set, get) => ({
     });
 
     client.onConnect = (frame) => {
-      set({ isConnected: true, stompClient: client });
+      set({ isConnected: true, isConnecting: false, stompClient: client });
       // console.log('Connected to WebSocket');
 
       client.subscribe(`/user/queue/notifications`, (message) => {
         const newNotification = normalizeNotificationItem(JSON.parse(message.body));
-        
+
         // Add to list and play sound or show toast
         set((state) => ({
           notifications: [newNotification, ...state.notifications],
@@ -95,14 +101,19 @@ const useNotificationStore = create((set, get) => ({
       });
     };
 
+    client.onWebSocketError = (event) => {
+      console.error('WebSocket Error:', event);
+      set({ isConnecting: false });
+    };
+
     client.onStompError = (frame) => {
       console.error('STOMP Error:', frame.headers['message']);
       console.error('STOMP Details:', frame.body);
-      set({ isConnected: false });
+      set({ isConnected: false, isConnecting: false });
     };
 
     client.onDisconnect = () => {
-      set({ isConnected: false, stompClient: null });
+      set({ isConnected: false, isConnecting: false, stompClient: null });
       // console.log('Disconnected from WebSocket');
     };
 

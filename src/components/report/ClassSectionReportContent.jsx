@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button, Empty, InputNumber, Segmented, Select, Space, Table, Tabs, Tag } from "antd";
-import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import { CheckOutlined, CloseOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -18,6 +18,7 @@ import ReportSectionCard from "./ReportSectionCard";
 import { SingleSeriesBarChart, StackedStatusBarChart } from "./ReportCharts";
 import UserIdentity from "../common/UserIdentity";
 import { getAssignmentSubmissions } from "../../api/submission";
+import { getQuizAttempts } from "../../api/statistics";
 import {
   buildAssignmentStatusChartData,
   buildGradebookTable,
@@ -32,6 +33,7 @@ import {
   getProgressBuckets,
   summarizeAssignmentSubmissions,
 } from "../../utils/reporting";
+import { jsonToCsv } from "../../utils/csv";
 
 const statusToneMap = {
   PUBLIC: "green",
@@ -73,7 +75,8 @@ export default function ClassSectionReportContent({
   approvedStudents = [],
   peopleRows = [],
   pendingRequests,
-  assignmentOverviews = [],
+  assignmentReport = null,
+  quizReport = null,
   quizAttempts = [],
   activeTab,
   onTabChange,
@@ -83,6 +86,7 @@ export default function ClassSectionReportContent({
   emptyMessage,
   workspaceBasePath = "/teacher",
   extendedInsights = false,
+  classOverview = null,
 }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -90,11 +94,17 @@ export default function ClassSectionReportContent({
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
   const [loadingAssignmentSubmissions, setLoadingAssignmentSubmissions] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState(null);
+  const [fetchedQuizAttempts, setFetchedQuizAttempts] = useState([]);
+  const [loadingQuizAttempts, setLoadingQuizAttempts] = useState(false);
   const [progressThresholds, setProgressThresholds] = useState(DEFAULT_PROGRESS_THRESHOLDS);
   const [draftProgressThresholds, setDraftProgressThresholds] = useState(DEFAULT_PROGRESS_THRESHOLDS);
   const [progressGroupFilter, setProgressGroupFilter] = useState("ALL");
   const [studentStatusFilters, setStudentStatusFilters] = useState([]);
   const [quizParticipationFilter, setQuizParticipationFilter] = useState("ALL");
+
+  const assignmentOverviews = useMemo(() => {
+    return assignmentReport?.rows || [];
+  }, [assignmentReport]);
 
   const locale = i18n.language === "vi" ? "vi-VN" : "en-US";
   const emptyDateLabel = t("reportsPage.shared.defaults.noData");
@@ -160,20 +170,47 @@ export default function ClassSectionReportContent({
     }
   }, [workspaceBasePath]);
 
-  const stats = calculateClassSectionStats(reportStudents, pendingRequests, gradeBook, progressThresholds);
+  const stats = useMemo(() => {
+    const computed = calculateClassSectionStats(reportStudents, pendingRequests, gradeBook, progressThresholds);
+    if (classOverview) {
+      return {
+        ...computed,
+        trackedQuizzes: classOverview.trackedQuizzes ?? computed.trackedQuizzes,
+        atRiskStudents: classOverview.atRiskStudents ?? computed.atRiskStudents,
+        engagedStudents: classOverview.engagedStudents ?? computed.engagedStudents,
+        averageProgress: classOverview.averageProgress ?? computed.averageProgress,
+        totalStudents: classOverview.totalStudents ?? computed.totalStudents,
+        pendingCount: classOverview.pendingRequests ?? classOverview.pendingCount ?? computed.pendingCount,
+        averageQuizScore: classOverview.averageQuizScore ?? computed.averageQuizScore,
+        topScore: classOverview.topScore ?? computed.topScore,
+      };
+    }
+    return computed;
+  }, [classOverview, reportStudents, pendingRequests, gradeBook, progressThresholds]);
   const buckets = getProgressBuckets(reportStudents, progressThresholds);
   const gradebookTable = buildGradebookTable(gradeBook, reportStudents, {
     fallbackStudentName: t("reportsPage.shared.defaults.noName"),
     fallbackStudentNumber: t("reportsPage.shared.defaults.noStudentNumber"),
     fallbackQuizTitle: t("reportsPage.shared.defaults.quizTitle"),
   });
-  const quizSummaries = useMemo(
-    () =>
-      buildQuizSummaries(quizAttempts, {
-        fallbackQuizTitle: t("reportsPage.shared.defaults.quizTitle"),
-      }),
-    [quizAttempts, t]
-  );
+  const quizSummaries = useMemo(() => {
+    if (quizReport?.rows) {
+      return quizReport.rows.map((row) => ({
+        id: row.classContentItemId || row.quizId,
+        title: row.quizTitle || t("reportsPage.shared.defaults.quizTitle"),
+        totalAttempts: Number(row.totalAttempts) || 0,
+        waitingReview: Number(row.waitingReviewCount) || 0,
+        passed: Number(row.passedCount) || 0,
+        notPassed: Number(row.notPassedCount) || 0,
+        averageScore: Number(row.averageScore) || 0,
+        highestScore: Number(row.topScore) || 0,
+        attempts: [],
+      }));
+    }
+    return buildQuizSummaries(quizAttempts, {
+      fallbackQuizTitle: t("reportsPage.shared.defaults.quizTitle"),
+    });
+  }, [quizReport, quizAttempts, t]);
   const progressChartData = useMemo(
     () => [
       { key: "low", label: t("reportsPage.shared.buckets.low.label"), value: buckets.low, color: "#f43f5e" },
@@ -182,17 +219,33 @@ export default function ClassSectionReportContent({
     ],
     [buckets.high, buckets.low, buckets.medium, t]
   );
-  const assignmentStatusChartData = useMemo(
-    () =>
-      buildAssignmentStatusChartData(assignmentOverviews, {
-        fallbackAssignmentTitle: t("reportsPage.shared.defaults.assignmentTitle"),
-      }),
-    [assignmentOverviews, t]
-  );
+  const assignmentStatusChartData = useMemo(() => {
+    if (assignmentReport && assignmentReport.rows) {
+      return assignmentReport.rows.map(row => {
+        const total = row.totalStudents || 1;
+        return {
+          id: row.assignmentId,
+          label: row.assignmentTitle || row.title || t("reportsPage.shared.defaults.assignmentTitle"),
+          feedbackSent: row.gradedCount || 0,
+          waitingFeedback: row.pendingReviewCount || 0,
+          notSubmitted: row.notSubmitted ?? Math.max(0, (row.totalStudents || 0) - (row.submittedCount || 0)),
+          totalStudents: row.totalStudents || 0,
+          dueAt: row.dueAt,
+        };
+      });
+    }
+    return buildAssignmentStatusChartData(assignmentOverviews, {
+      fallbackAssignmentTitle: t("reportsPage.shared.defaults.assignmentTitle"),
+    });
+  }, [assignmentReport, assignmentOverviews, t]);
   const quizPassRateData = useMemo(() => buildQuizPassRateData(quizSummaries), [quizSummaries]);
 
-  const selectedAssignment =
-    assignmentOverviews.find((item) => item.assignmentId === selectedAssignmentId) || assignmentOverviews[0] || null;
+  const selectedAssignment = useMemo(() => {
+    if (assignmentReport && assignmentReport.rows && assignmentReport.rows.length > 0) {
+      return assignmentReport.rows.find((item) => item.assignmentId === selectedAssignmentId) || assignmentReport.rows[0];
+    }
+    return assignmentOverviews.find((item) => item.assignmentId === selectedAssignmentId) || assignmentOverviews[0] || null;
+  }, [assignmentReport, assignmentOverviews, selectedAssignmentId]);
   const selectedQuizSummary =
     quizSummaries.find((item) => item.id === selectedQuizId) || quizSummaries[0] || null;
   const selectedQuizAttempts = useMemo(() => {
@@ -200,36 +253,49 @@ export default function ClassSectionReportContent({
       return [];
     }
 
-    return [...selectedQuizSummary.attempts].sort((left, right) => {
+    const attemptsToUse = quizReport?.rows ? fetchedQuizAttempts : selectedQuizSummary.attempts;
+
+    return [...attemptsToUse].sort((left, right) => {
       const leftDate = new Date(left.completedTime || left.startTime || 0).getTime();
       const rightDate = new Date(right.completedTime || right.startTime || 0).getTime();
       return rightDate - leftDate;
     });
-  }, [selectedQuizSummary]);
+  }, [selectedQuizSummary, fetchedQuizAttempts, quizReport]);
   const selectedQuizBestAttempts = useMemo(
-    () => getBestQuizAttemptsByStudent(selectedQuizSummary?.attempts || []),
-    [selectedQuizSummary]
+    () => getBestQuizAttemptsByStudent(quizReport?.rows ? fetchedQuizAttempts : (selectedQuizSummary?.attempts || [])),
+    [selectedQuizSummary, fetchedQuizAttempts, quizReport]
   );
   const quizParticipationRows = useMemo(
-    () => buildQuizParticipationRows(reportStudents, selectedQuizSummary?.attempts || []),
-    [reportStudents, selectedQuizSummary]
+    () => buildQuizParticipationRows(reportStudents, quizReport?.rows ? fetchedQuizAttempts : (selectedQuizSummary?.attempts || [])),
+    [reportStudents, selectedQuizSummary, fetchedQuizAttempts, quizReport]
   );
   const quizHistogramData = useMemo(
-    () => buildQuizHistogramData(selectedQuizSummary?.attempts || []),
-    [selectedQuizSummary]
+    () => buildQuizHistogramData(quizReport?.rows ? fetchedQuizAttempts : (selectedQuizSummary?.attempts || [])),
+    [selectedQuizSummary, fetchedQuizAttempts, quizReport]
   );
-  const assignmentSubmissionSummary = summarizeAssignmentSubmissions(assignmentSubmissions);
+  const assignmentSubmissionSummary = useMemo(() => {
+    if (assignmentReport && assignmentReport.rows && selectedAssignment) {
+      return {
+        notSubmitted: selectedAssignment.notSubmitted ?? Math.max(0, (selectedAssignment.totalStudents || 0) - (selectedAssignment.submittedCount || 0)),
+        late: selectedAssignment.lateSubmittedCount || 0,
+        returned: selectedAssignment.returnedCount || 0,
+      };
+    }
+    return summarizeAssignmentSubmissions(assignmentSubmissions);
+  }, [assignmentSubmissions, assignmentReport, selectedAssignment]);
+  const assignmentList = (assignmentReport && assignmentReport.rows) ? assignmentReport.rows : assignmentOverviews;
 
   useEffect(() => {
-    if (!assignmentOverviews.length) {
+    const list = (assignmentReport && assignmentReport.rows) ? assignmentReport.rows : assignmentOverviews;
+    if (!list.length) {
       setSelectedAssignmentId(null);
       return;
     }
 
-    if (!assignmentOverviews.some((item) => item.assignmentId === selectedAssignmentId)) {
-      setSelectedAssignmentId(assignmentOverviews[0].assignmentId);
+    if (!list.some((item) => item.assignmentId === selectedAssignmentId)) {
+      setSelectedAssignmentId(list[0].assignmentId);
     }
-  }, [assignmentOverviews, selectedAssignmentId]);
+  }, [assignmentReport, assignmentOverviews, selectedAssignmentId]);
 
   useEffect(() => {
     if (!quizSummaries.length) {
@@ -276,6 +342,30 @@ export default function ClassSectionReportContent({
     loadSubmissions();
   }, [extendedInsights, selectedAssignment?.assignmentId, selectedClassSectionId]);
 
+  useEffect(() => {
+    if (!extendedInsights || !selectedQuizId) {
+      setFetchedQuizAttempts([]);
+      return;
+    }
+
+    const loadAttempts = async () => {
+      try {
+        setLoadingQuizAttempts(true);
+        const items = await collectAllPagedItems(
+          (pageNumber) => getQuizAttempts(selectedQuizId, pageNumber, 250),
+          { startPage: 1, maxPages: 8 }
+        );
+        setFetchedQuizAttempts(items);
+      } catch {
+        setFetchedQuizAttempts([]);
+      } finally {
+        setLoadingQuizAttempts(false);
+      }
+    };
+
+    loadAttempts();
+  }, [extendedInsights, selectedQuizId]);
+
   const gradeBookColumns = [
     {
       title: t("reportsPage.shared.tables.student"),
@@ -286,7 +376,7 @@ export default function ClassSectionReportContent({
         <UserIdentity
           user={record}
           variant="student"
-          showAvatar={false}
+          avatarSizeClass="size-10"
           fallbackName={t("reportsPage.shared.defaults.noName")}
           nameClassName="m-0 text-sm font-bold text-slate-900 dark:text-white"
           secondaryClassName="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400"
@@ -374,14 +464,14 @@ export default function ClassSectionReportContent({
       title: t("reportsPage.shared.tables.student"),
       dataIndex: "fullName",
       render: (_, record) => (
-        <div>
-          <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
-            {record.fullName || t("reportsPage.shared.defaults.noName")}
-          </p>
-          <p className="m-0 text-xs text-slate-500 dark:text-slate-400">
-            {record.email || record.studentNumber || t("reportsPage.shared.defaults.noStudentNumber")}
-          </p>
-        </div>
+        <UserIdentity
+          user={record}
+          variant="student"
+          avatarSizeClass="size-10"
+          fallbackName={t("reportsPage.shared.defaults.noName")}
+          nameClassName="m-0 text-sm font-bold text-slate-900 dark:text-white"
+          secondaryClassName="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400"
+        />
       ),
     },
     {
@@ -426,14 +516,14 @@ export default function ClassSectionReportContent({
       title: t("reportsPage.shared.tables.student"),
       dataIndex: "fullName",
       render: (_, record) => (
-        <div>
-          <p className="m-0 text-sm font-bold text-slate-900 dark:text-white">
-            {record.fullName || t("reportsPage.shared.defaults.noName")}
-          </p>
-          <p className="m-0 text-xs text-slate-500 dark:text-slate-400">
-            {record.email || record.studentNumber || t("reportsPage.shared.defaults.noStudentNumber")}
-          </p>
-        </div>
+        <UserIdentity
+          user={record}
+          variant="student"
+          avatarSizeClass="size-10"
+          fallbackName={t("reportsPage.shared.defaults.noName")}
+          nameClassName="m-0 text-sm font-bold text-slate-900 dark:text-white"
+          secondaryClassName="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400"
+        />
       ),
     },
     {
@@ -605,17 +695,19 @@ export default function ClassSectionReportContent({
           title={t("reportsPage.shared.sections.assignments.title")}
           subtitle={t("reportsPage.shared.sections.assignments.subtitle")}
           actions={
-            assignmentOverviews.length > 0 ? (
+            assignmentList.length > 0 ? (
               <div className="flex w-full flex-col !gap-3 md:w-auto md:flex-row">
                 <Select
-                  value={selectedAssignment?.assignmentId}
+                  value={selectedAssignment?.assignmentId || undefined}
                   onChange={setSelectedAssignmentId}
                   showSearch
-                  optionFilterProp="label"
+                  filterOption={(input, option) =>
+                    String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
                   className="w-full md:!w-80"
-                  options={assignmentOverviews.map((item) => ({
+                  options={assignmentList.map((item) => ({
                     value: item.assignmentId,
-                    label: item.assignmentTitle,
+                    label: item.title || item.assignmentTitle,
                   }))}
                 />
                 {selectedAssignment ? (
@@ -633,7 +725,7 @@ export default function ClassSectionReportContent({
             ) : null
           }
         >
-          {assignmentOverviews.length === 0 || !selectedAssignment ? (
+          {assignmentList.length === 0 || !selectedAssignment ? (
             <Empty description={t("reportsPage.shared.empty.assignments")} />
           ) : (
             <div className="!space-y-4">
@@ -649,7 +741,7 @@ export default function ClassSectionReportContent({
                 <ReportMetricCard
                   icon={<DocumentTextIcon className="h-6 w-6" />}
                   label={t("reportsPage.shared.assignmentMetrics.submitted")}
-                  value={selectedAssignment.turnedInCount || 0}
+                  value={selectedAssignment.submittedCount || 0}
                   hint={t("reportsPage.shared.assignmentMetrics.submittedHint")}
                   tone="emerald"
                   loading={loading}
@@ -706,7 +798,7 @@ export default function ClassSectionReportContent({
                   subtitle={t("reportsPage.shared.sections.assignmentDetails.subtitle")}
                 >
                   <div className="!space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                    <MetaRow label={t("reportsPage.shared.meta.assignmentTitle")} value={selectedAssignment.assignmentTitle} loading={loading} />
+                    <MetaRow label={t("reportsPage.shared.meta.assignmentTitle")} value={selectedAssignment.assignmentTitle || selectedAssignment.title} loading={loading} />
                     <MetaRow
                       label={t("reportsPage.shared.meta.assignmentDueDate")}
                       value={formatDateTimeWithOptions(selectedAssignment.dueAt, {
@@ -749,19 +841,19 @@ export default function ClassSectionReportContent({
                       icon={<DocumentTextIcon className="h-5 w-5" />}
                       label={t("reportsPage.shared.assignmentSummary.notSubmitted")}
                       value={assignmentSubmissionSummary.notSubmitted}
-                      loading={loadingAssignmentSubmissions}
+                      loading={loading}
                     />
                     <MiniSummary
                       icon={<ClockIcon className="h-5 w-5" />}
                       label={t("reportsPage.shared.assignmentSummary.late")}
                       value={assignmentSubmissionSummary.late}
-                      loading={loadingAssignmentSubmissions}
+                      loading={loading}
                     />
                     <MiniSummary
                       icon={<CheckCircleIcon className="h-5 w-5" />}
                       label={t("reportsPage.shared.assignmentSummary.returned")}
                       value={assignmentSubmissionSummary.returned}
-                      loading={loadingAssignmentSubmissions}
+                      loading={loading}
                     />
                   </div>
                   <p className="!m-0 !pt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
@@ -789,10 +881,12 @@ export default function ClassSectionReportContent({
           quizSummaries.length > 0 ? (
             <div className="flex w-full flex-col !gap-3 md:w-auto md:flex-row">
               <Select
-                value={selectedQuizSummary?.id}
+                value={selectedQuizSummary?.id || undefined}
                 onChange={setSelectedQuizId}
                 showSearch
-                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
                 className="w-full md:!w-80"
                 options={quizSummaries.map((item) => ({
                   value: item.id,
@@ -991,15 +1085,18 @@ export default function ClassSectionReportContent({
                       className="flex flex-col !gap-3 !rounded-2xl border border-slate-200 bg-slate-50 !p-4 dark:border-slate-800 dark:bg-slate-800/60 md:flex-row md:items-center md:justify-between"
                     >
                       <div className="min-w-0">
-                        <p className="!m-0 truncate text-sm font-bold text-slate-900 dark:text-white">
-                          {attempt.studentName || t("reportsPage.shared.defaults.noName")}
-                        </p>
-                        <p className="!m-0 !mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          {formatDateTimeWithOptions(attempt.completedTime || attempt.startTime, {
+                        <UserIdentity
+                          user={{ ...attempt, fullName: attempt.studentName }}
+                          variant="student"
+                          avatarSizeClass="size-10"
+                          fallbackName={t("reportsPage.shared.defaults.noName")}
+                          nameClassName="!m-0 truncate text-sm font-bold text-slate-900 dark:text-white"
+                          secondaryClassName="!m-0 !mt-1 text-xs text-slate-500 dark:text-slate-400"
+                          secondaryText={formatDateTimeWithOptions(attempt.completedTime || attempt.startTime, {
                             locale,
                             emptyLabel: emptyDateLabel,
                           })}
-                        </p>
+                        />
                       </div>
                       <div className="flex flex-wrap items-center !gap-3">
                         <QuizResultTag attempt={attempt} t={t} />
@@ -1058,6 +1155,7 @@ export default function ClassSectionReportContent({
           </div>
         </ReportSectionCard>
 
+        {/*
         <ReportSectionCard
           title={t("reportsPage.shared.sections.classProfile.title")}
           subtitle={t("reportsPage.shared.sections.classProfile.subtitle")}
@@ -1066,7 +1164,7 @@ export default function ClassSectionReportContent({
             <MiniSummary
               icon={<UserGroupIcon className="h-5 w-5" />}
               label={t("reportsPage.shared.metrics.teachingAssistants")}
-              value={teachingAssistantCount}
+              value={classOverview?.taCount ?? teachingAssistantCount}
               loading={loading}
             />
             <MiniSummary
@@ -1077,25 +1175,26 @@ export default function ClassSectionReportContent({
             />
           </div>
           <div className="grid grid-cols-1 !gap-3 text-sm text-slate-600 dark:text-slate-300">
-            <MetaRow label={t("reportsPage.shared.meta.className")} value={currentClassSection?.title || t("reportsPage.shared.defaults.untitledClass")} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.classCode")} value={currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.subject")} value={currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.primaryTeacher")} value={currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={teachingAssistantCount} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.className")} value={classOverview?.classTitle || currentClassSection?.title || t("reportsPage.shared.defaults.untitledClass")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.classCode")} value={classOverview?.classCode || currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.subject")} value={classOverview?.subjectTitle || currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.primaryTeacher")} value={classOverview?.primaryTeacherName || currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={classOverview?.taCount ?? teachingAssistantCount} loading={loading} />
             <MetaRow
               label={t("reportsPage.shared.meta.status")}
               value={
-                <Tag color={statusToneMap[currentClassSection?.status] || "default"}>
-                  {statusLabelMap[currentClassSection?.status] || currentClassSection?.status || t("reportsPage.shared.defaults.noStudentNumber")}
+                <Tag color={statusToneMap[classOverview?.status || currentClassSection?.status] || "default"}>
+                  {statusLabelMap[classOverview?.status || currentClassSection?.status] || classOverview?.status || currentClassSection?.status || t("reportsPage.shared.defaults.noStudentNumber")}
                 </Tag>
               }
               loading={loading}
             />
-            <MetaRow label={t("reportsPage.shared.meta.startDate")} value={formatDateTimeWithOptions(currentClassSection?.startDate, { locale, emptyLabel: emptyDateLabel })} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.endDate")} value={formatDateTimeWithOptions(currentClassSection?.endDate, { locale, emptyLabel: emptyDateLabel })} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.startDate")} value={formatDateTimeWithOptions(classOverview?.startDate || currentClassSection?.startDate, { locale, emptyLabel: emptyDateLabel })} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.endDate")} value={formatDateTimeWithOptions(classOverview?.endDate || currentClassSection?.endDate, { locale, emptyLabel: emptyDateLabel })} loading={loading} />
             <MetaRow label={t("reportsPage.shared.meta.trackedQuizzes")} value={stats.trackedQuizzes} loading={loading} />
           </div>
         </ReportSectionCard>
+        */}
       </div>
     ),
   };
@@ -1107,6 +1206,19 @@ export default function ClassSectionReportContent({
       <ReportSectionCard
         title={t("reportsPage.shared.sections.gradebook.title")}
         subtitle={t("reportsPage.shared.sections.gradebook.subtitle")}
+        actions={
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={() => {
+              const filename = `gradebook-${currentClassSection?.classCode || "export"}.csv`;
+              jsonToCsv(gradebookTable.rows, gradeBookColumns, filename);
+            }}
+            disabled={!gradebookTable.rows || gradebookTable.rows.length === 0}
+          >
+            {t("reportsPage.shared.actions.exportCsv", "Export CSV")}
+          </Button>
+        }
       >
         {loading ? (
           <div className="!py-10 text-center text-sm text-slate-500 dark:text-slate-400">{t("reportsPage.shared.loading.gradebook")}</div>
@@ -1352,21 +1464,23 @@ export default function ClassSectionReportContent({
         actions={
           <div className="w-full md:!w-80">
             <Select
-              value={selectedClassSectionId}
+              value={selectedClassSectionId || undefined}
               onChange={onSelectClassSection}
               showSearch
-              optionFilterProp="label"
+              filterOption={(input, option) =>
+                String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
               className="w-full"
               options={classSections.map((item) => ({
-                value: item.id,
-                label: item.title || item.classCode || t("reportsPage.shared.defaults.classTitle", { id: item.id }),
+                value: item.id || item.classSectionId,
+                label: item.title || item.classCode || t("reportsPage.shared.defaults.classTitle", { id: item.id || item.classSectionId }),
               }))}
               placeholder={defaultSelectorLabel}
             />
           </div>
         }
       >
-        <div className="grid grid-cols-1 !gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 !gap-3 md:grid-cols-2 xl:grid-cols-4">
           <ReportMetricCard
             icon={<UserGroupIcon className="h-6 w-6" />}
             label={t("reportsPage.shared.metrics.totalStudents")}
@@ -1387,14 +1501,6 @@ export default function ClassSectionReportContent({
             loading={loading}
           />
           <ReportMetricCard
-            icon={<TrophyIcon className="h-6 w-6" />}
-            label={t("reportsPage.shared.metrics.averageQuizScore")}
-            value={stats.averageQuizScore}
-            hint={t("reportsPage.shared.metrics.averageQuizScoreHint", { score: stats.topScore })}
-            tone="emerald"
-            loading={loading}
-          />
-          <ReportMetricCard
             icon={<CheckCircleIcon className="h-6 w-6" />}
             label={t("reportsPage.shared.metrics.averageProgress")}
             value={`${stats.averageProgress}%`}
@@ -1408,8 +1514,8 @@ export default function ClassSectionReportContent({
           <ReportMetricCard
             icon={<AcademicCapIcon className="h-6 w-6" />}
             label={t("reportsPage.shared.metrics.teachingAssistants")}
-            value={teachingAssistantCount}
-            hint={t("reportsPage.shared.metrics.teachingAssistantsHint", { count: teachingAssistantCount })}
+            value={classOverview?.taCount ?? teachingAssistantCount}
+            hint={t("reportsPage.shared.metrics.teachingAssistantsHint", { count: classOverview?.taCount ?? teachingAssistantCount })}
             tone="slate"
             loading={loading}
           />
@@ -1443,24 +1549,26 @@ export default function ClassSectionReportContent({
             <MiniSummary
               icon={<AcademicCapIcon className="h-5 w-5" />}
               label={t("reportsPage.shared.metrics.teachingAssistants")}
-              value={teachingAssistantCount}
+              value={classOverview?.taCount ?? teachingAssistantCount}
               loading={loading}
             />
           </div>
         </ReportSectionCard>
 
+        {/*
         <ReportSectionCard
           title={t("reportsPage.shared.sections.context.title")}
           subtitle={t("reportsPage.shared.sections.context.subtitle")}
         >
           <div className="!space-y-3 text-sm text-slate-600 dark:text-slate-300">
-            <MetaRow label={t("reportsPage.shared.meta.currentClass")} value={currentClassSection?.title || t("reportsPage.shared.defaults.noSelectedClass")} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.classCode")} value={currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.subject")} value={currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.teacher")} value={currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} loading={loading} />
-            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={teachingAssistantCount} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.currentClass")} value={classOverview?.classTitle || currentClassSection?.title || t("reportsPage.shared.defaults.noSelectedClass")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.classCode")} value={classOverview?.classCode || currentClassSection?.classCode || t("reportsPage.shared.defaults.noStudentNumber")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.subject")} value={classOverview?.subjectTitle || currentClassSection?.subjectTitle || t("reportsPage.shared.defaults.noSubject")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.teacher")} value={classOverview?.primaryTeacherName || currentClassSection?.teacherName || t("reportsPage.shared.defaults.unknownTeacher")} loading={loading} />
+            <MetaRow label={t("reportsPage.shared.meta.teachingAssistants")} value={classOverview?.taCount ?? teachingAssistantCount} loading={loading} />
           </div>
         </ReportSectionCard>
+        */}
       </div>
 
       <ReportSectionCard title={t("reportsPage.shared.sections.details.title")}>

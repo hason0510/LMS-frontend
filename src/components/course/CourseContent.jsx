@@ -38,7 +38,7 @@ const canManageRole = (role) => role === "TEACHER" || role === "ADMIN";
 
 export default function CourseContent({ enrollmentStatus = null, workspaceMode = "default", capabilities = [], archived = false }) {
   const { t, i18n } = useTranslation();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { user } = useAuth();
   const { id: classSectionId } = useParams();
   const navigate = useNavigate();
@@ -507,8 +507,8 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
       await updateClassContentItem(classSectionId, editItemModal.item.id, {
         hidden: values.hidden,
         locked: values.locked,
-        availableFrom: values.availableFrom?.toISOString() || null,
-        availableTo: values.availableTo?.toISOString() || null,
+        availableFrom: values.availableFrom?.format('YYYY-MM-DDTHH:mm:ss') || null,
+        availableTo: values.availableTo?.format('YYYY-MM-DDTHH:mm:ss') || null,
       });
       message.success(tc("messages.updateContentSuccess"));
       setEditItemModal({ visible: false, item: null, chapterId: null });
@@ -989,7 +989,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      Modal.confirm({
+                                      modal.confirm({
                                         title: tc("confirmations.deleteContent.title"),
                                         icon: <ExclamationCircleOutlined />,
                                         content: tc("confirmations.deleteContent.content", {

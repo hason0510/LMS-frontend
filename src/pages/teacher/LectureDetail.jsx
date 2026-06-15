@@ -684,10 +684,6 @@ export default function LectureDetail({ isAdmin = false }) {
         return;
       }
 
-      if (!lessonData.content) {
-        messageApi.error("Vui lòng nhập nội dung bài giảng");
-        return;
-      }
 
       let savedLesson;
       
@@ -1074,16 +1070,7 @@ export default function LectureDetail({ isAdmin = false }) {
               {/* Main Form Grid */}
               <Form layout="vertical" className="grid grid-cols-1 gap-6" form={form}>
                 <div className="space-y-6">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[#111418] dark:text-gray-200 text-base font-medium">
-                      {isTemplateMode ? "Thuộc khung chương trình" : "Thuộc khóa học"}
-                    </label>
-                    <div className="px-4 py-3 rounded-lg bg-primary bg-gray-50 dark:bg-gray-700 border border-[#dbe0e6] dark:border-gray-600">
-                      <p className="text-white font-medium">
-                        {isTemplateMode ? course?.name : course?.title}
-                      </p>
-                    </div>
-                  </div>
+
 
                   {/* Title Input */}
                   <Form.Item
@@ -1121,16 +1108,6 @@ export default function LectureDetail({ isAdmin = false }) {
                       </span>
                     }
                     name="content"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập nội dung bài giảng",
-                      },
-                      {
-                        min: 3,
-                        message: "Nội dung bài giảng phải có ít nhất 3 ký tự",
-                      },
-                    ]}
                   >
                     <ReactQuill
                       theme="snow"
@@ -1323,7 +1300,7 @@ export default function LectureDetail({ isAdmin = false }) {
                                 type="file"
                                 accept="video/*"
                                 onChange={handleVideoFileSelect}
-                                className="hidden"
+                                className="!hidden"
                               />
                             </div>
                           ) : (

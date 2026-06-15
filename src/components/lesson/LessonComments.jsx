@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Input, Button, Spin, message, Empty } from "antd";
+import { Input, Button, Spin, message, Empty, App, Dropdown } from "antd";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import { Client } from "@stomp/stompjs";
@@ -8,8 +8,10 @@ import {
   getCommentsByLesson,
   createComment,
   replyComment,
+  updateComment,
+  deleteComment,
 } from "../../api/lessonComment";
-import { SendOutlined } from "@ant-design/icons";
+import { SendOutlined, MoreOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import useUserStore from "../../store/useUserStore";
 import UserIdentity from "../common/UserIdentity";
 
@@ -26,7 +28,11 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
   const [commentText, setCommentText] = useState("");
   const [replyText, setReplyText] = useState("");
   const [showCommentForm, setShowCommentForm] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState("");
   const isReadOnly = previewMode || Boolean(readOnlyReason);
+  
+  const { modal } = App.useApp();
 
   const fetchComments = useCallback(async () => {
     if (!lectureId) return;
@@ -132,6 +138,45 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
     }
   };
 
+  const handleEditComment = async (commentId) => {
+    if (!editCommentText.trim()) {
+      message.error(t("lessonComments.errors.emptyComment"));
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await updateComment(commentId, {
+        content: editCommentText,
+      });
+      message.success(t("lessonComments.messages.updated"));
+      setEditingCommentId(null);
+      setEditCommentText("");
+    } catch (err) {
+      message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.updateFailed"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = (commentId) => {
+    modal.confirm({
+      title: t("lessonComments.confirmRevoke.title"),
+      content: t("lessonComments.confirmRevoke.content"),
+      okText: t("lessonComments.actions.revoke"),
+      okType: "danger",
+      cancelText: t("lessonComments.actions.cancel"),
+      onOk: async () => {
+        try {
+          await deleteComment(commentId);
+          message.success(t("lessonComments.messages.revoked"));
+        } catch (err) {
+          message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.revokeFailed"));
+        }
+      },
+    });
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -224,122 +269,154 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
         <Empty description={t("lessonComments.empty")} />
       ) : (
         <div className="space-y-6">
-          {comments.map((comment) => (
-            <div key={comment.commentId} className="space-y-4">
-              {/* Main Comment */}
-              <div className="flex gap-4">
-                <UserIdentity
-                  user={comment}
-                  variant="student"
-                  className="flex-shrink-0 items-start"
-                  avatarSizeClass="size-10"
-                  showText={false}
-                  secondaryText={null}
-                />
-                <div className="flex-1">
-                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatDate(comment.createdAt)}
-                      </span>
+          {comments.map((comment) => {
+            const renderCommentNode = (comment, depth = 0) => (
+              <div key={comment.commentId} className="space-y-4">
+                <div className="flex gap-4">
+                  <UserIdentity
+                    user={comment}
+                    variant="student"
+                    className="flex-shrink-0 items-start"
+                    avatarSizeClass={depth === 0 ? "size-10" : "size-8"}
+                    showText={false}
+                    secondaryText={null}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatDate(comment.createdAt)}
+                        </span>
+                      </div>
+                      <p className="m-0 mb-1 text-sm font-semibold text-[#111418] dark:text-white">
+                        {comment.fullName || t("lessonComments.unknownUser")}
+                      </p>
+                      <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed m-0 break-words">
+                        {comment.isDeleted ? (
+                          <span className="italic text-gray-500 dark:text-gray-400">
+                            {comment.commentDetail}
+                          </span>
+                        ) : editingCommentId === comment.commentId ? (
+                          <div className="mt-2">
+                            <Input.TextArea
+                              value={editCommentText}
+                              onChange={(e) => setEditCommentText(e.target.value)}
+                              rows={2}
+                              className="mb-2 text-sm"
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                              <Button size="small" onClick={() => setEditingCommentId(null)}>{t("lessonComments.actions.cancel")}</Button>
+                              <Button size="small" type="primary" loading={submitting} onClick={() => handleEditComment(comment.commentId)}>{t("lessonComments.actions.save")}</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {comment.commentDetail}
+                            {comment.updatedAt && comment.updatedAt !== comment.createdAt && (
+                              <span className="ml-2 text-[10px] text-gray-400 dark:text-gray-500">{t("lessonComments.labels.edited")}</span>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <p className="m-0 mb-2 text-sm font-semibold text-[#111418] dark:text-white">
-                      {comment.fullName || t("lessonComments.unknownUser")}
-                    </p>
-                    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                      {comment.commentDetail}
-                    </p>
-                  </div>
-                  <div className="flex gap-4 mt-2 text-xs font-medium">
-                    {user && !isReadOnly && (
-                      <button
-                        onClick={() => setReplyingTo(comment.commentId)}
-                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        {t("lessonComments.actions.reply")}
-                      </button>
+                    
+                    <div className="flex gap-4 mt-1.5 ml-1 text-xs font-medium items-center">
+                      {user && !isReadOnly && !comment.isDeleted && (
+                        <button
+                          onClick={() => setReplyingTo(comment.commentId)}
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                        >
+                          {t("lessonComments.actions.reply")}
+                        </button>
+                      )}
+                      {user && !isReadOnly && user.id === comment.userId && !comment.isDeleted && (
+                        <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                key: "edit",
+                                icon: <EditOutlined />,
+                                label: t("lessonComments.actions.edit"),
+                                onClick: () => {
+                                  setEditingCommentId(comment.commentId);
+                                  setEditCommentText(comment.commentDetail);
+                                },
+                              },
+                              {
+                                key: "delete",
+                                icon: <DeleteOutlined className="text-red-500" />,
+                                label: <span className="text-red-500">{t("lessonComments.actions.revoke")}</span>,
+                                onClick: () => handleDeleteComment(comment.commentId),
+                              },
+                            ],
+                          }}
+                          trigger={["click"]}
+                          placement="bottomRight"
+                        >
+                          <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors flex items-center justify-center p-1 -ml-1 rounded">
+                            <MoreOutlined />
+                          </button>
+                        </Dropdown>
+                      )}
+                    </div>
+
+                    {replyingTo === comment.commentId && user && !isReadOnly && (
+                      <div className="mt-3">
+                        <div className="flex gap-3">
+                          <UserIdentity
+                            user={user}
+                            variant="student"
+                            className="flex-shrink-0 items-start"
+                            avatarSizeClass="size-8"
+                            showText={false}
+                          />
+                          <div className="flex-1">
+                            <Input.TextArea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder={t("lessonComments.placeholders.reply")}
+                              rows={2}
+                              className="text-sm"
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                              <Button
+                                size="small"
+                                onClick={() => {
+                                  setReplyingTo(null);
+                                  setReplyText("");
+                                }}
+                              >
+                                {t("lessonComments.actions.cancel")}
+                              </Button>
+                              <Button
+                                type="primary"
+                                size="small"
+                                loading={submitting}
+                                onClick={handleReplyComment}
+                                icon={<SendOutlined />}
+                              >
+                                {t("lessonComments.actions.reply")}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
 
-              {/* Reply Form */}
-              {replyingTo === comment.commentId && user && !isReadOnly && (
-                <div className="ml-12 mb-4">
-                  <div className="flex gap-3">
-                    <UserIdentity
-                      user={user}
-                      variant="student"
-                      className="flex-shrink-0 items-start"
-                      avatarSizeClass="size-8"
-                    />
-                    <div className="flex-1">
-                      <Input.TextArea
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        placeholder={t("lessonComments.placeholders.reply")}
-                        rows={2}
-                        className="text-sm"
-                      />
-                      <div className="flex justify-end gap-2 mt-2">
-                        <Button
-                          size="small"
-                          onClick={() => {
-                            setReplyingTo(null);
-                            setReplyText("");
-                          }}
-                        >
-                          {t("lessonComments.actions.cancel")}
-                        </Button>
-                        <Button
-                          type="primary"
-                          size="small"
-                          loading={submitting}
-                          onClick={handleReplyComment}
-                          icon={<SendOutlined />}
-                        >
-                          {t("lessonComments.actions.reply")}
-                        </Button>
-                      </div>
-                    </div>
+                {comment.replies && comment.replies.length > 0 && (
+                  <div className="ml-10 space-y-4 pt-2 pl-4 border-l-2 border-gray-100 dark:border-gray-700/60">
+                    {comment.replies.map((reply) => renderCommentNode(reply, depth + 1))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            );
 
-              {/* Replies */}
-              {comment.replies && comment.replies.length > 0 && (
-                <div className="ml-12 space-y-4 pt-2 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
-                  {comment.replies.map((reply) => (
-                    <div key={reply.commentId} className="flex gap-3">
-                      <UserIdentity
-                        user={reply}
-                        variant="student"
-                        className="flex-shrink-0 items-start"
-                        avatarSizeClass="size-8"
-                        showText={false}
-                        secondaryText={null}
-                      />
-                      <div className="flex-1">
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {formatDate(reply.createdAt)}
-                            </span>
-                          </div>
-                          <p className="m-0 mb-1 text-sm font-semibold text-[#111418] dark:text-white">
-                            {reply.fullName || t("lessonComments.unknownUser")}
-                          </p>
-                          <p className="text-gray-700 dark:text-gray-300 text-sm">
-                            {reply.commentDetail}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+            return renderCommentNode(comment, 0);
+          })}
         </div>
       )}
     </div>

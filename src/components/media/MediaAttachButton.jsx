@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Modal, Tooltip } from "antd";
+import { App, Button, Modal, Tooltip } from "antd";
 import { useTranslation } from "react-i18next";
 import {
   AudioLines,
@@ -44,6 +44,7 @@ export default function MediaAttachButton({
   previewImage = false,
 }) {
   const { t } = useTranslation();
+  const { modal } = App.useApp();
   const [typeOpen, setTypeOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedType, setSelectedType] = useState(allowedTypes[0] || "IMAGE");
@@ -73,7 +74,7 @@ export default function MediaAttachButton({
   };
 
   const handleDetach = () => {
-    Modal.confirm({
+    modal.confirm({
       title: t("quizMedia.detachConfirmTitle"),
       content: t("quizMedia.detachConfirmMessage"),
       okText: t("quizMedia.detach"),

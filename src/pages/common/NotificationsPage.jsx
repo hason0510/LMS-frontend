@@ -12,6 +12,7 @@ import {
   markNotificationAsRead,
 } from "../../api/notification";
 import { normalizeNotificationItem } from "../../utils/notificationText";
+import useNotificationStore from "../../store/useNotificationStore";
 
 // Format timestamp to readable format (HH:mm:ss DD/MM/YYYY)
 const formatNotificationTime = (timestamp) => {
@@ -37,63 +38,62 @@ export default function NotificationsPage({ embedded = false }) {
   const isAdmin = user?.role === "ADMIN";
   const isTeacherOrAdmin = isTeacher || isAdmin;
 
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [isNotificationDetailOpen, setIsNotificationDetailOpen] = useState(false);
   const pageSize = 10;
 
+  const storeNotifications = useNotificationStore((state) => state.notifications);
+  const storeUnreadCount = useNotificationStore((state) => state.unreadCount);
+  const storeFetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+  const markAsReadStore = useNotificationStore((state) => state.markAsRead);
+
+  // Map the time property for display
+  const notifications = React.useMemo(() => {
+    return storeNotifications.map((notification) => ({
+      ...notification,
+      time: formatNotificationTime(notification.time || notification.createdAt),
+    }));
+  }, [storeNotifications]);
+
   useEffect(() => {
-    fetchNotifications();
+    const initFetch = async () => {
+      setLoading(true);
+      try {
+        await storeFetchNotifications();
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (storeNotifications.length === 0) {
+      initFetch();
+    }
   }, []);
 
   const fetchNotifications = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await getMyNotifications();
-      // res is ApiResponse { code, message, data: [...] }
-      const notificationsData = res.data || [];
-      // Format the time field for each notification
-      const formattedNotifications = notificationsData.map((notification) => ({
-        ...normalizeNotificationItem(notification),
-        time: formatNotificationTime(notification.time),
-      }));
-      setNotifications(formattedNotifications);
+      await storeFetchNotifications();
     } catch (err) {
-      console.error("Failed to fetch notifications:", err);
       setError(err.message);
-      setNotifications([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleMarkAsRead = async (notificationId) => {
-    try {
-      await markNotificationAsRead(notificationId);
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((notif) =>
-          notif.id === notificationId ? { ...notif, isRead: true, readStatus: true } : notif
-        )
-      );
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
-    }
+    await markAsReadStore(notificationId);
   };
 
   const handleMarkAllAsRead = async () => {
-    try {
-      for (const notification of notifications) {
-        if (!notification.isRead && !notification.readStatus) {
-          await markNotificationAsRead(notification.id);
-        }
+    for (const notification of notifications) {
+      if (!notification.isRead && !notification.readStatus) {
+        await markAsReadStore(notification.id);
       }
-      setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true, readStatus: true })));
-    } catch (err) {
-      console.error("Failed to mark all as read:", err);
     }
   };
 
@@ -101,7 +101,7 @@ export default function NotificationsPage({ embedded = false }) {
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedNotifications = notifications?.slice(startIndex, endIndex);
-  const unreadCount = notifications?.filter((n) => !n.isRead && !n.readStatus).length;
+  const unreadCount = storeUnreadCount;
 
   return (
     <div className={`${isTeacherOrAdmin && !embedded ? "min-h-screen" : ""} ${embedded ? "bg-transparent" : "bg-background-light dark:bg-background-dark"} font-display text-[#111418] dark:text-white`}>

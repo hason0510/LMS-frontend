@@ -32,3 +32,66 @@ export async function getClassSectionPendingRequests(classSectionId, pageNumber 
     });
     return response.data;
 }
+
+// ── Admin aggregate endpoints ──────────────────────────────────────────
+
+/**
+ * Admin system-wide report summary.
+ * Includes: totalUsers, totalClassSections, totalSubjects, totalTeachers,
+ * totalAssistants, totalStudents, pendingEnrollments, pendingSubmissions,
+ * pendingQuizReviews, classStatusBreakdown, teacherLoad, subjectLoad,
+ * topClasses, assistantsActive.
+ */
+export async function getAdminReportSummary() {
+    const response = await axiosClient.get(`admin/reports/summary`);
+    return response.data;
+}
+
+// ── Teacher aggregate endpoints ───────────────────────────────────────
+
+/**
+ * Teacher-scope report summary (all classes the calling user teaches/assists).
+ * Includes: totalClasses, totalStudents, pendingSubmissions, pendingQuizReviews,
+ * atRiskStudents, pendingRequests, taughtClasses, assistedClasses.
+ */
+export async function getTeacherReportSummary() {
+    const response = await axiosClient.get(`teacher/reports/summary`);
+    return response.data;
+}
+
+// ── Class-level aggregate endpoints ───────────────────────────────────
+
+/**
+ * Class overview report.
+ * @param {number} classSectionId
+ * @param {number} [lowThreshold=50]  Progress % below which student is "at risk"
+ * @param {number} [highThreshold=80] Progress % at or above which student is "engaged"
+ */
+export async function getClassReportOverview(classSectionId, lowThreshold = 50, highThreshold = 80) {
+    const response = await axiosClient.get(`class-sections/${classSectionId}/reports/overview`, {
+        params: { lowThreshold, highThreshold }
+    });
+    return response.data;
+}
+
+/**
+ * Class assignment aggregate report.
+ * Each row has: assignmentId, assignmentTitle, totalStudents, submittedCount,
+ * gradedCount, pendingReviewCount, lateSubmittedCount, returnedCount,
+ * notSubmitted, maxScore, dueAt, closeAt.
+ */
+export async function getClassAssignmentReport(classSectionId) {
+    const response = await axiosClient.get(`class-sections/${classSectionId}/reports/assignments`);
+    return response.data;
+}
+
+/**
+ * Class quiz aggregate report.
+ * Each row has: quizId, classContentItemId, quizTitle, totalAttempts,
+ * uniqueStudents, passedCount, notPassedCount, waitingReviewCount,
+ * averageScore, topScore, minPassScore.
+ */
+export async function getClassQuizReport(classSectionId) {
+    const response = await axiosClient.get(`class-sections/${classSectionId}/reports/quizzes`);
+    return response.data;
+}

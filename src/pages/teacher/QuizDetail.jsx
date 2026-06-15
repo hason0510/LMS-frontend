@@ -610,6 +610,7 @@ function AnswerGridCard({
 
 function ChoiceAnswers({ question, onChange, mediaContext }) {
   const { t } = useTranslation();
+  const { modal } = App.useApp();
   const [viewMode, setViewMode] = useState(() =>
     question.answers?.some((answer) => isImageResource(answer.resource)) ? "image" : "text"
   );
@@ -638,7 +639,7 @@ function ChoiceAnswers({ question, onChange, mediaContext }) {
       if (!hasAttachedImages) {
         return;
       }
-      Modal.confirm({
+      modal.confirm({
         title: t("quizMedia.answerModeDetachTitle"),
         content: t("quizMedia.answerModeDetachMessage"),
         okText: t("quizMedia.detach"),

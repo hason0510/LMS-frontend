@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Alert, Button, Dropdown, Form, Input, message, Modal, Select, Spin, Table, Tag } from "antd";
+import { Alert, App, Button, Dropdown, Form, Input, message, Modal, Select, Spin, Table, Tag } from "antd";
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, EllipsisHorizontalIcon, PencilSquareIcon, PlusCircleIcon, TagIcon, TrashIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
@@ -50,6 +50,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { modal } = App.useApp();
 
   const [bank, setBank] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -220,7 +221,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     };
 
     if (editingTag && editingTag.totalUsageCount > 0 && editingTag.name !== name) {
-      Modal.confirm({
+      modal.confirm({
         title: t("questionBank.canhBaoDoiTenTag"),
         content: t("questionBank.tagDangDuocDung", { name: editingTag.name, q: editingTag.questionUsageCount || 0, r: editingTag.quizUsageCount || 0 }),
         onOk: runSave,
@@ -236,7 +237,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     const questionUsageCount = tag?.questionUsageCount || 0;
     const quizUsageCount = tag?.quizUsageCount || 0;
 
-    Modal.confirm({
+    modal.confirm({
       title: t("questionBank.xacNhanXoaTag"),
       content: t("questionBank.tagDangDuocDungXoa", { name: tag?.name, q: questionUsageCount, r: quizUsageCount }),
       onOk: async () => {
@@ -312,7 +313,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
       message.success(t("questionBank.importThanhCong", `Đã import ${imported} câu hỏi`));
       if (skipped > 0) {
-        Modal.warning({
+        modal.warning({
           title: t("questionBank.coCauHoiBoQua", `Có ${skipped} câu bị bỏ qua`),
           content: (
             <div className="whitespace-pre-wrap max-h-64 overflow-auto text-xs leading-5">
@@ -376,7 +377,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
   const handleDeleteBank = () => {
     if (!canDeleteBank) return;
-    Modal.confirm({
+    modal.confirm({
       title: t("questionBank.xacNhanXoaBank"),
       content: t("questionBank.hanhDongKhongHoanTac"),
       okButtonProps: { danger: true, loading: deleteBankLoading },
@@ -473,7 +474,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     if (!canManageMembers) return;
 
     const isTransferOwner = role === "OWNER";
-    Modal.confirm({
+    modal.confirm({
       title: isTransferOwner ? t("questionBank.xacNhanChuyenOwner") : t("questionBank.xacNhanCapNhatRole"),
       content: isTransferOwner
         ? t("questionBank.chuyenOwnerChoUser", { name: member?.fullName || member?.userName })
@@ -495,7 +496,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
   const handleRemoveMember = (member) => {
     if (!canManageMembers) return;
-    Modal.confirm({
+    modal.confirm({
       title: t("questionBank.xacNhanXoaThanhVien"),
       content: t("questionBank.xoaThanhVienKhoiBank", { name: member?.fullName || member?.userName }),
       onOk: async () => {

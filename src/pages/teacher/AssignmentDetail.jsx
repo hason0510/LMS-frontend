@@ -247,8 +247,8 @@ export default function AssignmentDetail({ isAdmin = false, teachingMode = false
     description,
     instruction,
     maxScore: values.maxScore,
-    dueAt: values.dueAt ? values.dueAt.toISOString() : null,
-    closeAt: values.closeAt ? values.closeAt.toISOString() : null,
+    dueAt: values.dueAt ? values.dueAt.format('YYYY-MM-DDTHH:mm:ss') : null,
+    closeAt: values.closeAt ? values.closeAt.format('YYYY-MM-DDTHH:mm:ss') : null,
     classSectionId: Number(classSectionId),
     resourceIds: resources
       .map((resource) => Number(resource.resourceId || resource.id))

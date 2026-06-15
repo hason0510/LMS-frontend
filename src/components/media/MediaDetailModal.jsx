@@ -207,7 +207,7 @@ export default function MediaDetailModal({
                       ) : null}
                       {item.createdDate ? (
                         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          {new Date(item.createdDate).toLocaleDateString(locale)}
+                          {new Date(item.createdDate).toLocaleString(locale)}
                         </div>
                       ) : null}
                     </article>

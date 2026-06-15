@@ -50,7 +50,10 @@ export default function Header({ menuItems }) {
   const notifications = useNotificationStore((state) => state.notifications);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+  const fetchUnreadCount = useNotificationStore((state) => state.fetchUnreadCount);
   const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const connect = useNotificationStore((state) => state.connect);
+  const disconnect = useNotificationStore((state) => state.disconnect);
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -81,6 +84,13 @@ export default function Header({ menuItems }) {
 
     loadTeachingContext();
   }, [isLoggedIn, user?.role]);
+
+  // Initial fetch
+  useEffect(() => {
+    if (isLoggedIn && user?.id) {
+      fetchUnreadCount();
+    }
+  }, [isLoggedIn, user?.id, fetchUnreadCount]);
 
   const isTeachingRoute = location.pathname.startsWith("/teaching");
 
@@ -259,7 +269,9 @@ export default function Header({ menuItems }) {
                   >
                     <BellIcon className="h-6 w-6" />
                     {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900"></span>
+                      <div className="absolute top-0 right-0 flex items-center justify-center size-4 bg-red-500 text-white text-[10px] font-bold rounded-full translate-x-1 -translate-y-1">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </div>
                     )}
                   </button>
 
@@ -295,7 +307,7 @@ export default function Header({ menuItems }) {
                                   {notification.message}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-1">
-                                  Thời gian gửi: {notification.time}
+                                  {notification.time}
                                 </p>
                               </div>
                               {!notification.isRead && (

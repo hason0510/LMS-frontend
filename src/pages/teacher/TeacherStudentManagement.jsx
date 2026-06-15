@@ -32,7 +32,7 @@ function normalizeClasses(payload) {
 }
 
 export default function TeacherStudentManagement({ isAdmin = false }) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { t } = useTranslation();
 
   const [enrollments, setEnrollments] = useState([]);
@@ -147,7 +147,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
   };
 
   const handleApprove = (record) => {
-    Modal.confirm({
+    modal.confirm({
       title: t("teacherLists.students.confirm.approveTitle"),
       content: t("teacherLists.students.confirm.approveDescription", { name: record.name }),
       okText: t("teacherLists.students.actions.approve"),
@@ -166,7 +166,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
   };
 
   const handleReject = (record) => {
-    Modal.confirm({
+    modal.confirm({
       title: t("teacherLists.students.confirm.rejectTitle"),
       content: t("teacherLists.students.confirm.rejectDescription", { name: record.name }),
       okText: t("teacherLists.students.actions.reject"),
@@ -188,7 +188,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
   const handleDeleteStudents = (rows) => {
     if (!rows.length) return;
 
-    Modal.confirm({
+    modal.confirm({
       title: t("teacherLists.students.confirm.deleteTitle"),
       content: t("teacherLists.students.confirm.deleteDescription", { count: rows.length }),
       okText: t("teacherLists.shared.delete"),

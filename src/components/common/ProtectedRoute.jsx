@@ -26,8 +26,8 @@ export default function ProtectedRoute({ element, allowedRoles }) {
       // Redirect user to their dashboard based on role
       const roleRedirects = {
         'STUDENT': '/home',
-        'TEACHER': '/teacher/dashboard',
-        'ADMIN': '/admin/dashboard'
+        'TEACHER': '/teacher/report',
+        'ADMIN': '/admin/reports'
       };
       const redirectPath = roleRedirects[user.role] || '/home';
       

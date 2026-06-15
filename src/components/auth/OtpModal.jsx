@@ -115,9 +115,9 @@ export default function OtpModal({
           handleClose();
 
           if ((authedUser?.role || payload.user?.role) === 'TEACHER') {
-            navigate('/teacher/dashboard');
+            navigate('/teacher/report');
           } else if ((authedUser?.role || payload.user?.role) === 'ADMIN') {
-            navigate('/admin/dashboard');
+            navigate('/admin/reports');
           } else {
             navigate('/home');
           }

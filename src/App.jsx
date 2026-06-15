@@ -17,7 +17,6 @@ import StudentLectureDetail from "./pages/student/StudentLectureDetail";
 import StudentAssignmentDetail from "./pages/student/StudentAssignmentDetail";
 import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
 import ProfilePage from "./pages/student/ProfilePage";
-import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherAnnouncements from "./pages/teacher/TeacherAnnouncements";
 import TeacherReport from "./pages/teacher/TeacherReport";
 import TeacherClassSections from "./pages/teacher/TeacherClassSections";
@@ -45,7 +44,6 @@ import TemplateDetailPage from "./pages/teacher/TemplateDetailPage";
 import TeacherProfilePage from "./pages/teacher/TeacherProfilePage";
 import TeacherSettingsPage from "./pages/teacher/TeacherSettingsPage";
 import TeacherStudentManagement from "./pages/teacher/TeacherStudentManagement";
-import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminReport from "./pages/admin/AdminReport";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import AdminProfilePage from "./pages/admin/AdminProfilePage";
@@ -87,11 +85,11 @@ function RootRedirect() {
 
   // Redirect based on user role
   if (user?.role === "TEACHER") {
-    return <Navigate to="/teacher/dashboard" replace />;
+    return <Navigate to="/teacher/report" replace />;
   }
 
   if (user?.role === "ADMIN") {
-    return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to="/admin/reports" replace />;
   }
 
   // Default for STUDENT and others
@@ -269,10 +267,6 @@ function AppContent() {
 
       {/* Teacher Routes */}
       <Route
-        path="/teacher/dashboard"
-        element={<ProtectedRoute element={<TeacherDashboard />} allowedRoles={["TEACHER"]} />}
-      />
-      <Route
         path="/teacher/report"
         element={<ProtectedRoute element={<TeacherReport />} allowedRoles={["TEACHER"]} />}
       />
@@ -446,10 +440,6 @@ function AppContent() {
       />
 
       {/* Admin Routes */}
-      <Route
-        path="/admin/dashboard"
-        element={<ProtectedRoute element={<AdminDashboard />} allowedRoles={["ADMIN"]} />}
-      />
       <Route
         path="/admin/users"
         element={<ProtectedRoute element={<AdminUserManagement />} allowedRoles={["ADMIN"]} />}

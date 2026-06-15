@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { UserIcon, EnvelopeIcon, LockClosedIcon, AcademicCapIcon } from '@heroicons/react/24/outline'
+import { UserIcon, EnvelopeIcon, LockClosedIcon, AcademicCapIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import { register } from '../../api/auth'
 import { useAuth } from '../../contexts/AuthContext'
 import OtpModal from './OtpModal'
@@ -158,7 +158,12 @@ export default function RegisterForm() {
             placeholder={t('auth.nhapTenDangNhap')} 
           />
         </div>
-        {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
+        {errors.username && (
+          <p className="text-red-500 text-xs flex items-center gap-1" style={{ marginTop: '8px' }}>
+            <ExclamationCircleIcon className="h-3.5 w-3.5" />
+            {errors.username}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col w-full">
@@ -176,7 +181,12 @@ export default function RegisterForm() {
             placeholder={t('auth.nhapHoVaTen')} 
           />
         </div>
-        {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
+        {errors.fullName && (
+          <p className="text-red-500 text-xs flex items-center gap-1" style={{ marginTop: '8px' }}>
+            <ExclamationCircleIcon className="h-3.5 w-3.5" />
+            {errors.fullName}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col w-full">
@@ -194,7 +204,12 @@ export default function RegisterForm() {
             placeholder={t('auth.nhapEmail')} 
           />
         </div>
-        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+        {errors.email && (
+          <p className="text-red-500 text-xs flex items-center gap-1" style={{ marginTop: '8px' }}>
+            <ExclamationCircleIcon className="h-3.5 w-3.5" />
+            {errors.email}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col w-full">
@@ -213,7 +228,12 @@ export default function RegisterForm() {
             placeholder={t('auth.nhapMatKhau')} 
           />
         </div>
-        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+        {errors.password && (
+          <p className="text-red-500 text-xs flex items-center gap-1" style={{ marginTop: '8px' }}>
+            <ExclamationCircleIcon className="h-3.5 w-3.5" />
+            {errors.password}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col w-full">
@@ -232,7 +252,12 @@ export default function RegisterForm() {
             placeholder={t('auth.nhapLaiMatKhau')} 
           />
         </div>
-        {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
+        {errors.confirmPassword && (
+          <p className="text-red-500 text-xs flex items-center gap-1" style={{ marginTop: '8px' }}>
+            <ExclamationCircleIcon className="h-3.5 w-3.5" />
+            {errors.confirmPassword}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col w-full">

@@ -26,7 +26,7 @@ export default function MyInformation({
     birthday: "",
     address: "",
     workPlace: "",
-    yearsOfExperience: "",
+    joinDate: "",
     fieldOfExpertise: "",
     bio: "",
   });
@@ -61,7 +61,7 @@ export default function MyInformation({
         birthday: normalizedUserData.birthday || "",
         address: normalizedUserData.address || "",
         workPlace: normalizedUserData.workPlace || "",
-        yearsOfExperience: normalizedUserData.yearsOfExperience || "",
+        joinDate: normalizedUserData.joinDate || "",
         fieldOfExpertise: normalizedUserData.fieldOfExpertise || "",
         bio: normalizedUserData.bio || "",
       });
@@ -187,7 +187,7 @@ export default function MyInformation({
         birthday: initialData.birthday || "",
         address: initialData.address || "",
         workPlace: initialData.workPlace || "",
-        yearsOfExperience: initialData.yearsOfExperience || "",
+        joinDate: initialData.joinDate || "",
         fieldOfExpertise: initialData.fieldOfExpertise || "",
         bio: initialData.bio || "",
       });
@@ -488,14 +488,14 @@ export default function MyInformation({
             </label>
 
             <label className="flex min-w-0 flex-col">
-              <p className={fieldLabelClass}>{t("profile.soNamKinhNghiem")}</p>
-              <InputNumber
-                name="yearsOfExperience"
-                value={formData.yearsOfExperience ? parseInt(formData.yearsOfExperience, 10) : undefined}
-                onChange={(value) => handleAntdChange("yearsOfExperience", value || "")}
-                disabled={!isEditing}
-                min={0}
-                placeholder={t("profile.viDuNam")}
+              <p className={fieldLabelClass}>{t("profile.ngayVaoLam")}</p>
+              <DatePicker
+                name="joinDate"
+                value={formData.joinDate ? dayjs(formData.joinDate) : null}
+                onChange={(date) => handleAntdChange("joinDate", date ? date.format("YYYY-MM-DD") : "")}
+                disabled={user?.role !== "ADMIN"}
+                format="DD/MM/YYYY"
+                placeholder={t("profile.chonNgayVaoLam")}
                 className="h-11 w-full rounded-lg"
                 size="large"
               />

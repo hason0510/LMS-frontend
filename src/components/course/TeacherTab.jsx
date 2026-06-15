@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Spin, message } from "antd";
 import { getUserById } from "../../api/user";
+import dayjs from "dayjs";
 
 export default function TeacherTab({ course }) {
   const [teacher, setTeacher] = useState(null);
@@ -86,13 +87,13 @@ export default function TeacherTab({ course }) {
                 </div>
               )}
 
-              {teacher.yearsOfExperience && (
+              {teacher.joinDate && (
                 <div>
                   <p className="text-sm font-medium text-[#111418] dark:text-white">
-                    Năm kinh nghiệm
+                    Ngày vào làm
                   </p>
                   <p className="text-sm text-[#617589] dark:text-gray-400">
-                    {teacher.yearsOfExperience} năm
+                    {dayjs(teacher.joinDate).format("DD/MM/YYYY")}
                   </p>
                 </div>
               )}

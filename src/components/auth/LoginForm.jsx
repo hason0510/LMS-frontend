@@ -24,8 +24,8 @@ export default function LoginForm() {
 
   const getRedirectPathForRole = (role) => {
     const normalized = String(role || "").toUpperCase();
-    if (normalized === "TEACHER") return "/teacher/dashboard";
-    if (normalized === "ADMIN") return "/admin/dashboard";
+    if (normalized === "TEACHER") return "/teacher/report";
+    if (normalized === "ADMIN") return "/admin/reports";
     return "/home";
   };
 

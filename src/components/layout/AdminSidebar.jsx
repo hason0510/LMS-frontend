@@ -17,6 +17,7 @@ import {
   ClipboardDocumentCheckIcon,
   ClipboardDocumentListIcon,
   PhotoIcon,
+  BellIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar() {
@@ -28,10 +29,10 @@ export default function AdminSidebar() {
     <aside className="w-64 flex-shrink-0 flex-col bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-slate-700 hidden lg:flex fixed top-[65px] bottom-0 left-0 overflow-y-auto z-40">
       <nav className="flex-1 px-4 py-6 space-y-2">
         <SidebarLink
-          icon={<Squares2X2Icon className="h-6 w-6" />}
-          label={t("admin.tongQuan")}
-          active={currentPath === "/admin/dashboard"}
-          to="/admin/dashboard"
+          icon={<ChartBarIcon className="h-6 w-6" />}
+          label={t("admin.thongKe")}
+          active={currentPath === "/admin/reports"}
+          to="/admin/reports"
         />
         <SidebarLink
           icon={<UserGroupIcon className="h-6 w-6" />}
@@ -99,12 +100,14 @@ export default function AdminSidebar() {
           active={currentPath.startsWith("/admin/students")}
           to="/admin/students"
         />
+
         <SidebarLink
-          icon={<ChartBarIcon className="h-6 w-6" />}
-          label={t("admin.thongKe")}
-          active={currentPath === "/admin/reports"}
-          to="/admin/reports"
+          icon={<BellIcon className="h-6 w-6" />}
+          label={t("common.thongBao")}
+          active={currentPath === "/notifications"}
+          to="/notifications"
         />
+
         <SidebarLink
           icon={<Cog6ToothIcon className="h-6 w-6" />}
           label={t("admin.caiDat")}

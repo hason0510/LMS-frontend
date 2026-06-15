@@ -13,6 +13,7 @@ import {
   ClipboardDocumentCheckIcon,
   ClipboardDocumentListIcon,
   PhotoIcon,
+  BellIcon,
 } from "@heroicons/react/24/outline";
 
 export default function TeacherSidebar() {
@@ -41,10 +42,10 @@ export default function TeacherSidebar() {
     }`}>
       <nav className="flex-1 px-4 py-6 space-y-2">
         <SidebarLink
-          icon={<Squares2X2Icon className="h-6 w-6" />}
-          label={t("teacher.tongQuan")}
-          active={currentPath === "/teacher/dashboard"}
-          to="/teacher/dashboard"
+          icon={<ChartBarIcon className="h-6 w-6" />}
+          label={t("teacher.baoCoThongKe")}
+          active={currentPath === "/teacher/report"}
+          to="/teacher/report"
           isCollapsed={isCollapsed}
         />
         <SidebarLink
@@ -103,15 +104,7 @@ export default function TeacherSidebar() {
           to="/teacher/quiz-attempts"
           isCollapsed={isCollapsed}
         />
-        <SidebarLink
-          icon={<ChartBarIcon className="h-6 w-6" />}
-          label={t("teacher.baoCoThongKe")}
-          active={currentPath === "/teacher/report"}
-          to="/teacher/report"
-          isCollapsed={isCollapsed}
-        />
-        {/*
-        Gốc:
+
         <SidebarLink
           icon={<BellIcon className="h-6 w-6" />}
           label={t("common.thongBao")}
@@ -119,6 +112,7 @@ export default function TeacherSidebar() {
           to="/notifications"
           isCollapsed={isCollapsed}
         />
+        {/*
         <SidebarLink
           icon={<UserGroupIcon className="h-6 w-6" />}
           label={t("teacher.hoSo")}

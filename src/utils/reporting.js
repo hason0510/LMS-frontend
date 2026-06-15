@@ -408,10 +408,21 @@ export function buildQuizPassRateData(quizSummaries = []) {
 
   return safeSummaries
     .map((summary) => {
-      const bestAttempts = getBestQuizAttemptsByStudent(summary.attempts);
-      const waitingReview = bestAttempts.filter((item) => item.gradingStatus === "NEEDS_REVIEW").length;
-      const passed = bestAttempts.filter((item) => item.isPassed === true && item.gradingStatus !== "NEEDS_REVIEW").length;
-      const notPassed = bestAttempts.filter((item) => item.isPassed === false && item.gradingStatus !== "NEEDS_REVIEW").length;
+      let passed = 0;
+      let notPassed = 0;
+      let waitingReview = 0;
+
+      if (summary.passed != null && summary.notPassed != null && (!summary.attempts || summary.attempts.length === 0)) {
+        passed = Number(summary.passed) || 0;
+        notPassed = Number(summary.notPassed) || 0;
+        waitingReview = Number(summary.waitingReview) || 0;
+      } else {
+        const bestAttempts = getBestQuizAttemptsByStudent(summary.attempts);
+        waitingReview = bestAttempts.filter((item) => item.gradingStatus === "NEEDS_REVIEW").length;
+        passed = bestAttempts.filter((item) => item.isPassed === true && item.gradingStatus !== "NEEDS_REVIEW").length;
+        notPassed = bestAttempts.filter((item) => item.isPassed === false && item.gradingStatus !== "NEEDS_REVIEW").length;
+      }
+
       const reviewed = passed + notPassed;
       const passRate = reviewed ? Number(((passed / reviewed) * 100).toFixed(1)) : 0;
 
