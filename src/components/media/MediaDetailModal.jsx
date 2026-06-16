@@ -167,7 +167,7 @@ export default function MediaDetailModal({
                     <Spin />
                   </div>
                 ) : references.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {references.map((item, index) => (
                       <article
                         key={`${item.entityType}-${item.entityId}-${index}`}
@@ -192,7 +192,7 @@ export default function MediaDetailModal({
                   <Spin />
                 </div>
               ) : auditLogs.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                   {auditLogs.map((item) => (
                     <article
                       key={item.id}
