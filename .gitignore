@@ -33,3 +33,9 @@ yarn-error.log*
 Thumbs.db
 # Context King index
 .ck-index/
+
+# Context King embedding model (large binaries, not needed in repo)
+.claude/models/
+
+# Disabled nested git dir
+.git_disabled/
