@@ -257,7 +257,7 @@ export default function MyInformation({
                 className="flex items-center justify-center gap-2 h-10 rounded-lg px-5 shadow-sm"
             >
               {/* 2. Đưa icon xuống làm con trực tiếp */}
-              <PencilIcon className="h-3 w-3" />
+              <PencilIcon className="h-4 w-4" />
 
               {/* 3. Bọc chữ bằng thẻ span kèm leading-none để triệt tiêu line-height thừa */}
               <span className="leading-none">{t("profile.chinhSua")}</span>

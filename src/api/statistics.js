@@ -47,6 +47,30 @@ export async function getAdminReportSummary() {
     return response.data;
 }
 
+// Tải của giảng viên — phân trang + tìm kiếm + sắp xếp (sort: desc | asc | alpha)
+export async function getAdminTeacherLoad({ search = "", sort = "desc", page = 1, size = 8 } = {}) {
+    const response = await axiosClient.get(`admin/reports/teacher-load`, {
+        params: { search: search || undefined, sort, page, size },
+    });
+    return response.data;
+}
+
+// Tải theo môn học — phân trang + tìm kiếm + sắp xếp
+export async function getAdminSubjectLoad({ search = "", sort = "desc", page = 1, size = 8 } = {}) {
+    const response = await axiosClient.get(`admin/reports/subject-load`, {
+        params: { search: search || undefined, sort, page, size },
+    });
+    return response.data;
+}
+
+// Danh sách trợ giảng (TA) + lớp hỗ trợ — phân trang + tìm kiếm (tên / email / lớp)
+export async function getAdminAssistants({ search = "", page = 1, size = 10 } = {}) {
+    const response = await axiosClient.get(`admin/reports/assistants`, {
+        params: { search: search || undefined, page, size },
+    });
+    return response.data;
+}
+
 // ── Teacher aggregate endpoints ───────────────────────────────────────
 
 /**
@@ -64,10 +88,10 @@ export async function getTeacherReportSummary() {
 /**
  * Class overview report.
  * @param {number} classSectionId
- * @param {number} [lowThreshold=50]  Progress % below which student is "at risk"
+ * @param {number} [lowThreshold=40]  Progress % below which student is "at risk"
  * @param {number} [highThreshold=80] Progress % at or above which student is "engaged"
  */
-export async function getClassReportOverview(classSectionId, lowThreshold = 50, highThreshold = 80) {
+export async function getClassReportOverview(classSectionId, lowThreshold = 40, highThreshold = 80) {
     const response = await axiosClient.get(`class-sections/${classSectionId}/reports/overview`, {
         params: { lowThreshold, highThreshold }
     });

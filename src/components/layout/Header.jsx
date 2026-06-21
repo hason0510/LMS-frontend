@@ -164,7 +164,7 @@ export default function Header({ menuItems }) {
     try {
       await logout();
       setShowLogoutConfirm(false);
-      navigate("/home");
+      navigate("/login");
     } catch (err) {
       console.error("Logout error:", err);
     } finally {

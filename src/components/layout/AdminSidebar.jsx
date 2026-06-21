@@ -8,7 +8,6 @@ import {
   AcademicCapIcon,
   CheckCircleIcon,
   ChartBarIcon,
-  Cog6ToothIcon,
   BookOpenIcon,
   RectangleGroupIcon,
   TagIcon,
@@ -17,7 +16,6 @@ import {
   ClipboardDocumentCheckIcon,
   ClipboardDocumentListIcon,
   PhotoIcon,
-  BellIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar() {
@@ -99,20 +97,6 @@ export default function AdminSidebar() {
           label={t("teacher.quanLyHocVien")}
           active={currentPath.startsWith("/admin/students")}
           to="/admin/students"
-        />
-
-        <SidebarLink
-          icon={<BellIcon className="h-6 w-6" />}
-          label={t("common.thongBao")}
-          active={currentPath === "/notifications"}
-          to="/notifications"
-        />
-
-        <SidebarLink
-          icon={<Cog6ToothIcon className="h-6 w-6" />}
-          label={t("admin.caiDat")}
-          active={currentPath === "/admin/settings"}
-          to="/admin/settings"
         />
       </nav>
     </aside>

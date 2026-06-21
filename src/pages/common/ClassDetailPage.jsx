@@ -360,15 +360,15 @@ export default function ClassSectionDetailPage() {
     const hasLinkedAnnouncement = new URLSearchParams(location.search).has("announcementId");
     const teacherTabs = [
       {
-        label: "Nội dung",
+        label: t("teaching.classDetail.tabs.content"),
         content: <CourseContent enrollmentStatus="APPROVED" archived={isArchived} />,
       },
       {
-        label: "Announcements",
+        label: t("teaching.classDetail.tabs.announcements"),
         content: <AnnouncementsTab classSectionId={id} />,
       },
       {
-        label: "Thông tin",
+        label: t("teaching.classDetail.tabs.overview"),
         content: (
             <div className="space-y-6">
               {/* Description */}
@@ -453,7 +453,7 @@ export default function ClassSectionDetailPage() {
                           secondaryClassName="m-0 mt-1 truncate text-xs text-gray-500 dark:text-gray-400"
                         />
                         <Tag color={member.role === "TEACHER" ? "blue" : "green"}>
-                          {member.role === "TEACHER" ? "Giáo viên chính" : "Trợ giảng"}
+                          {member.role === "TEACHER" ? "Giảng viên chính" : "Trợ giảng"}
                         </Tag>
                       </div>
                     ))}
@@ -481,15 +481,7 @@ export default function ClassSectionDetailPage() {
             className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              {isArchived && (
-                <Alert
-                  showIcon
-                  type="info"
-                  message={t("classContent.archived.title")}
-                  description={t("classContent.archived.description")}
-                  className="mb-6"
-                />
-              )}
+
               <AppBreadcrumb className="mb-5" context={{ classTitle: course?.title || course?.classCode }} />
 
               {/* Back */}
@@ -758,6 +750,16 @@ export default function ClassSectionDetailPage() {
       <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-8 sm:px-6 lg:px-8">
         <AppBreadcrumb className="mb-5" context={{ classTitle: course?.title || course?.classCode }} />
 
+        {isArchived && (
+          <Alert
+            showIcon
+            type="info"
+            className="!mb-5"
+            message={t("classContent.archivedStudent.title", "Lớp đã được lưu trữ")}
+            description={t("classContent.archivedStudent.description", "Bạn vẫn xem lại được nội dung, tiến độ và bài đã làm, nhưng không thể nộp bài, làm quiz hay bình luận.")}
+          />
+        )}
+
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 lg:col-span-8">
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -842,10 +844,10 @@ export default function ClassSectionDetailPage() {
               <div className="border-b border-slate-200 px-4 dark:border-slate-700 sm:px-6">
                 <div className="flex gap-1 overflow-x-auto">
                   {[
-                    { id: "content", label: "Nội dung học tập" },
-                    { id: "announcements", label: "Thông báo" },
-                    { id: "staff", label: "Nhân sự" },
-                    { id: "students", label: "Người học" },
+                    { id: "content", label: t("teaching.classDetail.tabs.content") },
+                    { id: "announcements", label: t("teaching.classDetail.tabs.announcements") },
+                    { id: "staff", label: t("teaching.classDetail.tabs.staff") },
+                    { id: "students", label: t("teaching.classDetail.tabs.people") },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1024,7 +1026,7 @@ function StudentStaffPanel({ members, subjectTitle }) {
   return (
     <div className="space-y-3">
       {safeMembers.map((member) => {
-        const roleLabel = member.role === "TEACHER" ? "Giáo viên chính" : "Trợ giảng";
+        const roleLabel = member.role === "TEACHER" ? "Giảng viên chính" : "Trợ giảng";
         return (
           <div
             key={`${member.userId}-${member.role}`}

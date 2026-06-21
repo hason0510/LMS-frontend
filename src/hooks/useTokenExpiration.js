@@ -50,6 +50,11 @@ export function useTokenExpiration() {
         }
       } catch (error) {
         if (cancelled) return;
+        // Chỉ ép logout khi server từ chối refresh một cách rõ ràng
+        // (refresh token hết hạn/không hợp lệ -> 401, hoặc tài khoản bị khóa -> 403).
+        // Với lỗi mạng tạm thời (không có response), giữ nguyên phiên và để
+        // interceptor 401 (reactive) tự refresh lại ở request thật kế tiếp.
+        if (!error?.response) return;
         await logout({ remote: false });
         navigate('/login', { replace: true });
       }

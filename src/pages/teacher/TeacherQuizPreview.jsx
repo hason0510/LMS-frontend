@@ -129,7 +129,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                 onClick={() => setShowConfirm(true)}
                 className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg font-bold text-base transition-all shadow-md whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white"
               >
-                <EyeIcon className="h-5 w-5" />
+                <EyeIcon className="h-4 w-4" />
                 Bắt đầu xem trước
               </button>
             </div>
@@ -194,7 +194,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
             {/* Teacher note */}
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-5">
               <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-                Lưu ý dành cho giáo viên: Đây là chế độ xem trước. Kết quả bài làm thử nghiệm không được lưu vào hệ thống.
+                Lưu ý dành cho giảng viên: Đây là chế độ xem trước. Kết quả bài làm thử nghiệm không được lưu vào hệ thống.
                 Tất cả các loại câu hỏi sẽ được hiển thị và chấm điểm theo đáp án đúng đã cài đặt.
               </p>
             </div>
@@ -217,7 +217,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
         centered
       >
         <div className="space-y-3 py-2">
-          <p>Bạn sắp bắt đầu xem trước bài kiểm tra <strong>{quiz?.title}</strong> ở chế độ giáo viên.</p>
+          <p>Bạn sắp bắt đầu xem trước bài kiểm tra <strong>{quiz?.title}</strong> ở chế độ giảng viên.</p>
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-sm text-amber-700 dark:text-amber-400">
             Kết quả không được ghi nhận vào hệ thống. Đây chỉ là mô phỏng giao diện người học.
           </div>

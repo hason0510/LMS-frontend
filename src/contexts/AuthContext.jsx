@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { googleLogout } from "@react-oauth/google";
 import useUserStore from "../store/useUserStore";
 import { getUserById } from "../api/user";
 import { logout as requestLogout } from "../api/auth";
@@ -98,6 +99,13 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.warn("Logout request failed; clearing local session.", err);
     } finally {
+      // Dọn session/state phía Google (One Tap auto-select) để tránh GIS thao tác
+      // trên session còn sống sau khi đã đăng xuất khỏi app.
+      try {
+        googleLogout();
+      } catch (err) {
+        console.warn("googleLogout failed:", err);
+      }
       clearAuthHeader();
       clearUser();
       // Reset language to Vietnamese

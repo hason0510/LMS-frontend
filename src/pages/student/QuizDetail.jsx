@@ -99,6 +99,7 @@ export default function QuizDetail() {
   const timeLimitLabel = timeLimitMinutes > 0 ? `${timeLimitMinutes} phút` : "Không giới hạn";
   const minPassScore = quiz.minPassScore || 0;
   const maxAttempts = quiz.maxAttempts; // null nghĩa là không giới hạn
+  const isArchived = quiz.classSectionStatus === "ARCHIVED";
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display min-h-screen flex flex-col">
@@ -124,7 +125,12 @@ export default function QuizDetail() {
                 {quiz.description || "Bài kiểm tra này đánh giá kiến thức của bạn. Hãy đảm bảo bạn đã chuẩn bị kỹ lưỡng."}
               </p>
             </div>
-            {maxAttempts !== null && attempts.length >= maxAttempts ? (
+            {isArchived ? (
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-medium bg-amber-50 dark:bg-amber-900/20 px-4 py-3 rounded-lg whitespace-nowrap">
+                <span className="material-symbols-outlined text-xl">inventory_2</span>
+                <span>Lớp đã lưu trữ — chỉ xem lại</span>
+              </div>
+            ) : maxAttempts !== null && attempts.length >= maxAttempts ? (
               <div className="flex items-center gap-2 text-red-600 font-medium bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-lg whitespace-nowrap">
                 <span className="material-symbols-outlined text-xl">error</span>
                 <span>Bạn đã hết số lần làm bài</span>

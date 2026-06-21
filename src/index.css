@@ -267,6 +267,12 @@ body {
   box-shadow: none !important;
 }
 
+/* Icon nhỏ lại một chút cho cân với chữ trong nút thao tác của bảng */
+.app-table-action-btn.ant-btn svg {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+}
+
 .app-table-action-btn.ant-btn:hover {
   border-color: rgb(59 130 246) !important;
   background: rgb(248 250 252) !important;
@@ -339,6 +345,30 @@ body {
 
 button:hover {
     opacity: 0.9;
+}
+
+/* Căn giữa icon trong mọi nút AntD.
+   Icon lucide/SVG mặc định là inline (vertical-align: baseline) nên bị đẩy lệch lên
+   so với chữ. Cho wrapper icon dùng flex + đặt svg là block để icon luôn ở giữa nút,
+   bất kể truyền qua prop `icon` (bọc trong .ant-btn-icon) hay đặt svg trực tiếp. */
+.ant-btn {
+  align-items: center;
+}
+.ant-btn > .ant-btn-icon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.ant-btn .ant-btn-icon > svg,
+.ant-btn > svg {
+  display: block;
+}
+
+/* Đồng loạt giảm cỡ icon trong nút AntD cho cân với chữ (14px). */
+.ant-btn .ant-btn-icon > svg,
+.ant-btn > svg {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
 }
 
 /*.google-login-button > div {

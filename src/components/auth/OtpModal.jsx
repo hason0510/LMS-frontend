@@ -124,8 +124,9 @@ export default function OtpModal({
         }, 500);
       }
     } catch (err) {
-      setError(err.message || 'Xác thực OTP thất bại. Vui lòng thử lại.');
-      message.error(err.message || 'Xác thực OTP thất bại');
+      const msg = err?.response?.data?.message || 'Xác thực OTP thất bại. Vui lòng thử lại.';
+      setError(msg);
+      message.error(msg);
     } finally {
       setLoading(false);
     }
@@ -145,8 +146,9 @@ export default function OtpModal({
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } catch (err) {
-      setError(err.message || 'Không thể gửi lại mã OTP');
-      message.error(err.message || 'Không thể gửi lại mã OTP');
+      const msg = err?.response?.data?.message || 'Không thể gửi lại mã OTP';
+      setError(msg);
+      message.error(msg);
     } finally {
       setLoading(false);
     }
@@ -165,11 +167,11 @@ export default function OtpModal({
         {/* Email display */}
         <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <ExclamationCircleOutlined className="text-xl text-blue-600 dark:text-blue-400" />
-          <div className="flex-1">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
+          <div className="flex-1 flex flex-col gap-0.5">
+            <p className="!mb-0 text-sm text-gray-600 dark:text-gray-300">
               Mã xác thực đã được gửi đến:
             </p>
-            <p className="font-medium text-gray-900 dark:text-white break-all">
+            <p className="!mb-0 font-medium text-gray-900 dark:text-white break-all">
               {userEmail}
             </p>
           </div>
@@ -197,7 +199,7 @@ export default function OtpModal({
             ))}
           </div>
           {error && (
-            <p className="text-red-500 text-sm mt-2">{error}</p>
+            <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
           )}
         </div>
 

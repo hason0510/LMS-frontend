@@ -85,9 +85,13 @@ export default function MediaLibraryPanel({
   const visibilityLabels = Object.fromEntries(
     RESOURCE_VISIBILITY.map((value) => [value, t(`mediaManager.visibility.${value}`)]),
   );
-  const currentUsername = user?.username || user?.userName || "";
+  // Quyền quản lý lấy thẳng từ backend (admin / người tạo / OWNER-EDITOR của bank chứa tài nguyên).
+  // Fallback theo admin/người tạo để không vỡ nếu response cũ chưa có cờ canManage.
   const isAdmin = user?.role === "ADMIN";
-  const canManageSelected = Boolean(selected && (isAdmin || (selected.createdBy && selected.createdBy === currentUsername)));
+  const currentUsername = user?.username || user?.userName || "";
+  const canManageSelected = Boolean(
+    selected && (selected.canManage ?? (isAdmin || selected.createdBy === currentUsername))
+  );
   const isSelectedInUse = Boolean((selected?.usageCount || 0) > 0 || references.length > 0);
   const canDeleteSelected = canManageSelected && !isSelectedInUse;
   const startItem = pagination.totalElements === 0 ? 0 : (pagination.currentPage - 1) * pageSize + 1;
@@ -603,7 +607,7 @@ export default function MediaLibraryPanel({
                   className="overflow-hidden rounded-lg border border-slate-200 bg-white text-left transition hover:border-blue-400 hover:shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:hover:border-blue-500"
                 >
                   <div className="flex min-h-[220px] items-center justify-center overflow-hidden bg-slate-50 p-3 dark:bg-slate-900">
-                    <ResourceRenderer resource={resource} compact className="m-0 h-full w-full" />
+                    <ResourceRenderer resource={resource} compact thumbnail className="m-0 h-full w-full" />
                   </div>
                   <div className="space-y-3 p-4">
                     <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-slate-800 dark:text-white">

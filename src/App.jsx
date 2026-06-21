@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import useNotificationStore from "./store/useNotificationStore";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 import AuthPage from "./pages/auth/AuthPage";
 import Home from "./pages/student/Home";
@@ -622,11 +623,13 @@ function AppContent() {
 
 function App() {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </GoogleOAuthProvider>
+    <ErrorBoundary>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </GoogleOAuthProvider>
+    </ErrorBoundary>
   );
 }
 

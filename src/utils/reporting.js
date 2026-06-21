@@ -67,7 +67,7 @@ export async function collectAllPagedItems(fetchPage, options = {}) {
 function normalizeProgressThresholds(thresholds = {}) {
   const rawLow = Number(thresholds?.low);
   const rawHigh = Number(thresholds?.high);
-  const low = Number.isFinite(rawLow) ? Math.max(0, Math.min(99, rawLow)) : 50;
+  const low = Number.isFinite(rawLow) ? Math.max(0, Math.min(99, rawLow)) : 40;
   const highBase = Number.isFinite(rawHigh) ? rawHigh : 80;
   const high = Math.max(low + 1, Math.min(100, highBase));
 

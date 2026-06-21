@@ -78,14 +78,6 @@ export default function TeacherProfilePage() {
         }`}>
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full mx-auto">
             <AppBreadcrumb className="mb-5" />
-            <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl text-[#111418] dark:text-white font-bold leading-tight tracking-[-0.015em]">
-                {t("profile.hoSoCaNhan")}
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                {t("profile.quanLyThongTinCaNhan")}
-              </p>
-            </div>
 
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
               <MyInformation 

@@ -782,7 +782,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                         : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    <ArrowLeftIcon className="h-5 w-5" />
+                    <ArrowLeftIcon className="h-4 w-4" />
                     <span>Câu trước</span>
                   </button>
                   <button
@@ -795,7 +795,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                     }`}
                   >
                     <span>Câu tiếp theo</span>
-                    <ArrowRightIcon className="h-5 w-5" />
+                    <ArrowRightIcon className="h-4 w-4" />
                   </button>
                 </div>
               )}
@@ -830,7 +830,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
               onClick={() => setShowSubmitConfirm(true)}
               className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5"
             >
-              <PaperAirplaneIcon className="h-5 w-5" />
+              <PaperAirplaneIcon className="h-4 w-4" />
               Nộp bài
             </button>
           </div>
@@ -868,7 +868,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
             </ul>
           </div>
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-sm text-amber-700 dark:text-amber-400">
-            Kết quả không được lưu vào hệ thống — đây là chế độ xem trước dành cho giáo viên.
+            Kết quả không được lưu vào hệ thống — đây là chế độ xem trước dành cho giảng viên.
           </div>
         </div>
       </Modal>

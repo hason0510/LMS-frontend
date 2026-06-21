@@ -214,7 +214,6 @@ const normalizeUploadedResource = (response, scopeType, scopeId) => {
     id,
     title: payload.title || null,
     fileUrl: payload.fileUrl || payload.url || null,
-    hlsUrl: payload.hlsUrl || null,
     mimeType: payload.mimeType || null,
     fileSize: payload.fileSize || null,
     type: payload.type || null,

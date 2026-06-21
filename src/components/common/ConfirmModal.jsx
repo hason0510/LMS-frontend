@@ -20,10 +20,10 @@ export default function ConfirmModal({
     const baseClass = 'flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 text-sm font-bold leading-normal tracking-[0.015em] focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-background-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
 
     const colorClasses = {
-      primary: 'bg-primary text-white hover:bg-primary/90 focus:ring-primary',
-      red: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-      green: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-      orange: 'bg-orange-600 text-white hover:bg-orange-700 focus:ring-orange-500',
+      primary: 'bg-primary !text-white hover:bg-primary/90 focus:ring-primary',
+      red: 'bg-red-600 !text-white hover:bg-red-700 focus:ring-red-500',
+      green: 'bg-green-600 !text-white hover:bg-green-700 focus:ring-green-500',
+      orange: 'bg-orange-600 !text-white hover:bg-orange-700 focus:ring-orange-500',
     };
 
     return `${baseClass} ${colorClasses[color] || colorClasses.primary}`;

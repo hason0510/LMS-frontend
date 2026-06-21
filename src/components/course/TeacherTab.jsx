@@ -18,8 +18,8 @@ export default function TeacherTab({ course }) {
           setTeacher(teacherData);
         } catch (err) {
           console.error("Error fetching teacher data:", err);
-          setError("Không thể tải thông tin giáo viên");
-          message.error("Không thể tải thông tin giáo viên");
+          setError("Không thể tải thông tin giảng viên");
+          message.error("Không thể tải thông tin giảng viên");
         } finally {
           setLoading(false);
         }
@@ -40,7 +40,7 @@ export default function TeacherTab({ course }) {
   if (error || !teacher) {
     return (
       <div className="py-8 text-center text-gray-500">
-        {error || "Không có thông tin giáo viên"}
+        {error || "Không có thông tin giảng viên"}
       </div>
     );
   }
@@ -116,7 +116,7 @@ export default function TeacherTab({ course }) {
         {teacher.bio && (
           <div className="border-t border-black/10 dark:border-white/10 pt-8">
             <h4 className="text-lg font-semibold text-[#111418] dark:text-white mb-4">
-              Về giáo viên
+              Về giảng viên
             </h4>
             <p className="text-base text-[#617589] dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
               {teacher.bio}

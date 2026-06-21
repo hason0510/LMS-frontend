@@ -73,7 +73,7 @@ export default function ChangePassword() {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          className="flex max-w-xl flex-col"
+          className="flex max-w-xl flex-col [&_.ant-form-item-explain]:mt-1"
         >
           {!isGoogleOnlyAccount && (
             <Form.Item

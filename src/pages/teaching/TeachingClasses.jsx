@@ -11,7 +11,6 @@ import {
 } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
 import { getMyTeachingClasses } from "../../api/teaching";
-import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import classPlaceholder from "../../assets/class_placeholder.png";
 
@@ -122,14 +121,13 @@ export default function TeachingClasses() {
   return (
     <div className="min-h-screen bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-slate-100">
       <Header />
-      <main className="px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <AppBreadcrumb className="mb-6" />
-          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h1 className="text-4xl font-black text-slate-900 dark:text-white">Lớp trợ giảng</h1>
-              <p className="mt-2 max-w-3xl text-base text-slate-500 dark:text-slate-400">
-                Các lớp bạn được phân công hỗ trợ. Vào từng lớp để xem nội dung, người học, chấm bài và thông báo theo quyền được giáo viên cấp.
+      <main className="!px-4 !py-6 sm:!px-6 lg:!px-8">
+        <div className="!mx-auto !max-w-7xl">
+          <div className="!mb-6 !flex !flex-col !gap-4 sm:!flex-row sm:!items-start sm:!justify-between">
+            <div className="!min-w-0">
+              <h1 className="!m-0 !text-2xl !font-bold !tracking-tight !text-slate-900 dark:!text-white sm:!text-3xl">Lớp trợ giảng</h1>
+              <p className="!m-0 !mt-1.5 !max-w-2xl !text-sm !leading-6 !text-slate-500 dark:!text-slate-400">
+                Các lớp bạn được phân công hỗ trợ. Vào từng lớp để xem nội dung, người học, chấm bài và thông báo theo quyền được giảng viên cấp.
               </p>
             </div>
             <Button type="primary" onClick={() => navigate("/classes")} className="shrink-0">
@@ -137,15 +135,25 @@ export default function TeachingClasses() {
             </Button>
           </div>
 
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
-              <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_220px_220px_180px_110px]">
+          <section className="overflow-hidden !rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            {/* Header trong khung */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-5 dark:border-slate-800 sm:px-6">
+              <div className="flex items-center gap-2">
+                <h2 className="!m-0 !text-lg !font-bold !text-slate-900 dark:!text-white">Danh sách lớp trợ giảng</h2>
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                  {filtered.length}
+                </span>
+              </div>
+            </div>
+
+            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:px-6">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1.8fr)_200px_200px_180px_auto]">
                 <Input
                   allowClear
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
                   placeholder="Tìm theo tên lớp..."
-                  className="w-full h-8"
+                  className="w-full"
                 />
                 <Select
                   value={categoryId}
@@ -181,8 +189,8 @@ export default function TeachingClasses() {
               {loading ? (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {Array.from({ length: pageSize }).map((_, index) => (
-                    <div key={index} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
-                      <Skeleton.Image active className="!aspect-[16/7] !h-auto !w-full !rounded-lg" />
+                    <div key={index} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                      <Skeleton.Image active className="!aspect-[16/7] !h-auto !w-full !rounded-xl" />
                       <Skeleton active paragraph={{ rows: 5 }} className="mt-4" />
                     </div>
                   ))}
@@ -190,7 +198,7 @@ export default function TeachingClasses() {
               ) : error ? (
                 <Alert type="error" showIcon message="Không thể tải dữ liệu" description={error} />
               ) : filtered.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 py-16 dark:border-slate-700 dark:bg-slate-900/70">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900/70">
                   <Empty description="Bạn chưa có lớp học phù hợp với bộ lọc hiện tại." />
                 </div>
               ) : (
@@ -208,7 +216,7 @@ export default function TeachingClasses() {
               total={filtered.length}
               pageSizeOptions={[6, 12, 24]}
               totalLabel={`Tổng số: ${filtered.length}`}
-              pageSizeLabel=""
+              pageSizeLabel="Số dòng/trang"
               rangeLabel={filtered.length === 0 ? "0 - 0" : `${(page - 1) * pageSize + 1} - ${Math.min(page * pageSize, filtered.length)}`}
               onPageChange={setPage}
               onPageSizeChange={(newPageSize) => {
@@ -233,7 +241,7 @@ function TeachingClassCard({ item, onOpen }) {
     : item?.subjectCode || "Chưa có môn học";
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 shadow-sm transition hover:border-primary/50 hover:shadow-md">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
       <div
         className="aspect-[16/7] bg-cover bg-center"
         style={{ backgroundImage: `url(${item?.imageUrl || classPlaceholder})` }}
@@ -265,7 +273,7 @@ function TeachingClassCard({ item, onOpen }) {
             {subjectText}
           </div>
           <div>
-            <span className="font-medium text-slate-800 dark:text-slate-100">Giáo viên:</span>{" "}
+            <span className="font-medium text-slate-800 dark:text-slate-100">Giảng viên:</span>{" "}
             {item?.teacherName || "Chưa xác định"}
           </div>
           <div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Alert, App, Button, Dropdown, Form, Input, message, Modal, Select, Spin, Table, Tag } from "antd";
-import { ArrowDownTrayIcon, ArrowUpTrayIcon, EllipsisHorizontalIcon, PencilSquareIcon, PlusCircleIcon, TagIcon, TrashIcon, UserPlusIcon } from "@heroicons/react/24/outline";
+import { Alert, App, Button, Dropdown, Empty, Form, Input, message, Modal, Pagination, Select, Spin, Table, Tag } from "antd";
+import { ArrowDownTrayIcon, ArrowUpTrayIcon, ChevronDownIcon, ChevronUpIcon, EllipsisHorizontalIcon, MagnifyingGlassIcon, PencilSquareIcon, PlusCircleIcon, TagIcon, TrashIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
@@ -45,6 +45,8 @@ const toObject = (value) => {
   return value;
 };
 
+const QUESTION_PAGE_SIZE = 10;
+
 export default function QuestionBankDetail({ isAdmin = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -83,6 +85,11 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const [editBankLoading, setEditBankLoading] = useState(false);
   const [editBankForm] = Form.useForm();
 
+  const [questionPage, setQuestionPage] = useState(1);
+  const [expandedQuestionIds, setExpandedQuestionIds] = useState(() => new Set());
+  const [questionKeyword, setQuestionKeyword] = useState("");
+  const [questionTypeFilter, setQuestionTypeFilter] = useState(undefined);
+
   const giftFileInputRef = useRef(null);
 
   const effectiveRole = user?.role === "ADMIN" ? "OWNER" : bank?.myRole;
@@ -94,6 +101,51 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const canManageTags = canEditContent;
   const canManageMembers = effectiveRole === "OWNER";
   const canDeleteBank = effectiveRole === "OWNER";
+
+  const roleLabel = (role) => (role ? t(`questionBank.roles.${role}`, role) : "");
+  const typeLabel = (type) => (type ? t(`quizBuilder.types.${type}`, type) : "");
+  const difficultyLabel = (diff) => (diff ? t(`quizBuilder.difficulties.${diff}`, diff) : "");
+
+  const questionTypeOptions = useMemo(() => {
+    const set = new Set(safeQuestions.map((q) => q.type).filter(Boolean));
+    return Array.from(set).map((type) => ({ value: type, label: t(`quizBuilder.types.${type}`, type) }));
+  }, [safeQuestions, t]);
+
+  const filteredQuestions = useMemo(() => {
+    const keyword = questionKeyword.trim().toLowerCase();
+    return safeQuestions.filter((q) => {
+      if (questionTypeFilter && q.type !== questionTypeFilter) return false;
+      if (keyword) {
+        const text = String(q?.content || "")
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;/g, " ")
+          .toLowerCase();
+        if (!text.includes(keyword)) return false;
+      }
+      return true;
+    });
+  }, [safeQuestions, questionKeyword, questionTypeFilter]);
+
+  const pagedQuestions = useMemo(
+    () => filteredQuestions.slice((questionPage - 1) * QUESTION_PAGE_SIZE, questionPage * QUESTION_PAGE_SIZE),
+    [filteredQuestions, questionPage]
+  );
+
+  useEffect(() => {
+    setQuestionPage(1);
+  }, [questionKeyword, questionTypeFilter]);
+
+  const toggleQuestionExpanded = (questionId) => {
+    setExpandedQuestionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(questionId)) {
+        next.delete(questionId);
+      } else {
+        next.add(questionId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleResize = () => setSidebarCollapsed(window.innerWidth < 1024);
@@ -170,16 +222,23 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     }
   };
 
-  const handleDeleteQuestion = async (questionId) => {
+  const handleDeleteQuestion = (questionId) => {
     if (!canEditContent) return;
-    if (!window.confirm(t("questionBank.xacNhanXoaCauHoi"))) return;
-    try {
-      await deleteQuestion(questionId);
-      message.success(t("questionBank.xoaCauHoiThanhCong"));
-      await fetchBank();
-    } catch (err) {
-      message.error(err?.response?.data?.message || t("questionBank.loi"));
-    }
+    modal.confirm({
+      title: t("questionBank.xacNhanXoaCauHoi"),
+      okText: t("questionBank.xoa"),
+      cancelText: t("questionBank.huy"),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await deleteQuestion(questionId);
+          message.success(t("questionBank.xoaCauHoiThanhCong"));
+          await fetchBank();
+        } catch (err) {
+          message.error(err?.response?.data?.message || t("questionBank.loi"));
+        }
+      },
+    });
   };
 
   const handleEditQuestion = (record) => {
@@ -271,6 +330,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
   const handleQuestionTagFilterChange = async (value) => {
     const nextTagIds = Array.isArray(value) ? value : [];
     setQuestionTagFilterIds(nextTagIds);
+    setQuestionPage(1);
     await fetchBank(nextTagIds);
   };
 
@@ -514,65 +574,6 @@ export default function QuestionBankDetail({ isAdmin = false }) {
     });
   };
 
-  const columns = [
-    {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-    },
-    {
-      title: t("questionBank.noiDungCauHoi"),
-      dataIndex: "content",
-      key: "content",
-      render: (text) => <div className="line-clamp-2 max-w-md" dangerouslySetInnerHTML={{ __html: text }} />,
-    },
-    {
-      title: t("questionBank.loai"),
-      dataIndex: "type",
-      key: "type",
-      render: (type) => <Tag color="blue">{type}</Tag>,
-    },
-    {
-      title: t("questionBank.doKho"),
-      dataIndex: "difficultyLevel",
-      key: "difficultyLevel",
-      render: (diff) => {
-        const color = diff === "EASY" ? "green" : diff === "MEDIUM" ? "orange" : "red";
-        return <Tag color={color}>{diff}</Tag>;
-      },
-    },
-    {
-      title: t("questionBank.tags"),
-      dataIndex: "tags",
-      key: "tags",
-      render: (tags) => (
-        <div className="flex flex-wrap gap-1">
-          {(tags || []).map((tag) => (
-            <Tag key={tag.id} color="geekblue">{tag.name}</Tag>
-          ))}
-        </div>
-      ),
-    },
-  ];
-
-  if (canEditContent) {
-    columns.push({
-      title: t("questionBank.hanhDong"),
-      key: "action",
-      align: "center",
-      render: (_, record) => (
-        <div className="flex items-center justify-center gap-2">
-          <Button size="small" onClick={() => handleEditQuestion(record)}>
-            {t("questionBank.sua")}
-          </Button>
-          <Button size="small" danger onClick={() => handleDeleteQuestion(record.id)}>
-            {t("questionBank.xoa")}
-          </Button>
-        </div>
-      ),
-    });
-  }
-
   const actionMenuItems = [
     ...(canManageTags ? [{
       key: 'manage_tags',
@@ -625,19 +626,14 @@ export default function QuestionBankDetail({ isAdmin = false }) {
 
     return (
       <div className="space-y-5 rounded-xl bg-slate-50 p-5 dark:bg-slate-950/50">
-        <div className="space-y-3">
-          <QuizRichText html={question?.content || ""} className="text-sm text-slate-800 dark:text-slate-100" />
-          <ResourcePreview resource={question?.resource} />
-        </div>
-
         {options.length > 0 && (
           <div className="space-y-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Đáp án</div>
-            <div className="space-y-3">
+            <div className="flex flex-wrap items-start gap-3">
               {options.map((option, index) => (
-                <div key={option.id || `option-${index}`} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                <div key={option.id || `option-${index}`} className="w-fit min-w-[8rem] max-w-full rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
                   <div className="mb-2 flex items-center gap-2">
-                    <Tag color={option.isCorrect ? "green" : "default"} className="m-0">
+                    <Tag color={option.isCorrect ? "green" : "default"} className="m-0 text-sm font-semibold">
                       {option.isCorrect ? "Đúng" : "Sai"}
                     </Tag>
                     <span className="text-xs text-slate-500 dark:text-slate-400">#{index + 1}</span>
@@ -702,9 +698,9 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         {question?.type === "CLOZE" && blanks.length > 0 && (
           <div className="space-y-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Chỗ trống</div>
-            <div className="space-y-3">
+            <div className="flex flex-wrap items-start gap-3">
               {blanks.map((blank, index) => (
-                <div key={blank.id || `blank-${index}`} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                <div key={blank.id || `blank-${index}`} className="w-fit min-w-[8rem] max-w-full rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
                   <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
                     Chỗ trống {blank.blankIndex ?? index + 1}
                   </div>
@@ -728,7 +724,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
       <div className="flex">
         {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 bg-slate-50 dark:bg-slate-900 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-          <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <AppBreadcrumb className="mb-6" context={{ questionBankName: bank?.name }} />
 
             {loading ? (
@@ -746,7 +742,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                       <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight flex flex-wrap items-center gap-2">
                         {bank.name}
                         <Tag className="ml-1 !mr-0 border-0 shadow-sm" color={effectiveRole === "OWNER" ? "gold" : effectiveRole === "EDITOR" ? "blue" : "default"}>
-                          {effectiveRole || "VIEWER"}
+                          {roleLabel(effectiveRole || "VIEWER")}
                         </Tag>
                       </h1>
                       <p className="text-gray-500 mt-1.5 text-sm">{bank.description || t("questionBank.khongCoMoTa")}</p>
@@ -788,16 +784,31 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 dark:bg-slate-900 space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="m-0 text-sm font-semibold text-slate-700 dark:text-slate-200">{t("questionBank.danhSachCauHoi")}</p>
-                      <p className="m-0 text-xs text-slate-500 dark:text-slate-400">
-                        {questionTagFilterIds.length > 0
-                          ? t("questionBank.cauHoiKhopTag", { count: safeQuestions.length, selected: questionTagFilterIds.length })
-                          : t("questionBank.cauHoiTrongBank", { count: safeQuestions.length })}
-                      </p>
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <p className="m-0 text-base font-semibold text-slate-800 dark:text-slate-100">{t("questionBank.danhSachCauHoi")}</p>
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        · {t("questionBank.cauHoiTrongBank", { count: filteredQuestions.length })}
+                      </span>
                     </div>
-                    <div className="w-full sm:w-80">
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+                      <Input
+                        allowClear
+                        prefix={<MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />}
+                        placeholder={t("questionBank.timCauHoiTheoNoiDung")}
+                        value={questionKeyword}
+                        onChange={(e) => setQuestionKeyword(e.target.value)}
+                        className="lg:flex-1"
+                      />
+                      <Select
+                        allowClear
+                        value={questionTypeFilter}
+                        onChange={setQuestionTypeFilter}
+                        placeholder={t("questionBank.locTheoLoai")}
+                        options={questionTypeOptions}
+                        optionFilterProp="label"
+                        className="w-full lg:w-64"
+                      />
                       <Select
                         allowClear
                         showSearch
@@ -811,26 +822,96 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           label: tag.name,
                         }))}
                         optionFilterProp="label"
-                        className="w-full"
+                        className="w-full lg:w-72"
                       />
                     </div>
                   </div>
-                  <Table
-                    dataSource={safeQuestions}
-                    columns={columns}
-                    rowKey="id"
-                    pagination={{ pageSize: 15 }}
-                    className="[&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:font-semibold [&_.ant-table-thead_th]:text-slate-600 dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"
-                    scroll={{ x: 800 }}
-                    expandable={{
-                      expandedRowRender: renderQuestionDetails,
-                      rowExpandable: (record) =>
-                        Boolean(record?.content)
-                        || (Array.isArray(record?.options) && record.options.length > 0)
-                        || (Array.isArray(record?.items) && record.items.length > 0)
-                        || Boolean(record?.resource),
-                    }}
-                  />
+                  {filteredQuestions.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-12 dark:border-slate-700 dark:bg-slate-800/40">
+                      <Empty
+                        description={
+                          safeQuestions.length === 0
+                            ? t("questionBank.chuaCoCauHoiTrongBank", "Chưa có câu hỏi nào")
+                            : t("questionBank.khongTimThayCauHoi", "Không tìm thấy câu hỏi phù hợp")
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pagedQuestions.map((q, idx) => {
+                        const seq = (questionPage - 1) * QUESTION_PAGE_SIZE + idx + 1;
+                        const expanded = expandedQuestionIds.has(q.id);
+                        const diffColor =
+                          q.difficultyLevel === "EASY" ? "green" : q.difficultyLevel === "MEDIUM" ? "orange" : "red";
+                        const hasAnswers =
+                          (Array.isArray(q?.options) && q.options.length > 0) ||
+                          (Array.isArray(q?.items) && q.items.length > 0);
+                        return (
+                          <div
+                            key={q.id}
+                            className="overflow-hidden rounded-xl border border-[#dbe0e6] bg-white shadow-sm transition-colors hover:border-slate-300 dark:border-gray-700 dark:bg-[#1A2633] dark:hover:border-slate-600"
+                          >
+                            <div className="flex items-start gap-4 p-5">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                                {seq}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                                  <span className="mr-1 text-xs font-medium text-slate-400 dark:text-slate-500">#{q.id}</span>
+                                  <Tag color="blue" className="m-0 text-sm font-semibold">{typeLabel(q.type)}</Tag>
+                                  {q.difficultyLevel && (
+                                    <Tag color={diffColor} className="m-0 text-sm font-semibold">{difficultyLabel(q.difficultyLevel)}</Tag>
+                                  )}
+                                  {(q.tags || []).map((tag) => (
+                                    <Tag key={tag.id} color="geekblue" className="m-0 text-sm font-semibold">{tag.name}</Tag>
+                                  ))}
+                                </div>
+                                <QuizRichText
+                                  html={q?.content || ""}
+                                  className="text-base leading-relaxed text-slate-800 dark:text-slate-100"
+                                />
+                                {q?.resource && <ResourcePreview resource={q.resource} className="mt-3" />}
+                              </div>
+                              {canEditContent && (
+                                <div className="flex shrink-0 items-center gap-2">
+                                  <Button size="small" icon={<PencilSquareIcon className="!h-3.5 !w-3.5" />} onClick={() => handleEditQuestion(q)}>
+                                    {t("questionBank.sua")}
+                                  </Button>
+                                  <Button size="small" danger icon={<TrashIcon className="!h-3.5 !w-3.5" />} onClick={() => handleDeleteQuestion(q.id)}>
+                                    {t("questionBank.xoa")}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                            {hasAnswers && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleQuestionExpanded(q.id)}
+                                  className="flex w-full items-center justify-center gap-1.5 border-t border-slate-100 py-2 text-sm font-medium text-primary transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40"
+                                >
+                                  {expanded ? t("questionBank.thuGon", "Thu gọn") : t("questionBank.xemDapAn", "Xem đáp án")}
+                                  {expanded ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
+                                </button>
+                                {expanded && <div className="px-5 pb-5">{renderQuestionDetails(q)}</div>}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {filteredQuestions.length > QUESTION_PAGE_SIZE && (
+                        <div className="flex justify-center pt-3">
+                          <Pagination
+                            current={questionPage}
+                            pageSize={QUESTION_PAGE_SIZE}
+                            total={filteredQuestions.length}
+                            onChange={setQuestionPage}
+                            showSizeChanger={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {canManageMembers && (
@@ -854,8 +935,8 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                         showSearch
                         optionFilterProp="label"
                         options={[
-                          { value: "EDITOR", label: "EDITOR" },
-                          { value: "VIEWER", label: "VIEWER" },
+                          { value: "EDITOR", label: roleLabel("EDITOR") },
+                          { value: "VIEWER", label: roleLabel("VIEWER") },
                         ]}
                       />
                       <Button type="primary" loading={memberActionLoading} onClick={handleAddMember} className="bg-blue-600 hover:bg-blue-700 h-8 dark:bg-blue-600 dark:hover:bg-blue-500">
@@ -885,7 +966,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                           title: t("questionBank.role"),
                           dataIndex: "role",
                           key: "role",
-                          render: (role) => <Tag color={role === "OWNER" ? "gold" : role === "EDITOR" ? "blue" : "default"} className="m-0 font-medium">{role}</Tag>,
+                          render: (role) => <Tag color={role === "OWNER" ? "gold" : role === "EDITOR" ? "blue" : "default"} className="m-0 font-medium">{roleLabel(role)}</Tag>,
                         },
                         {
                           title: t("questionBank.hanhDong"),

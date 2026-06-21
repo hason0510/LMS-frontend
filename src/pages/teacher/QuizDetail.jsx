@@ -77,7 +77,6 @@ const normalizeUploadedResource = (response, scopeType, scopeId) => {
     id,
     title: payload.title || null,
     fileUrl: payload.fileUrl || payload.url || null,
-    hlsUrl: payload.hlsUrl || null,
     mimeType: payload.mimeType || null,
     fileSize: payload.fileSize || null,
     type: payload.type || null,
@@ -1131,13 +1130,18 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
   const tagMatchModeOptions = getTagMatchModeOptions(t);
   const matchingQuestions = getRuleMatchedQuestions(source, bankDetailsMap);
   const selectedTagIds = normalizeIdList(source.tagIds);
-  const selectedTags = tags.filter((tag) => selectedTagIds.includes(tag.id));
   const currentQuestionCount = source.selectionMode === "RANDOM"
     ? Math.min(source.questionCount || 0, matchingQuestions.length)
     : matchingQuestions.length;
-  const summaryTone = source.selectionMode === "RANDOM" && (source.questionCount || 0) > matchingQuestions.length
-    ? "border-amber-200 bg-amber-50 text-amber-700"
-    : "border-emerald-200 bg-emerald-50 text-emerald-700";
+  const hasBank = Boolean(source.questionBankId);
+  const noMatch = hasBank && matchingQuestions.length === 0;
+  const insufficient = source.selectionMode === "RANDOM"
+    && (source.questionCount || 0) > matchingQuestions.length
+    && matchingQuestions.length > 0;
+  const isWarn = noMatch || insufficient;
+  const summaryTone = isWarn
+    ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+    : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300";
 
   return (
     <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/50">
@@ -1168,8 +1172,8 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
       </div>
 
       <div className="space-y-5 px-5 py-5">
-        {/* Row 1: Bank & Tags */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.5fr]">
+        {/* Hàng 1: Ngân hàng & Tags (full-width, tags hiện đầy đủ) */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.4fr]">
           <div>
             <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
               {t("quizEditor.fields.bank")}
@@ -1204,7 +1208,6 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
               }}
               className="w-full"
               size="large"
-              maxTagCount="responsive"
               disabled={!source.questionBankId}
               allowClear
               showSearch
@@ -1213,8 +1216,8 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
           </div>
         </div>
 
-        {/* Row 2: Difficulty, Tag Condition, Selection Mode */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {/* Hàng 2: Độ khó, Điều kiện tag, Cách chọn */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
               {t("quizEditor.fields.difficulty")}
@@ -1267,46 +1270,61 @@ function BankSourceRow({ source, banks, tagsMap, bankDetailsMap, onUpdate, onDel
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3">
-          {source.selectionMode === "RANDOM" && (
-            <div className="w-full max-w-[220px]">
-              <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
-                {t("quizEditor.fields.count")}
-              </div>
-              <InputNumber
-                min={1}
-                value={source.questionCount}
-                onChange={(value) => onUpdate({ questionCount: value ?? null })}
-                className="w-full"
-                size="large"
-              />
+        {/* Số câu (chỉ khi rút ngẫu nhiên) */}
+        {source.selectionMode === "RANDOM" && (
+          <div className="w-full max-w-[220px]">
+            <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+              {t("quizEditor.fields.count")}
             </div>
-          )}
-
-          <div className={`min-w-[220px] rounded-xl border px-4 py-3 ${summaryTone}`}>
-            <div className="text-xs font-semibold uppercase tracking-wide">
-              {t("quizEditor.matchSummary")}
-            </div>
-            <div className="mt-1 text-2xl font-semibold leading-none">
-              {currentQuestionCount}
-            </div>
-            <div className="mt-1 text-xs">
-              {source.selectionMode === "RANDOM"
-                ? t("quizEditor.matchSummaryRandom", {
-                    eligible: matchingQuestions.length,
-                    count: source.questionCount || 0,
-                  })
-                : t("quizEditor.matchSummaryAll", { count: matchingQuestions.length })}
-            </div>
+            <InputNumber
+              min={1}
+              value={source.questionCount}
+              onChange={(value) => onUpdate({ questionCount: value ?? null })}
+              className="w-full"
+              size="large"
+            />
           </div>
+        )}
 
-          {selectedTags.length > 0 && (
-            <div className="flex flex-1 flex-wrap gap-2">
-              {selectedTags.map((tag) => (
-                <Tag key={tag.id} className="m-0 rounded-full border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-700">
-                  {tag.name}
-                </Tag>
-              ))}
+        {/* Dải kết quả full-width */}
+        <div className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border px-4 py-3 ${summaryTone}`}>
+          {hasBank ? (
+            <>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide">
+                  {t("quizEditor.resultTitle")}
+                </span>
+                <span className="text-2xl font-bold leading-none">{currentQuestionCount}</span>
+                <span className="text-sm font-medium">{t("quizEditor.resultUnit")}</span>
+                <span className="text-xs opacity-90">
+                  ·&nbsp;
+                  {source.selectionMode === "RANDOM"
+                    ? t("quizEditor.matchSummaryRandom", {
+                        eligible: matchingQuestions.length,
+                        count: source.questionCount || 0,
+                      })
+                    : t("quizEditor.matchSummaryAll", { count: matchingQuestions.length })}
+                </span>
+              </div>
+              {isWarn && (
+                <div className="flex items-center gap-1.5 text-xs leading-snug">
+                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m0 3.75h.008M10.34 3.94l-7.5 12.99A1.5 1.5 0 004.14 19.5h15.72a1.5 1.5 0 001.3-2.57l-7.5-12.99a1.5 1.5 0 00-2.62 0z" />
+                  </svg>
+                  <span>
+                    {noMatch
+                      ? t("quizEditor.noMatchWarning")
+                      : t("quizEditor.insufficientWarning", {
+                          eligible: matchingQuestions.length,
+                          count: source.questionCount || 0,
+                        })}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-xs leading-relaxed opacity-80">
+              {t("quizEditor.resultPickBank")}
             </div>
           )}
         </div>
@@ -1674,7 +1692,7 @@ export default function QuizDetail() {
   }, []);
   const addQuestion = (type) => {
     if (questionSourceMode !== "MANUAL") {
-      message.warning("Vui lòng chuyển về chế độ tạo thủ công để thêm câu hỏi.");
+      message.warning(t("quizEditor.messages.switchToManualToAddQuestion"));
       return;
     }
     setQuestions((prev) => [...prev, makeQuestion(type)]);
@@ -1694,7 +1712,7 @@ export default function QuizDetail() {
   // bank source handlers
   const addBankSource = () => {
     if (questionSourceMode !== "BANK_RULE") {
-      message.warning("Vui lòng chuyển sang chế độ Question Bank Rule trước.");
+      message.warning(t("quizEditor.messages.switchToBankRuleFirst"));
       return;
     }
     setBankSources((prev) => [...prev, makeBankSource()]);
@@ -1709,14 +1727,14 @@ export default function QuizDetail() {
     if (nextMode === "MANUAL") {
       if (bankSources.length > 0) {
         setBankSources([]);
-        message.info("Đã xóa các question bank rule để chuyển sang tạo thủ công.");
+        message.info(t("quizEditor.messages.clearedBankRulesForManual"));
       }
       setQuestionSourceMode("MANUAL");
       return;
     }
     if (questions.length > 0) {
       setQuestions([]);
-      message.info("Đã xóa danh sách câu hỏi thủ công để chuyển sang question bank rule.");
+      message.info(t("quizEditor.messages.clearedManualForBankRule"));
     }
     setQuestionSourceMode("BANK_RULE");
   };
@@ -1781,7 +1799,7 @@ export default function QuizDetail() {
       const isBankRuleMode = questionSourceMode === "BANK_RULE";
       const processedBankSources = isBankRuleMode ? toBankSourcesPayload(bankSources) : [];
       if (isBankRuleMode && processedBankSources.length === 0) {
-        message.warning("Vui lòng thêm ít nhất một rule question bank.");
+        message.warning(t("quizEditor.messages.atLeastOneBankRuleRequired"));
         setSaving(false);
         return;
       }
@@ -1889,7 +1907,7 @@ export default function QuizDetail() {
 
   const handleAddFromLibrary = (newQuestions) => {
     if (questionSourceMode !== "MANUAL") {
-      message.warning("Chỉ có thể thêm từ Questions Library khi ở chế độ tạo thủ công.");
+      message.warning(t("quizEditor.messages.libraryManualOnly"));
       return;
     }
     setQuestions((prev) => [...prev, ...newQuestions]);
@@ -2001,15 +2019,15 @@ export default function QuizDetail() {
           {activeTab === "questions" && (
             <div className="max-w-4xl mx-auto px-4 py-6">
             <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Nguồn câu hỏi</div>
+                <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">{t("quizEditor.sourceTitle")}</div>
                 <Radio.Group
                   value={questionSourceMode}
                   onChange={(event) => handleSourceModeChange(event.target.value)}
                   optionType="button"
                   buttonStyle="solid"
                   options={[
-                    { value: "MANUAL", label: "Tạo thủ công" },
-                    { value: "BANK_RULE", label: "Question Bank Rule" },
+                    { value: "MANUAL", label: t("quizEditor.sourceManual") },
+                    { value: "BANK_RULE", label: t("quizEditor.sourceBankRule") },
                   ]}
                 />
               </div>
@@ -2059,8 +2077,8 @@ export default function QuizDetail() {
                   <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
-                  <p className="text-base font-semibold text-slate-700">Chưa có question bank rule</p>
-                  <p className="mt-2 text-sm text-slate-500">Thêm ít nhất một rule để sinh đề khác nhau cho từng lượt làm.</p>
+                  <p className="text-base font-semibold text-slate-700">{t("quizEditor.bankRuleEmptyTitle")}</p>
+                  <p className="mt-2 text-sm text-slate-500">{t("quizEditor.bankRuleEmptyDescription")}</p>
                 </div>
               )}
 

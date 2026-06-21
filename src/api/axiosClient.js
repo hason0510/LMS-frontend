@@ -116,7 +116,8 @@ axiosClient.interceptors.response.use(
 
         // Only redirect if NOT on login page to avoid infinite loop
         if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+          const locked = getErrorMessage(err) === ACCOUNT_LOCKED_ERROR;
+          window.location.href = locked ? '/login?locked=1' : '/login';
         }
 
         return Promise.reject(err);

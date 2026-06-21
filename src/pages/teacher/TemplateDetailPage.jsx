@@ -282,7 +282,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
       );
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải danh sách giáo viên");
+      message.error("Không thể tải danh sách giảng viên");
       setTeacherOptions([]);
     } finally {
       setTeacherLoading(false);
@@ -509,12 +509,12 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                           <div className="w-8 h-8 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-bold text-sm shrink-0">
                             {idx + 1}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-slate-900 dark:text-white truncate">
+                          <div className="flex flex-1 min-w-0 flex-col justify-center">
+                            <p className="!m-0 font-semibold leading-tight text-slate-900 dark:text-white truncate">
                               {chapter.title}
                             </p>
-                            {chapter.description && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                            {chapter.description?.trim() && (
+                              <p className="!m-0 !mt-0.5 text-xs leading-tight text-slate-500 dark:text-slate-400 truncate">
                                 {chapter.description}
                               </p>
                             )}
@@ -600,8 +600,8 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                                       <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${cfg.badgeClass}`}>
                                         <Icon className="w-4 h-4" />
                                       </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                                      <div className="flex flex-1 min-w-0 flex-col justify-center">
+                                        <p className="!m-0 text-sm font-medium leading-tight text-slate-800 dark:text-slate-200 truncate">
                                           {itemTitle}
                                         </p>
                                       </div>
@@ -784,7 +784,7 @@ export default function TemplateDetailPage({ isAdmin = false }) {
             >
               <Select
                 showSearch
-                placeholder="Chọn chính bạn hoặc một giáo viên"
+                placeholder="Chọn chính bạn hoặc một giảng viên"
                 loading={teacherLoading}
                 options={teacherOptions}
                 optionFilterProp="label"

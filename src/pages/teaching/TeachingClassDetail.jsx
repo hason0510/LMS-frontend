@@ -3,10 +3,9 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Alert, App, Button, Empty, Form, Input, Modal, Spin, Tabs } from "antd";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowLeftIcon,
   BookOpenIcon,
   ClipboardDocumentCheckIcon,
-  MegaphoneIcon,
+  ExclamationTriangleIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
@@ -69,6 +68,9 @@ export default function TeachingClassDetail() {
   const isArchived = course?.status === "ARCHIVED";
   const canManageStaffActions = canManageStaff && !isArchived;
   const canPostAnnouncementsActions = canPostAnnouncements && !isArchived;
+  // GV/Admin có MANAGE_STAFF; TA thì không → suy ra vai trò trong lớp này
+  const isTeachingAssistant = (course?.myCapabilities?.length || 0) > 0 && !canManageStaff;
+  const myClassRole = isTeachingAssistant ? "TA" : "TEACHER";
 
   const load = async () => {
     try {
@@ -133,16 +135,8 @@ export default function TeachingClassDetail() {
             t={t}
             course={course}
             summary={summary}
-            canViewPeople={canViewPeople}
-            canReview={canReview}
-            canManageAssignments={canManageAssignments}
-            canReviewQuizzes={canReviewQuizzes}
-            canPostAnnouncements={canPostAnnouncementsActions}
             canManageStaff={canManageStaffActions}
-            isArchived={isArchived}
-            onNavigate={navigate}
             onOpenStaff={() => setStaffOpen(true)}
-            onOpenAnnouncement={openAnnouncementModal}
           />
         ),
       },
@@ -216,7 +210,7 @@ export default function TeachingClassDetail() {
   return (
     <div className="min-h-screen bg-[#f5f7fb] text-slate-950 dark:bg-slate-950 dark:text-white">
       <Header />
-      <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl !px-4 !py-6 sm:!px-6 lg:!px-8">
         {loading ? (
           <div className="flex min-h-[520px] items-center justify-center">
             <Spin size="large" />
@@ -238,21 +232,17 @@ export default function TeachingClassDetail() {
                 description={t("teaching.classDetail.archived.description")}
               />
             )}
-{/*            <button onClick={() => navigate("/teaching/classes")} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
-              <ArrowLeftIcon className="h-4 w-4" />
-              Quay lại danh sách lớp
-            </button>*/}
-
             <ClassHero
               t={t}
               course={course}
+              role={myClassRole}
               canManageStaff={canManageStaffActions}
               canPostAnnouncements={canPostAnnouncementsActions}
               onOpenStaff={() => setStaffOpen(true)}
               onOpenAnnouncement={openAnnouncementModal}
             />
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <section className="!rounded-2xl border border-slate-200 bg-white !p-4 sm:!p-5 dark:border-slate-800 dark:bg-slate-900">
               <Tabs activeKey={normalizedActiveTab} onChange={handleTabChange} items={tabItems} />
             </section>
           </div>
@@ -299,36 +289,45 @@ export default function TeachingClassDetail() {
   );
 }
 
-function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, onOpenAnnouncement, t }) {
-  const title = course.title || course.classCode || "Lớp chưa có tên";
+function ClassHero({ course, role, canManageStaff, canPostAnnouncements, onOpenStaff, onOpenAnnouncement, t }) {
+  const title = course.title || course.classCode || t("teaching.classDetail.noClassData");
   const status = course.status || "PRIVATE";
+  const roleClass = role === "TA"
+    ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900/50 dark:bg-violet-900/20 dark:text-violet-300"
+    : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-300";
+  const roleLabel = role === "TA" ? t("teaching.roles.teachingAssistant") : t("teaching.roles.primaryTeacher");
 
   return (
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <section className="!overflow-hidden !rounded-2xl !border !border-slate-200 !bg-white dark:!border-slate-800 dark:!bg-slate-900">
       {course.imageUrl && (
-        <div className="aspect-[5/1] min-h-40 overflow-hidden bg-slate-100 dark:bg-slate-800">
-          <img src={course.imageUrl} alt={title} className="h-full w-full object-cover" />
+        <div className="!aspect-[5/1] !min-h-36 !overflow-hidden !bg-slate-100 dark:!bg-slate-800">
+          <img src={course.imageUrl} alt={title} className="!h-full !w-full !object-cover" />
         </div>
       )}
-      <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="mb-3 flex flex-wrap items-center gap-1">
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass[status] || statusClass.PRIVATE}`}>
+      <div className="!flex !flex-col !gap-4 !p-5 sm:!p-6 lg:!flex-row lg:!items-start lg:!justify-between">
+        <div className="!min-w-0">
+          <div className="!mb-3 !flex !flex-wrap !items-center !gap-2">
+            <span className={`!rounded-full !border !px-2.5 !py-1 !text-xs !font-bold ${statusClass[status] || statusClass.PRIVATE}`}>
               {t(`teaching.status.${String(status || "private").toLowerCase()}`)}
             </span>
+            <span className={`!rounded-full !border !px-2.5 !py-1 !text-xs !font-bold ${roleClass}`}>{roleLabel}</span>
             {course.subjectTitle && (
-              <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-300">
+              <span className="!rounded-full !border !border-slate-200 !bg-slate-50 !px-2.5 !py-1 !text-xs !font-bold !text-slate-600 dark:!border-slate-700 dark:!bg-slate-800 dark:!text-slate-300">
                 {course.subjectTitle}
               </span>
             )}
           </div>
-          <h1 className="m-0 text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">{title}</h1>
-          <p className="m-0 mt-2 text-sm text-slate-500">
-            GV: {course.teacherName || "Chưa xác định"} · {course.totalEnrollments ?? 0} người học · {course.teachingMembers?.length ?? 1} nhân sự
+          <h1 className="!m-0 !text-2xl !font-bold !tracking-tight !text-slate-950 dark:!text-white sm:!text-3xl">{title}</h1>
+          <p className="!m-0 !mt-2 !text-sm !text-slate-500 dark:!text-slate-400">
+            {t("teaching.classDetail.heroMeta", {
+              teacher: course.teacherName || t("teaching.classDetail.unknownTeacher"),
+              students: course.totalEnrollments ?? 0,
+              staff: course.teachingMembers?.length ?? 1,
+            })}
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="!flex !flex-wrap !gap-2">
           {canPostAnnouncements && (
             <Button type="primary" onClick={onOpenAnnouncement}>
               {t("teaching.classDetail.actions.createAnnouncement")}
@@ -345,52 +344,46 @@ function ClassHero({ course, canManageStaff, canPostAnnouncements, onOpenStaff, 
   );
 }
 
-function Overview({
-  t,
-  course,
-  summary,
-  canManageStaff,
-  onOpenStaff,
-}) {
+function Overview({ t, course, summary, canManageStaff, onOpenStaff }) {
   if (!course) return <Empty description={t("teaching.classDetail.noClassData")} />;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryTile label={t("teaching.classDetail.stats.students")} value={summary?.totalStudents ?? course.totalEnrollments ?? 0} icon={<UserGroupIcon className="h-5 w-5" />} />
-        <SummaryTile label={t("teaching.classDetail.stats.pendingSubmissions")} value={summary?.pendingSubmissions ?? 0} icon={<ClipboardDocumentCheckIcon className="h-5 w-5" />} />
-        <SummaryTile label={t("teaching.classDetail.stats.pendingQuizReviews")} value={summary?.pendingQuizReviews ?? 0} icon={<BookOpenIcon className="h-5 w-5" />} />
-        <SummaryTile label={t("teaching.classDetail.stats.atRiskStudents")} value={summary?.atRiskStudents ?? 0} icon={<MegaphoneIcon className="h-5 w-5" />} />
+    <div className="!space-y-5">
+      <div className="!grid !grid-cols-1 !gap-4 sm:!grid-cols-2 xl:!grid-cols-4">
+        <SummaryTile label={t("teaching.classDetail.stats.students")} value={summary?.totalStudents ?? course.totalEnrollments ?? 0} icon={<UserGroupIcon className="!h-5 !w-5" />} tone="blue" />
+        <SummaryTile label={t("teaching.classDetail.stats.pendingSubmissions")} value={summary?.pendingSubmissions ?? 0} icon={<ClipboardDocumentCheckIcon className="!h-5 !w-5" />} tone="amber" />
+        <SummaryTile label={t("teaching.classDetail.stats.pendingQuizReviews")} value={summary?.pendingQuizReviews ?? 0} icon={<BookOpenIcon className="!h-5 !w-5" />} tone="violet" />
+        <SummaryTile label={t("teaching.classDetail.stats.atRiskStudents")} value={summary?.atRiskStudents ?? 0} icon={<ExclamationTriangleIcon className="!h-5 !w-5" />} tone="rose" />
       </div>
 
-      <section className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="m-0 text-base font-black text-slate-950 dark:text-white">{t("teaching.staff.title")}</h2>
+      <section className="!rounded-2xl !border !border-slate-200 !p-5 dark:!border-slate-800">
+        <div className="!mb-4 !flex !items-center !justify-between !gap-3">
+          <h2 className="!m-0 !text-base !font-bold !text-slate-950 dark:!text-white">{t("teaching.staff.title")}</h2>
           {canManageStaff && (
-            <Button type="link" onClick={onOpenStaff} className="px-0">
+            <Button type="link" onClick={onOpenStaff} className="!px-0">
               {t("teaching.staff.actions.manage")}
             </Button>
           )}
         </div>
-        <div className="space-y-2">
+        <div className="!space-y-2.5">
           {(course.teachingMembers || []).length ? (
             course.teachingMembers.map((member) => (
-              <div key={member.userId} className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+              <div key={member.userId} className="!flex !min-w-0 !items-center !justify-between !gap-3 !rounded-xl !border !border-slate-100 !bg-slate-50 !px-3.5 !py-2.5 dark:!border-slate-800 dark:!bg-slate-800/60">
                 <UserIdentity
                   user={member}
                   variant="teacher"
                   avatarSizeClass="size-9"
                   className="min-w-0 flex-1"
-                  nameClassName="m-0 truncate text-sm font-bold text-slate-900 dark:text-white"
-                  secondaryClassName="m-0 mt-1 truncate text-xs text-slate-500"
+                  nameClassName="!m-0 truncate text-sm font-bold text-slate-900 dark:text-white"
+                  secondaryClassName="!m-0 !mt-0.5 truncate text-xs text-slate-500"
                 />
-                <span className="shrink-0 text-xs font-semibold text-slate-500">
+                <span className="!shrink-0 !text-xs !font-semibold !text-slate-500">
                   {member.role === "TEACHER" ? t("teaching.roles.primaryTeacher") : t("teaching.roles.teachingAssistant")}
                 </span>
               </div>
             ))
           ) : (
-            <p className="m-0 text-sm text-slate-500">{t("teaching.classDetail.archived.noStaffData")}</p>
+            <p className="!m-0 !text-sm !text-slate-500">{t("teaching.classDetail.archived.noStaffData")}</p>
           )}
         </div>
       </section>
@@ -398,14 +391,22 @@ function Overview({
   );
 }
 
-function SummaryTile({ label, value, icon }) {
+function SummaryTile({ label, value, icon, tone = "slate" }) {
+  const toneClass = {
+    blue: "!bg-blue-50 !text-blue-600 dark:!bg-blue-900/20 dark:!text-blue-300",
+    amber: "!bg-amber-50 !text-amber-600 dark:!bg-amber-900/20 dark:!text-amber-300",
+    violet: "!bg-violet-50 !text-violet-600 dark:!bg-violet-900/20 dark:!text-violet-300",
+    rose: "!bg-rose-50 !text-rose-600 dark:!bg-rose-900/20 dark:!text-rose-300",
+    slate: "!bg-slate-100 !text-primary dark:!bg-slate-800",
+  }[tone] || "!bg-slate-100 !text-primary dark:!bg-slate-800";
+
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-primary dark:bg-slate-800">
+    <article className="!rounded-2xl !border !border-slate-200 !bg-white !p-5 dark:!border-slate-800 dark:!bg-slate-900">
+      <div className={`!mb-3 !flex !h-9 !w-9 !items-center !justify-center !rounded-xl ${toneClass}`}>
         {icon}
       </div>
-      <p className="m-0 text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="m-0 mt-1 text-2xl font-black text-slate-950 dark:text-white">{value ?? 0}</p>
+      <p className="!m-0 !text-xs !font-bold !uppercase !tracking-wide !text-slate-500">{label}</p>
+      <p className="!m-0 !mt-1 !text-2xl !font-black !text-slate-950 dark:!text-white">{value ?? 0}</p>
     </article>
   );
 }

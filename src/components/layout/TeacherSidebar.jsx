@@ -13,7 +13,6 @@ import {
   ClipboardDocumentCheckIcon,
   ClipboardDocumentListIcon,
   PhotoIcon,
-  BellIcon,
 } from "@heroicons/react/24/outline";
 
 export default function TeacherSidebar() {
@@ -105,13 +104,6 @@ export default function TeacherSidebar() {
           isCollapsed={isCollapsed}
         />
 
-        <SidebarLink
-          icon={<BellIcon className="h-6 w-6" />}
-          label={t("common.thongBao")}
-          active={currentPath === "/notifications"}
-          to="/notifications"
-          isCollapsed={isCollapsed}
-        />
         {/*
         <SidebarLink
           icon={<UserGroupIcon className="h-6 w-6" />}

@@ -165,8 +165,6 @@ export default function TeacherLessonPreview() {
                     ) : (
                       <VideoPlayer
                         fileUrl={primaryVideoResource.fileUrl || primaryVideoResource.embedUrl}
-                        hlsUrl={primaryVideoResource.hlsUrl}
-                        title={lesson?.title}
                       />
                     )}
                   </>

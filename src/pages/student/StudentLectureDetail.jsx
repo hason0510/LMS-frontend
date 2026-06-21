@@ -193,8 +193,6 @@ export default function StudentLectureDetail() {
                   ) : (
                     <VideoPlayer
                       fileUrl={primaryVideoResource.fileUrl || primaryVideoResource.embedUrl}
-                      hlsUrl={primaryVideoResource.hlsUrl}
-                      title={lesson?.title}
                     />
                   )}
                 </>

@@ -21,16 +21,3 @@ export async function deleteLesson(id) {
   const response = await axiosClient.delete(`lessons/${id}`);
   return response.data;
 }
-
-export async function uploadLessonFile(lessonId, file) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await axiosClient.post(`lessons/${lessonId}/files`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
-
-  return response.data;
-}

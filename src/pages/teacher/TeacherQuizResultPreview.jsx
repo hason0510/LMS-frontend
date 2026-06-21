@@ -302,7 +302,7 @@ export default function TeacherQuizResultPreview({ isAdmin = false }) {
                     </span>
                   </div>
                   <p className="text-base font-normal leading-normal text-[#617589] dark:text-gray-400">
-                    Kết quả mô phỏng dành cho giáo viên
+                    Kết quả mô phỏng dành cho giảng viên
                   </p>
                   <p className="text-base font-medium text-[#111418] dark:text-gray-200">
                     {isPassed ? "Bài kiểm tra đạt yêu cầu." : "Bài kiểm tra chưa đạt yêu cầu."}
@@ -315,14 +315,14 @@ export default function TeacherQuizResultPreview({ isAdmin = false }) {
                   onClick={() => navigate(previewUrl, { state: { quizData } })}
                   className="flex h-10 min-w-[140px] items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 text-sm font-bold text-white transition"
                 >
-                  <ArrowPathIcon className="h-5 w-5" />
+                  <ArrowPathIcon className="h-4 w-4" />
                   Xem trước lại
                 </button>
                 <button
                   onClick={() => navigate(editUrl)}
                   className="flex h-10 min-w-[140px] items-center justify-center gap-2 rounded-lg bg-[#f0f2f4] px-4 text-sm font-bold text-[#111418] transition hover:bg-[#e0e2e4] dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                 >
-                  <ArrowLeftIcon className="h-5 w-5" />
+                  <ArrowLeftIcon className="h-4 w-4" />
                   Về chỉnh sửa quiz
                 </button>
               </div>

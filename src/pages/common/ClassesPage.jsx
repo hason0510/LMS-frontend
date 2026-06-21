@@ -6,16 +6,17 @@ import {
   Button,
   Empty,
   Modal,
+  Popover,
   Select,
   Skeleton,
   Spin,
 } from "antd";
+import { KeyIcon } from "@heroicons/react/24/outline";
 import Header from "../../components/layout/Header";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import CourseCard from "../../components/course/CourseCard";
 import CourseFilters from "../../components/course/CourseFilters";
-import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -38,7 +39,7 @@ const createInitialQuery = (scope, extras = {}) => ({
   categoryId: undefined,
   status: scope === "PUBLIC" ? "PUBLIC" : undefined,
   startDateRange: null,
-  sortValue: "createdDate:ASC",
+  sortValue: "createdDate:DESC",
   pageNumber: 1,
   pageSize: DEFAULT_PAGE_SIZE,
   ...extras,
@@ -56,7 +57,7 @@ const ENROLLMENT_STYLES = {
 };
 
 const STUDENT_PRIMARY_BUTTON_CLASS =
-  "inline-flex items-center justify-center rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90";
+  "inline-flex w-full items-center justify-center rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90";
 
 function buildSearchParams(query) {
   const [sortBy = "createdDate", sortDirection = "ASC"] = (query.sortValue || "createdDate:ASC").split(":");
@@ -135,9 +136,10 @@ function getProgressColor(progress) {
   return "#9ca3af";
 }
 
-function StudentViewSwitch({ activeView, onChange, t, myCount, publicCount }) {
+function StudentViewSwitch({ activeView, onChange, t, myCount, publicCount, archivedCount }) {
   const tabs = [
     { key: "my", label: t("classesPage.views.my"), count: myCount || 0 },
+    { key: "archived", label: t("classesPage.views.archived", "Đã lưu trữ"), count: archivedCount || 0 },
     { key: "public", label: t("classesPage.views.public"), count: publicCount || 0 },
   ];
 
@@ -183,14 +185,14 @@ function ClassesSectionToolbar({
   categoryOptions,
 }) {
   return (
-    <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_220px_220px_180px_110px]">
+    <div className="!border-b !border-slate-200 !px-5 !py-4 dark:!border-slate-800 sm:!px-6">
+      <div className="!grid !gap-3 lg:!grid-cols-[minmax(0,1.8fr)_200px_200px_180px_auto]">
         <AutoComplete
           value={query.keyword}
           options={keywordOptions}
           onChange={(value) => onChange({ keyword: value, pageNumber: 1 })}
           placeholder={t("classesPage.filters.keywordPlaceholder")}
-          className="w-full"
+          className="!w-full"
           allowClear
         />
         <Select
@@ -198,7 +200,7 @@ function ClassesSectionToolbar({
           onChange={(value) => onChange({ categoryId: value, pageNumber: 1 })}
           options={categoryOptions}
           placeholder={t("classesPage.filters.category")}
-          className="w-full"
+          className="!w-full"
           allowClear
           showSearch
           optionFilterProp="label"
@@ -208,7 +210,7 @@ function ClassesSectionToolbar({
           onChange={(value) => onChange({ subjectKeyword: value || "", pageNumber: 1 })}
           options={subjectOptions}
           placeholder={t("classesPage.filters.subject")}
-          className="w-full"
+          className="!w-full"
           allowClear
           showSearch
           optionFilterProp="label"
@@ -217,13 +219,11 @@ function ClassesSectionToolbar({
           value={query.sortValue}
           onChange={(value) => onChange({ sortValue: value, pageNumber: 1 })}
           options={[
-            { value: "createdDate:ASC", label: t("classesPage.sort.createdAsc") },
             { value: "createdDate:DESC", label: t("classesPage.sort.createdDesc") },
+            { value: "createdDate:ASC", label: t("classesPage.sort.createdAsc") },
             { value: "title:ASC", label: t("classesPage.sort.titleAsc") },
           ]}
-          className="w-full"
-          showSearch
-          optionFilterProp="label"
+          className="!w-full"
         />
         <Button onClick={onReset}>{t("classesPage.filters.reset")}</Button>
       </div>
@@ -243,7 +243,7 @@ function StudentClassCard({ type, item, t, onPrimaryAction }) {
     : item?.subjectCode || t("classesPage.card.noSubject");
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
       <div
         className="aspect-[16/7] bg-cover bg-center"
         style={{ backgroundImage: `url(${item?.imageUrl || classPlaceholder})` }}
@@ -387,9 +387,11 @@ export default function ClassesPage() {
   const [teacherFilters, setTeacherFilters] = useState({ categories: [] });
 
   const [myQuery, setMyQuery] = useState(createInitialQuery("MY"));
+  const [archivedQuery, setArchivedQuery] = useState(createInitialQuery("MY"));
   const [publicQuery, setPublicQuery] = useState(createInitialQuery("PUBLIC", { status: "PUBLIC" }));
   const [activeView, setActiveView] = useState("my");
   const [myClasses, setMyClasses] = useState({ items: [], totalElements: 0, loading: true });
+  const [archivedClasses, setArchivedClasses] = useState({ items: [], totalElements: 0, loading: true });
   const [publicClasses, setPublicClasses] = useState({ items: [], totalElements: 0, loading: true });
   const [categories, setCategories] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -398,6 +400,7 @@ export default function ClassesPage() {
   const [joinPreview, setJoinPreview] = useState(null);
   const [joinPreviewOpen, setJoinPreviewOpen] = useState(false);
   const [joinLoading, setJoinLoading] = useState(false);
+  const [joinPopoverOpen, setJoinPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (isTeacherOrAdmin) {
@@ -418,6 +421,12 @@ export default function ClassesPage() {
       loadMyClasses();
     }
   }, [isTeacherOrAdmin, myQuery]);
+
+  useEffect(() => {
+    if (!isTeacherOrAdmin) {
+      loadArchivedClasses();
+    }
+  }, [isTeacherOrAdmin, archivedQuery]);
 
   useEffect(() => {
     if (!isTeacherOrAdmin) {
@@ -478,6 +487,22 @@ export default function ClassesPage() {
     }
   };
 
+  const loadArchivedClasses = async () => {
+    try {
+      setArchivedClasses((current) => ({ ...current, loading: true }));
+      const response = await searchClassSections(buildSearchParams(archivedQuery));
+      const archivedItems = (response.items || []).filter((item) => item?.status === "ARCHIVED");
+      setArchivedClasses({
+        items: archivedItems,
+        totalElements: archivedItems.length,
+        loading: false,
+      });
+    } catch (error) {
+      setArchivedClasses({ items: [], totalElements: 0, loading: false });
+      message.error(error?.response?.data?.message || t("classesPage.messages.loadMyFailed"));
+    }
+  };
+
   const loadPublicClasses = async () => {
     try {
       setPublicClasses((current) => ({ ...current, loading: true }));
@@ -502,6 +527,10 @@ export default function ClassesPage() {
     () => buildKeywordOptions(myClasses.items),
     [myClasses.items]
   );
+  const archivedKeywordOptions = useMemo(
+    () => buildKeywordOptions(archivedClasses.items),
+    [archivedClasses.items]
+  );
   const publicKeywordOptions = useMemo(
     () => buildKeywordOptions(publicClasses.items),
     [publicClasses.items]
@@ -510,25 +539,39 @@ export default function ClassesPage() {
     () => buildSubjectOptions(subjects),
     [subjects]
   );
-  const activeQuery = activeView === "my" ? myQuery : publicQuery;
-  const activeClasses = activeView === "my" ? myClasses : publicClasses;
-  const activeKeywordOptions = activeView === "my" ? myKeywordOptions : publicKeywordOptions;
+  const activeQuery = activeView === "my" ? myQuery : activeView === "archived" ? archivedQuery : publicQuery;
+  const activeClasses = activeView === "my" ? myClasses : activeView === "archived" ? archivedClasses : publicClasses;
+  const activeKeywordOptions = activeView === "my" ? myKeywordOptions : activeView === "archived" ? archivedKeywordOptions : publicKeywordOptions;
   const activeSubjectOptions = useMemo(() => {
     if (!activeQuery.categoryId) return subjectOptions;
     return subjectOptions.filter((option) => option.categoryId === activeQuery.categoryId);
   }, [activeQuery.categoryId, subjectOptions]);
-  const activeTitle = activeView === "my" ? t("classesPage.myClasses.title") : t("classesPage.publicClasses.title");
+  const activeTitle =
+    activeView === "my"
+      ? t("classesPage.myClasses.title")
+      : activeView === "archived"
+      ? t("classesPage.archivedClasses.title", "Lớp đã lưu trữ")
+      : t("classesPage.publicClasses.title");
   const activeSubtitle =
-    activeView === "my" ? t("classesPage.myClasses.subtitle") : t("classesPage.publicClasses.subtitle");
+    activeView === "my"
+      ? t("classesPage.myClasses.subtitle")
+      : activeView === "archived"
+      ? t("classesPage.archivedClasses.subtitle", "Các lớp đã kết thúc/lưu trữ — bạn vẫn xem lại được nội dung và tiến độ.")
+      : t("classesPage.publicClasses.subtitle");
   const activeEmptyMessage =
-    activeView === "my" ? t("classesPage.empty.myClasses") : t("classesPage.empty.publicClasses");
+    activeView === "my"
+      ? t("classesPage.empty.myClasses")
+      : activeView === "archived"
+      ? t("classesPage.empty.archivedClasses", "Bạn chưa có lớp nào được lưu trữ.")
+      : t("classesPage.empty.publicClasses");
 
   const resetMyFilters = () => setMyQuery(createInitialQuery("MY"));
+  const resetArchivedFilters = () => setArchivedQuery(createInitialQuery("MY"));
   const resetPublicFilters = () => setPublicQuery(createInitialQuery("PUBLIC", { status: "PUBLIC" }));
   const getSubjectValue = (subject) => subject?.code || subject?.title;
 
   const handleStudentQueryChange = (view, changes) => {
-    const setQuery = view === "my" ? setMyQuery : setPublicQuery;
+    const setQuery = view === "my" ? setMyQuery : view === "archived" ? setArchivedQuery : setPublicQuery;
     setQuery((current) => {
       const next = { ...current, ...changes };
 
@@ -660,96 +703,113 @@ export default function ClassesPage() {
   return (
     <div className="classes-page min-h-screen bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-slate-100">
       <Header />
-      <main className="px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <AppBreadcrumb className="mb-6" />
-          <div className="mb-8">
-            <h1 className="text-4xl font-black text-slate-900 dark:text-white">{t("classesPage.title")}</h1>
-            <p className="mt-2 max-w-3xl text-base text-slate-500 dark:text-slate-400">{t("classesPage.subtitle")}</p>
+      <main className="!px-4 !py-6 sm:!px-6 lg:!px-8">
+        <div className="!mx-auto !max-w-7xl">
+          {/* Header: tiêu đề + nút Vào lớp bằng mã (góc phải) */}
+          <div className="!mb-6 !flex !flex-col !gap-4 sm:!flex-row sm:!items-start sm:!justify-between">
+            <div className="!min-w-0">
+              <h1 className="!m-0 !text-2xl !font-bold !tracking-tight !text-slate-900 dark:!text-white sm:!text-3xl">
+                {t("classesPage.title")}
+              </h1>
+              <p className="!m-0 !mt-1.5 !max-w-2xl !text-sm !leading-6 !text-slate-500 dark:!text-slate-400">
+                {t("classesPage.subtitle")}
+              </p>
+            </div>
+            <Popover
+              open={joinPopoverOpen}
+              onOpenChange={setJoinPopoverOpen}
+              trigger="click"
+              placement="bottomRight"
+              content={
+                <form
+                  onSubmit={async (event) => {
+                    await handlePreviewJoin(event);
+                    setJoinPopoverOpen(false);
+                  }}
+                  className="!w-72 !space-y-2.5 !py-1"
+                >
+                  <p className="!m-0 !text-xs !leading-5 !text-slate-500 dark:!text-slate-400">
+                    {t("classesPage.joinBanner.description")}
+                  </p>
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(event) => setJoinCode(event.target.value)}
+                    placeholder={t("classesPage.joinBanner.placeholder")}
+                    className="!h-10 !w-full !rounded-lg !border !border-slate-200 !bg-white !px-3 !text-sm !text-slate-900 !outline-none focus:!border-primary dark:!border-slate-700 dark:!bg-slate-900 dark:!text-white"
+                  />
+                  <Button type="primary" htmlType="submit" block loading={joinLoading} disabled={!joinCode.trim()}>
+                    {t("classesPage.actions.previewJoin")}
+                  </Button>
+                </form>
+              }
+            >
+              <button
+                type="button"
+                className="!inline-flex !shrink-0 !items-center !gap-2 !rounded-xl !bg-primary !px-4 !py-2.5 !text-sm !font-semibold !text-white !transition-opacity hover:!opacity-90"
+              >
+                <KeyIcon className="!h-4 !w-4" />
+                {t("classesPage.joinBanner.title")}
+              </button>
+            </Popover>
           </div>
 
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{activeTitle}</h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{activeSubtitle}</p>
+          {/* Khung trắng chứa toàn bộ danh sách lớp */}
+          <section className="!overflow-hidden !rounded-2xl !border !border-slate-200 !bg-white dark:!border-slate-800 dark:!bg-slate-900">
+            {/* Header khung: tiêu đề nhóm + tabs */}
+            <div className="!border-b !border-slate-200 !px-5 !py-5 dark:!border-slate-800 sm:!px-6">
+              <div className="!flex !flex-col !gap-4 lg:!flex-row lg:!items-end lg:!justify-between">
+                <div className="!min-w-0">
+                  <h2 className="!m-0 !text-lg !font-bold !text-slate-900 dark:!text-white">{activeTitle}</h2>
+                  <p className="!m-0 !mt-1 !text-sm !text-slate-500 dark:!text-slate-400">{activeSubtitle}</p>
                 </div>
                 <StudentViewSwitch
                   activeView={activeView}
                   onChange={setActiveView}
                   t={t}
                   myCount={myClasses.totalElements}
+                  archivedCount={archivedClasses.totalElements}
                   publicCount={publicClasses.totalElements}
                 />
               </div>
             </div>
 
-            {activeView === "public" && (
-              <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
-                <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-4 dark:border-primary/30 dark:bg-primary/10">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <div className="text-base font-semibold text-primary">{t("classesPage.joinBanner.title")}</div>
-                      <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
-                        {t("classesPage.joinBanner.description")}
-                      </div>
-                    </div>
-                    <form onSubmit={handlePreviewJoin} className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-xl">
-                      <input
-                        type="text"
-                        value={joinCode}
-                        onChange={(event) => setJoinCode(event.target.value)}
-                        placeholder={t("classesPage.joinBanner.placeholder")}
-                        className="h-11 flex-1 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
-                      />
-                      <button
-                        type="submit"
-                        disabled={joinLoading || !joinCode.trim()}
-                        className="h-11 rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {joinLoading ? t("common.dangXuLy") : t("classesPage.actions.previewJoin")}
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            {/* Toolbar (hiện đủ filter) */}
             <ClassesSectionToolbar
               t={t}
               query={activeQuery}
               onChange={(changes) => handleStudentQueryChange(activeView, changes)}
-              onReset={activeView === "my" ? resetMyFilters : resetPublicFilters}
+              onReset={activeView === "my" ? resetMyFilters : activeView === "archived" ? resetArchivedFilters : resetPublicFilters}
               keywordOptions={activeKeywordOptions}
               subjectOptions={activeSubjectOptions}
               categoryOptions={categoryOptions}
             />
 
-            <div className="px-5 py-5 sm:px-6">
+            {/* Lưới lớp */}
+            <div className="!px-5 !py-5 sm:!px-6">
               {activeClasses.loading || metadataLoading ? (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="!grid !gap-4 md:!grid-cols-2 xl:!grid-cols-3">
                   {Array.from({ length: activeQuery.pageSize }).map((_, index) => (
-                    <div key={index} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
-                      <Skeleton.Image active className="!aspect-[16/7] !h-auto !w-full !rounded-lg" />
-                      <Skeleton active paragraph={{ rows: 5 }} className="mt-4" />
+                    <div key={index} className="!rounded-2xl !border !border-slate-200 !p-4 dark:!border-slate-800">
+                      <Skeleton.Image active className="!aspect-[16/7] !h-auto !w-full !rounded-xl" />
+                      <Skeleton active paragraph={{ rows: 5 }} className="!mt-4" />
                     </div>
                   ))}
                 </div>
               ) : activeClasses.items.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 py-16 dark:border-slate-700 dark:bg-slate-900/70">
+                <div className="!rounded-2xl !border !border-dashed !border-slate-200 !bg-slate-50 !py-16 dark:!border-slate-800 dark:!bg-slate-900/70">
                   <Empty description={activeEmptyMessage} />
                 </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="!grid !gap-4 md:!grid-cols-2 xl:!grid-cols-3">
                   {activeClasses.items.map((item) => (
                     <StudentClassCard
                       key={item.id}
-                      type={activeView === "my" ? "my" : "public"}
+                      type={activeView === "public" ? "public" : "my"}
                       item={item}
                       t={t}
                       onPrimaryAction={() =>
-                        activeView === "my" ? navigate(`/class-sections/${item.id}`) : handleJoinPublicClass(item.id)
+                        activeView === "public" ? handleJoinPublicClass(item.id) : navigate(`/class-sections/${item.id}`)
                       }
                     />
                   ))}
@@ -757,6 +817,7 @@ export default function ClassesPage() {
               )}
             </div>
 
+            {/* Phân trang (chân khung) */}
             <DataPaginationFooter
               currentPage={activeQuery.pageNumber}
               pageSize={activeQuery.pageSize}
@@ -771,9 +832,7 @@ export default function ClassesPage() {
                   : 0,
               })}
               onPageChange={(page) => handleStudentQueryChange(activeView, { pageNumber: page })}
-              onPageSizeChange={(pageSize) =>
-                handleStudentQueryChange(activeView, { pageSize, pageNumber: 1 })
-              }
+              onPageSizeChange={(pageSize) => handleStudentQueryChange(activeView, { pageSize, pageNumber: 1 })}
             />
           </section>
         </div>

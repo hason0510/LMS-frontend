@@ -83,7 +83,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
             courseId: enrollment.courseId,
             progress: enrollment.progress || 0,
             approvalStatus: enrollment.approvalStatus || "APPROVED",
-            enrollmentDate: enrollment.createdAt || enrollment.enrolledAt || null,
+            enrollmentDate: enrollment.approvedAt || enrollment.createdAt || enrollment.enrolledAt || null,
             studentNumber: enrollment.studentNumber,
             phoneNumber: enrollment.phoneNumber,
             birthday: enrollment.birthday,
@@ -250,6 +250,7 @@ export default function TeacherStudentManagement({ isAdmin = false }) {
       title: t("teacherLists.students.columns.enrolledAt"),
       dataIndex: "enrollmentDate",
       key: "enrollmentDate",
+      align: "center",
       render: (value) =>
         value ? (
           <span className="text-sm text-slate-700 dark:text-slate-300">{new Date(value).toLocaleDateString("vi-VN")}</span>

@@ -6,11 +6,6 @@ export const createClassSectionFromTemplateId = async (curriculumVersionId, data
   return response.data;
 };
 
-export const createFromLatestPublishedVersion = async (templateId, data) => {
-  const response = await axiosClient.post(`class-sections/from-template-latest/${templateId}`, data);
-  return response.data;
-};
-
 export const getClassSectionById = async (id) => {
   const response = await axiosClient.get(`class-sections/${id}`);
   return response.data;

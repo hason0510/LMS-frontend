@@ -109,6 +109,7 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
       message.success(t("lessonComments.messages.created"));
       setCommentText("");
       setShowCommentForm(false);
+      fetchComments();
     } catch (err) {
       message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.createFailed"));
     } finally {
@@ -131,6 +132,7 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
       message.success(t("lessonComments.messages.replied"));
       setReplyText("");
       setReplyingTo(null);
+      fetchComments();
     } catch (err) {
       message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.replyFailed"));
     } finally {
@@ -152,6 +154,7 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
       message.success(t("lessonComments.messages.updated"));
       setEditingCommentId(null);
       setEditCommentText("");
+      fetchComments();
     } catch (err) {
       message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.updateFailed"));
     } finally {
@@ -170,6 +173,7 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
         try {
           await deleteComment(commentId);
           message.success(t("lessonComments.messages.revoked"));
+          fetchComments();
         } catch (err) {
           message.error(err?.response?.data?.message || err.message || t("lessonComments.errors.revokeFailed"));
         }
@@ -282,16 +286,17 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
                     secondaryText={null}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-1">
+                    <div className="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-2.5 dark:border-gray-700/50 dark:bg-gray-800/40">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span className="text-sm font-semibold text-[#111418] dark:text-white">
+                          {comment.fullName || t("lessonComments.unknownUser")}
+                        </span>
+                        <span className="text-gray-300 dark:text-gray-600">·</span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {formatDate(comment.createdAt)}
                         </span>
                       </div>
-                      <p className="m-0 mb-1 text-sm font-semibold text-[#111418] dark:text-white">
-                        {comment.fullName || t("lessonComments.unknownUser")}
-                      </p>
-                      <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed m-0 break-words">
+                      <div className="mt-0.5 text-gray-700 dark:text-gray-300 text-sm leading-relaxed m-0 break-words">
                         {comment.isDeleted ? (
                           <span className="italic text-gray-500 dark:text-gray-400">
                             {comment.commentDetail}

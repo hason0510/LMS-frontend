@@ -9,6 +9,7 @@ import NotificationDetailModal from "../common/NotificationDetailModal";
 import {
   BellIcon,
   Cog6ToothIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   getMyNotifications,
@@ -61,6 +62,8 @@ export default function TeacherHeader({ toggleSidebar }) {
   const notificationRef = useRef(null);
   const settingsPath = user?.role === "ADMIN" ? "/admin/settings" : "/teacher/settings";
   const isSettingsActive = location.pathname === settingsPath;
+  const profilePath = user?.role === "ADMIN" ? "/admin/profile" : "/teacher/profile";
+  const isProfileActive = location.pathname === profilePath;
 
   // Initial fetch
   useEffect(() => {
@@ -131,7 +134,7 @@ export default function TeacherHeader({ toggleSidebar }) {
     try {
       await logout();
       setShowLogoutConfirm(false);
-      navigate("/home");
+      navigate("/login");
     } catch (err) {
       console.error("Logout error:", err);
     }
@@ -170,6 +173,20 @@ export default function TeacherHeader({ toggleSidebar }) {
         <div className="flex flex-1 items-center justify-end gap-3 sm:gap-6 ml-8">
         */}
         <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 ml-4">
+          {/* Trang cá nhân */}
+          <Link
+            to={profilePath}
+            title={t("common.hoSo")}
+            aria-label={t("common.hoSo")}
+            className={`flex items-center justify-center size-11 rounded-full transition-colors !text-slate-700 dark:!text-slate-200 ${
+              isProfileActive
+                ? "bg-slate-100 dark:bg-slate-800"
+                : "hover:bg-slate-100 dark:hover:bg-slate-800/70"
+            }`}
+          >
+            <UserCircleIcon className="h-6 w-6" />
+          </Link>
+
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
             <button
@@ -270,10 +287,10 @@ export default function TeacherHeader({ toggleSidebar }) {
               />
               <div className="hidden sm:flex flex-col text-left justify-center gap-0.5">
                 <p className="text-sm font-bold leading-tight text-[#111418] dark:text-white max-w-[150px] truncate !m-0">
-                  {user?.fullName || user?.name || user?.username || user?.userName || "Giáo viên"}
+                  {user?.fullName || user?.name || user?.username || user?.userName || "Giảng viên"}
                 </p>
                 <p className="text-xs leading-tight text-slate-500 dark:text-slate-400 !m-0">
-                  {user?.role === "ADMIN" ? "Quản trị viên" : "Giáo viên"}
+                  {user?.role === "ADMIN" ? "Quản trị viên" : "Giảng viên"}
                 </p>
               </div>
             </button>

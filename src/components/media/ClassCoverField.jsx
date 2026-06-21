@@ -13,7 +13,7 @@ const toPreviewResource = (imageUrl, resourceId) => {
 };
 
 const toImagePatch = (resource) => ({
-  imageUrl: resource ? (resource.fileUrl || resource.embedUrl || resource.hlsUrl || null) : null,
+  imageUrl: resource ? (resource.fileUrl || resource.embedUrl || null) : null,
   imageResourceId: resource?.id || null,
 });
 

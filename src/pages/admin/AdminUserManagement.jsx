@@ -3,6 +3,7 @@ import { Select, message, Popconfirm } from "antd";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import UserIdentity from "../../components/common/UserIdentity";
 import AdminUserModal from "./AdminUserModal";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import { getAllUsers, deleteUser, updateUser, createUser, lockUser, unlockUser } from "../../api/user";
@@ -174,7 +175,9 @@ export default function AdminUserManagement() {
       email: user.gmail || user.email || "N/A",
       role: roleCode,
       status: user.active === false ? "inactive" : "active",
-      createdDate: user.createdDate ? new Date(user.createdDate).toLocaleDateString('vi-VN') : "N/A",
+      createdDate: user.createdDate
+        ? new Date(user.createdDate).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+        : "N/A",
       studentNumber: user.studentNumber || "",
       phoneNumber: user.phoneNumber || "",
       address: user.address || "",
@@ -184,9 +187,13 @@ export default function AdminUserManagement() {
 
   // Filter users
   let filteredUsers = formattedUsers.filter((user) => {
+    const keyword = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      keyword === "" ||
+      user.name.toLowerCase().includes(keyword) ||
+      user.email.toLowerCase().includes(keyword) ||
+      user.username.toLowerCase().includes(keyword) ||
+      (user.studentNumber && user.studentNumber.toLowerCase().includes(keyword));
 
     const matchesRole =
       roleFilter === "all" || user.role === roleFilter.toUpperCase();
@@ -226,8 +233,8 @@ export default function AdminUserManagement() {
 
   const getRoleLabel = (role) => {
     const roleMap = {
-      STUDENT: "Sinh viên",
-      TEACHER: "Giáo viên",
+      STUDENT: "Người học",
+      TEACHER: "Giảng viên",
       ADMIN: "Quản trị viên",
     };
     return roleMap[role] || role;
@@ -242,30 +249,30 @@ export default function AdminUserManagement() {
       <TeacherHeader toggleSidebar={toggleSidebar} />
       <AdminSidebar />
 
-      <main className={`lg:ml-64 pt-16 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+      <main className={`lg:ml-64 pt-20 pb-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
         sidebarCollapsed ? "pl-20" : "pl-64"
       }`}>
         <div className="mx-auto max-w-7xl">
-          <AppBreadcrumb className="mb-5 mt-3" />
-          {/* Page Header */}
-          <div className="flex flex-wrap mt-3 items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Quản lý Người dùng
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Quản lý tất cả người dùng trong hệ thống
-              </p>
-            </div>
-            <button 
-              onClick={handleOpenCreateModal}
-              className="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
-              <PlusCircleIcon className="h-5 w-5" />
-              <span>Tạo người dùng mới</span>
-            </button>
-          </div>
-
+          <AppBreadcrumb className="mb-6 mt-2" />
           <div className="app-table-shell mb-8 flex flex-col">
+            {/* Page Header (bọc trong khung trắng, đồng bộ các bảng admin khác) */}
+            <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-5 dark:border-gray-700 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+              <div>
+                <h1 className="m-0 text-2xl font-bold text-gray-900 dark:text-white">
+                  Quản lý Người dùng
+                </h1>
+                <p className="m-0 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Quản lý tất cả người dùng trong hệ thống
+                </p>
+              </div>
+              <button
+                onClick={handleOpenCreateModal}
+                className="flex shrink-0 items-center justify-center gap-2 px-4 h-10 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                <PlusCircleIcon className="h-4 w-4" />
+                <span>Tạo người dùng mới</span>
+              </button>
+            </div>
+
             {/* Filters Section */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -284,7 +291,7 @@ export default function AdminUserManagement() {
                           setCurrentPage(1);
                         }}
                         className="form-input !h-auto w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-base font-normal leading-normal text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-primary focus:ring-primary"
-                        placeholder="Tìm kiếm theo tên, email..."
+                        placeholder="Tìm kiếm theo tên, email, username, MSSV..."
                       />
                     </div>
                   </label>
@@ -304,8 +311,8 @@ export default function AdminUserManagement() {
                     optionFilterProp="label"
                     options={[
                       { label: "Vai trò: Tất cả", value: "all" },
-                      { label: "Sinh viên", value: "student" },
-                      { label: "Giáo viên", value: "teacher" },
+                      { label: "Người học", value: "student" },
+                      { label: "Giảng viên", value: "teacher" },
                       { label: "Quản trị viên", value: "admin" },
                     ]}
                   />
@@ -382,12 +389,15 @@ export default function AdminUserManagement() {
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4">
-                          <div className="font-medium text-gray-900 dark:text-white">
-                            {user.name}
-                          </div>
-                          <div className="text-gray-500 dark:text-gray-400 text-xs">
-                            {user.email}
-                          </div>
+                          <UserIdentity
+                            user={user}
+                            secondaryText={
+                              user.role === "STUDENT"
+                                ? user.studentNumber || user.email
+                                : user.email
+                            }
+                            avatarSizeClass="size-9"
+                          />
                         </td>
                         <td className="whitespace-nowrap px-3 py-4">
                           <span

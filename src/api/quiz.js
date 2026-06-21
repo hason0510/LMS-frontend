@@ -65,6 +65,12 @@ export async function reviewQuizAttempt(attemptId, reviewData) {
   return response.data;
 }
 
+// Feed quiz của học viên (trang tổng quan / việc cần làm)
+export async function getStudentQuizFeed(params = {}) {
+  const response = await axiosClient.get("quizzes/me/feed", { params });
+  return response.data;
+}
+
 export async function getStudentAttemptsHistory(contentItemId) {
   const response = await axiosClient.get(`class-content-items/${contentItemId}/my-attempts`);
   return response.data;

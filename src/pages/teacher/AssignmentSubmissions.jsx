@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { App, Button, Empty, Input, InputNumber, Modal, Select, Spin, Table, Tag } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
-import { ClipboardCheck, FileCheck2 } from "lucide-react";
+import { ClipboardCheck, FileCheck2, Pencil } from "lucide-react";
 import dayjs from "dayjs";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -72,6 +72,7 @@ function SubmissionMetric({ icon: Icon, label, value, tone = "blue" }) {
 export default function AssignmentSubmissions({ isAdmin = false, teachingMode = false }) {
   const { classSectionId, assignmentId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const { message } = App.useApp();
   const { t } = useTranslation();
   const basePath = isAdmin ? "/admin" : "/teacher";
@@ -309,13 +310,27 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
       </div>
 
       <div className="app-table-shell">
-        <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
-          <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
-            {t("assignments.submissions.title", { title: assignment?.title || `#${assignmentId}` })}
-          </h1>
-          <p className="m-0 mt-1 text-sm text-slate-500">
-            {t("assignments.submissions.subtitle")}
-          </p>
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+          <div className="min-w-0">
+            <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
+              {t("assignments.submissions.title", { title: assignment?.title || `#${assignmentId}` })}
+            </h1>
+            <p className="m-0 mt-1 text-sm text-slate-500">
+              {t("assignments.submissions.subtitle")}
+            </p>
+          </div>
+          {!teachingMode && (
+            <Button
+              type="primary"
+              icon={<Pencil size={16} />}
+              className="shrink-0 self-start"
+              onClick={() =>
+                navigate(`${basePath}/class-sections/${classSectionId}/assignments/${assignmentId}`)
+              }
+            >
+              {t("assignments.submissions.editAssignment")}
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6 lg:grid-cols-[minmax(0,1fr)_220px]">

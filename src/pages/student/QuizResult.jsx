@@ -170,7 +170,7 @@ export default function QuizResult() {
           isPassed: data.isPassed || false,
           completedAt: data.completedTime ? new Date(data.completedTime).toLocaleString('vi-VN') : 'N/A',
           feedback: data.gradingStatus === "NEEDS_REVIEW"
-            ? "Bài làm đã nộp. Một số câu tự luận đang chờ giáo viên chấm."
+            ? "Bài làm đã nộp. Một số câu tự luận đang chờ giảng viên chấm."
             : (data.instructorFeedback || (data.isPassed ? "Làm tốt lắm! Bạn đã vượt qua kỳ thi." : "Bạn chưa đạt điểm yêu cầu. Hãy cố gắng thêm!")),
           timeTaken: timeTaken,
           correctCount: data.correctAnswers || 0,

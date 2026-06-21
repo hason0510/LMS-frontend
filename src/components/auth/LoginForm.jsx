@@ -5,7 +5,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { EyeIcon, LockClosedIcon, UserIcon } from "@heroicons/react/24/outline";
 import { login, googleLogin } from "../../api/auth";
 import { GoogleLogin } from "@react-oauth/google";
-import ModalNotification from "../common/ModalNotification";
 
 const ACCOUNT_LOCKED_ERROR = "ACCOUNT_LOCKED";
 const ACCOUNT_LOCKED_MESSAGE = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.";
@@ -17,7 +16,6 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { loginUser } = useAuth();
@@ -32,18 +30,11 @@ export default function LoginForm() {
   useEffect(() => {
     if (searchParams.get("locked") === "1") {
       setError(ACCOUNT_LOCKED_MESSAGE);
-      setShowModal(true);
-    }
-  }, [searchParams]);
-
-  const closeModal = () => {
-    setShowModal(false);
-    if (searchParams.get("locked") === "1") {
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete("locked");
       setSearchParams(nextParams, { replace: true });
     }
-  };
+  }, [searchParams, setSearchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,7 +59,6 @@ export default function LoginForm() {
       const errorKey = err?.response?.data?.message;
       setError(errorKey === ACCOUNT_LOCKED_ERROR ? ACCOUNT_LOCKED_MESSAGE : t('auth.dangNhapThatBai'));
       setLoading(false);
-      setShowModal(true);
     }
   };
 
@@ -92,13 +82,11 @@ export default function LoginForm() {
       const errorKey = err?.response?.data?.message;
       setError(errorKey === ACCOUNT_LOCKED_ERROR ? ACCOUNT_LOCKED_MESSAGE : t('auth.googleLoginThatBai'));
       setLoading(false);
-      setShowModal(true);
     }
   };
 
   const handleGoogleError = () => {
     setError(t('auth.googleErrorXayRa'));
-    setShowModal(true);
   };
 
   return (
@@ -216,12 +204,6 @@ export default function LoginForm() {
           .
         </p>
       </form>
-      <ModalNotification
-        open={showModal}
-        title={error === ACCOUNT_LOCKED_MESSAGE ? "Tài khoản bị khóa" : "Đăng nhập thất bại"}
-        message={error}
-        onClose={closeModal}
-      />
     </>
   );
 }

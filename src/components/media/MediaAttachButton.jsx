@@ -102,7 +102,7 @@ export default function MediaAttachButton({
               {previewImage && isImageResource ? (
                 <div className="aspect-[16/9] w-full bg-white dark:bg-slate-900">
                   <img
-                    src={resource.fileUrl || resource.embedUrl || resource.hlsUrl}
+                    src={resource.fileUrl || resource.embedUrl}
                     alt={resource.title || triggerLabel}
                     className="h-full w-full object-contain"
                   />
@@ -151,7 +151,7 @@ export default function MediaAttachButton({
             >
               {previewImage && isImageResource ? (
                 <img
-                  src={resource.fileUrl || resource.embedUrl || resource.hlsUrl}
+                  src={resource.fileUrl || resource.embedUrl}
                   alt={resource.title || triggerLabel}
                   className="h-11 w-11 rounded-lg border border-slate-200 dark:border-slate-700 object-cover"
                 />

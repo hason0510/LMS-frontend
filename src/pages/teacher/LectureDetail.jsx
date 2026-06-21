@@ -1635,7 +1635,7 @@ export default function LectureDetail({ isAdmin = false }) {
                     </>
                   ) : (
                     <>
-                      <CheckCircleIcon className="h-5 w-5" />
+                      <CheckCircleIcon className="h-4 w-4" />
                       Lưu bài giảng
                     </>
                   )}

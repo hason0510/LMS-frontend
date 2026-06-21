@@ -690,6 +690,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
           showIcon
           message={t("classContent.archived.title")}
           description={t("classContent.archived.description")}
+          className="!mb-8"
         />
       )}
       {/* ── Section header ── */}
@@ -701,7 +702,6 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
           {canManage && chapters.length > 0 && (
             <button
               onClick={openLessonProgressPicker}
-              disabled={!canMutateContent}
               className="flex items-center gap-2 rounded-lg border border-emerald-400 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:bg-emerald-950/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <CheckCircleSolidIcon className="h-4 w-4" />

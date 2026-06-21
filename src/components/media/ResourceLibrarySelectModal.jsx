@@ -135,7 +135,7 @@ export default function ResourceLibrarySelectModal({
                 className="group rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm dark:border-gray-700 dark:bg-slate-900 dark:hover:border-blue-500"
               >
                 <div className="flex h-36 items-center justify-center overflow-hidden rounded-md bg-gray-50 dark:bg-slate-800">
-                  <ResourceRenderer resource={resource} compact className="m-0 max-h-36" />
+                  <ResourceRenderer resource={resource} compact thumbnail className="m-0 max-h-36" />
                 </div>
                 <div className="mt-2 truncate text-sm font-medium text-gray-800 dark:text-gray-100">
                   {resource.title || t("mediaManager.untitled")}

@@ -390,7 +390,7 @@ export default function ClassStaffModal({
                           />
                         ) : isTeacher ? (
                           <Tag color="blue" className="m-0 py-1 px-2.5 rounded-full border-none bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                            Giáo viên chính
+                            Giảng viên chính
                           </Tag>
                         ) : (
                           <Tag color="green" className="m-0 py-1 px-2.5 rounded-full border-none bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
@@ -400,7 +400,7 @@ export default function ClassStaffModal({
 
                         {allowPrimaryTeacherAssignment && isTeacher ? (
                           <Tag color="blue" className="m-0 py-1 px-2.5 rounded-full border-none bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                            Giáo viên chính
+                            Giảng viên chính
                           </Tag>
                         ) : !isTeacher ? (
                           <Tooltip title={t("teaching.staff.actions.permissions")}>

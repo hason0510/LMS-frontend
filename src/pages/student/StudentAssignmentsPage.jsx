@@ -6,7 +6,6 @@ import { Eye } from "lucide-react";
 import dayjs from "dayjs";
 import Header from "../../components/layout/Header";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
-import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getStudentAssignmentFeed } from "../../api/assignment";
 import { getApprovedClassSections } from "../../api/classSection";
 import { useTranslation } from "react-i18next";
@@ -128,10 +127,10 @@ export default function StudentAssignmentsPage() {
         key: "assignment",
         render: (_, record) => (
           <div className="min-w-0">
-            <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
+            <p className="!m-0 truncate text-sm font-semibold leading-tight text-slate-900 dark:text-white">
               {record.assignmentTitle}
             </p>
-            <p className="m-0 mt-1 text-xs text-slate-500">
+            <p className="!m-0 !mt-1 text-xs leading-tight text-slate-500">
               {record.classSectionTitle}
             </p>
           </div>
@@ -141,12 +140,26 @@ export default function StudentAssignmentsPage() {
         title: t("assignments.table.dueAt"),
         dataIndex: "dueAt",
         key: "dueAt",
-        width: 180,
-        render: (value) => (
-          <span className="text-sm text-slate-700 dark:text-slate-300">
-            {formatDue(value, t("assignments.noDeadline"))}
-          </span>
-        ),
+        width: 190,
+        render: (value, record) => {
+          if (!value) {
+            return <span className="text-sm text-slate-400">{t("assignments.noDeadline")}</span>;
+          }
+          if (record.pastDue) {
+            const days = Math.max(0, dayjs().startOf("day").diff(dayjs(value).startOf("day"), "day"));
+            return (
+              <div className="leading-tight text-rose-600 dark:text-rose-400">
+                <div className="text-sm">{formatDue(value)}</div>
+                <div className="text-xs font-semibold">
+                  {days > 0 ? t("assignments.overdueBy", { count: days }) : t("assignments.status.missing")}
+                </div>
+              </div>
+            );
+          }
+          return (
+            <span className="text-sm text-slate-700 dark:text-slate-300">{formatDue(value)}</span>
+          );
+        },
       },
       {
         title: t("assignments.table.score"),
@@ -185,9 +198,10 @@ export default function StudentAssignmentsPage() {
             <Button
               icon={<Eye size={16} />}
               className="app-table-action-btn"
-              onClick={() =>
-                navigate(`/class-sections/${record.classSectionId}/assignments/${record.assignmentId}`)
-              }
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(`/class-sections/${record.classSectionId}/assignments/${record.assignmentId}`);
+              }}
             >
               {t("assignments.details")}
             </Button>
@@ -201,9 +215,8 @@ export default function StudentAssignmentsPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <Header />
-      <main className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-16 sm:px-6 lg:px-8">
-        <AppBreadcrumb className="mb-6" />
-        <div className="app-table-shell">
+      <main className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-20 sm:px-6 lg:px-8">
+        <div className="app-table-shell !rounded-2xl">
           <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
             <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">
               {t("assignments.studentTitle")}
@@ -270,6 +283,11 @@ export default function StudentAssignmentsPage() {
                 dataSource={pageItems}
                 pagination={false}
                 scroll={{ x: 820 }}
+                rowClassName={() => "!cursor-pointer"}
+                onRow={(record) => ({
+                  onClick: () =>
+                    navigate(`/class-sections/${record.classSectionId}/assignments/${record.assignmentId}`),
+                })}
               />
             )}
           </div>

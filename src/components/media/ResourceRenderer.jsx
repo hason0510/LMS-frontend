@@ -1,11 +1,11 @@
 import React from "react";
 
-export default function ResourceRenderer({ resource, className = "", compact = false }) {
+export default function ResourceRenderer({ resource, className = "", compact = false, thumbnail = false }) {
   if (!resource) return null;
 
-  const { fileUrl, embedUrl, hlsUrl, mimeType, type, title } = resource;
+  const { fileUrl, embedUrl, mimeType, type, title } = resource;
   const wrapperClass = className || "mt-2";
-  const mediaUrl = hlsUrl || fileUrl || embedUrl;
+  const mediaUrl = fileUrl || embedUrl;
   const iframeSrc = normalizeEmbedUrl(embedUrl);
 
   if (resource.source === "EMBED" && iframeSrc) {
@@ -32,6 +32,32 @@ export default function ResourceRenderer({ resource, className = "", compact = f
   }
 
   if (mimeType?.startsWith("video/") || type === "VIDEO") {
+    // Chế độ thumbnail: chỉ hiện 1 khung hình tĩnh + nút play, KHÔNG controls.
+    // Tránh nhồi mini-player có thanh điều khiển bị cắt vào ô lưới.
+    // Phát đầy đủ diễn ra khi mở MediaDetailModal (ResourceRenderer không compact).
+    if (thumbnail) {
+      const rawPoster = fileUrl || mediaUrl;
+      const posterSrc = rawPoster && !rawPoster.includes("#") ? `${rawPoster}#t=0.1` : rawPoster;
+      return (
+        <div className={`${wrapperClass} relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-black`}>
+          <video
+            className="absolute inset-0 h-full w-full object-cover"
+            src={posterSrc}
+            preload="metadata"
+            muted
+            playsInline
+            tabIndex={-1}
+          />
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white shadow-lg ring-1 ring-white/30">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-5 w-5">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+          </span>
+        </div>
+      );
+    }
     return (
       <div className={`${wrapperClass} overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-black`}>
         <video controls className={`${compact ? "h-full min-h-[190px] max-h-[240px] object-contain" : "max-h-80"} w-full`} src={mediaUrl}>

@@ -523,6 +523,7 @@ export default function QuestionBanks({ isAdmin = false }) {
         onCancel={closeCreateModal}
         footer={null}
         destroyOnHidden
+        forceRender
       >
         <Form form={form} layout="vertical" onFinish={handleCreate} className="mt-4">
           <Form.Item
@@ -581,6 +582,7 @@ export default function QuestionBanks({ isAdmin = false }) {
         onCancel={closeEditModal}
         footer={null}
         destroyOnHidden
+        forceRender
       >
         <Form form={editForm} layout="vertical" onFinish={handleUpdate} className="mt-4">
           <Form.Item

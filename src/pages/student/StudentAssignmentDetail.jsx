@@ -157,8 +157,9 @@ export default function StudentAssignmentDetail() {
   const maxScore = assignment?.maxScore ?? 100;
   const hasGrade = submission?.grade !== null && submission?.grade !== undefined;
   const scorePercent = hasGrade && maxScore > 0 ? Math.min(100, Math.max(0, (submission.grade / maxScore) * 100)) : 0;
+  const isArchived = assignment?.classSectionStatus === "ARCHIVED";
   const canResubmit = submission?.canResubmit !== false;
-  const showEditor = editingSubmission || (!hasSubmitted && canResubmit);
+  const showEditor = !isArchived && (editingSubmission || (!hasSubmitted && canResubmit));
   const submissionResources = submission?.resources || [];
 
   const handleStartEditing = () => {
@@ -578,7 +579,7 @@ export default function StudentAssignmentDetail() {
 
             {submission?.feedback && (
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-gray-800">
-                <h2 className="m-0 text-base font-bold text-slate-950 dark:text-white">Nhận xét giáo viên</h2>
+                <h2 className="m-0 text-base font-bold text-slate-950 dark:text-white">Nhận xét giảng viên</h2>
                 <div
                   className="prose prose-sm mt-3 max-w-none rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-slate-700 dark:prose-invert dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-slate-200"
                   dangerouslySetInnerHTML={{ __html: submission.feedback }}
@@ -588,17 +589,19 @@ export default function StudentAssignmentDetail() {
 
             <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-gray-800">
               <h2 className="m-0 text-base font-bold text-slate-950 dark:text-white">
-                {hasSubmitted ? "Cần cập nhật bài?" : "Sẵn sàng nộp bài?"}
+                {isArchived ? "Lớp đã lưu trữ" : hasSubmitted ? "Cần cập nhật bài?" : "Sẵn sàng nộp bài?"}
               </h2>
               <p className="m-0 mt-2 text-sm text-slate-500">
-                {canResubmit
-                  ? "Bạn có thể gửi bài mới trước thời điểm hệ thống đóng nhận bài."
-                  : "Assignment này đã đóng nhận bài hoặc không còn cho phép nộp lại."}
+                {isArchived
+                  ? "Lớp đã được lưu trữ — bạn chỉ có thể xem lại bài đã nộp, không thể nộp hoặc nộp lại."
+                  : canResubmit
+                    ? "Bạn có thể gửi bài mới trước thời điểm hệ thống đóng nhận bài."
+                    : "Assignment này đã đóng nhận bài hoặc không còn cho phép nộp lại."}
               </p>
               <Button
                 type="primary"
                 className="mt-4 w-full"
-                disabled={!canResubmit || showEditor}
+                disabled={isArchived || !canResubmit || showEditor}
                 onClick={handleStartEditing}
               >
                 {hasSubmitted ? "Tạo bài nộp mới" : "Mở form nộp bài"}
