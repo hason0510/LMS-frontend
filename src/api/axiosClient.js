@@ -41,24 +41,37 @@ let refreshPromise = null;
 
 const getErrorMessage = (error) => error?.response?.data?.message || error?.message;
 
+const performRefresh = () =>
+  axios.put(`${API_BASE}/auth/refresh`, null, { withCredentials: true })
+    .then(({ data }) => {
+      const payload = data?.data ?? data;
+      const newAccessToken = payload?.accessToken;
+
+      if (!newAccessToken) {
+        throw new Error("Missing access token in refresh response");
+      }
+
+      useUserStore.getState().setAccessToken(newAccessToken);
+      return payload;
+    });
+
 export const refreshAccessToken = () => {
-  if (!refreshPromise) {
-    refreshPromise = axios.put(`${API_BASE}/auth/refresh`, null, { withCredentials: true })
-      .then(({ data }) => {
-        const payload = data?.data ?? data;
-        const newAccessToken = payload?.accessToken;
-
-        if (!newAccessToken) {
-          throw new Error("Missing access token in refresh response");
-        }
-
-        useUserStore.getState().setAccessToken(newAccessToken);
-        return payload;
-      })
-      .finally(() => {
-        refreshPromise = null;
-      });
+  // Single-flight trong cùng một tab: các caller đồng thời share chung 1 request.
+  if (refreshPromise) {
+    return refreshPromise;
   }
+
+  // Web Locks serialize việc refresh giữa MỌI tab cùng origin, nên hai tab không
+  // thể cùng rotate refresh cookie (dùng chung) một lúc -> tránh tab thua bị 401.
+  // Backend atomic CAS là chốt chặn cuối. Browser cũ không hỗ trợ -> fallback về
+  // single-flight trong tab ở trên.
+  const run = 'locks' in navigator
+    ? () => navigator.locks.request('lms_refresh_token', performRefresh)
+    : performRefresh;
+
+  refreshPromise = run().finally(() => {
+    refreshPromise = null;
+  });
 
   return refreshPromise;
 };
@@ -111,6 +124,13 @@ axiosClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${payload.accessToken}`;
         return axiosClient(originalRequest);
       } catch (err) {
+        // Lỗi mạng/timeout (không có response) — vd Render cold start — KHÔNG đăng xuất:
+        // giữ phiên, để request thật kế tiếp tự refresh lại. Chỉ logout khi server
+        // từ chối dứt khoát (401/403). Cùng nguyên tắc với useTokenExpiration.
+        if (!err?.response) {
+          return Promise.reject(err);
+        }
+
         console.error("Session expired, redirecting to login...");
         clearLocalAuthState();
 
