@@ -261,6 +261,7 @@ export default function StudentLectureDetail() {
 
           <LessonComments
             lectureId={lectureId}
+            classSectionId={classSectionId}
             readOnlyReason={isArchived ? t("lessonComments.archivedReadOnly") : null}
           />
         </div>

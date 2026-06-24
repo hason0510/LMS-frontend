@@ -17,7 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { CheckCircleIcon as CheckCircleSolidIcon } from "@heroicons/react/24/solid";
 import LessonComments from "../lesson/LessonComments";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   getClassChapters,
   getClassContentItems,
@@ -87,6 +87,18 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
   // Comment drawer
   const [commentDrawer, setCommentDrawer] = useState({ open: false, lessonId: null, title: "" });
   const closeCommentDrawer = () => setCommentDrawer({ open: false, lessonId: null, title: "" });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Mở sẵn drawer bình luận khi điều hướng từ thông báo (?commentLessonId=...).
+  useEffect(() => {
+    const lessonId = searchParams.get("commentLessonId");
+    if (lessonId) {
+      setCommentDrawer({ open: true, lessonId: Number(lessonId), title: "" });
+      const next = new URLSearchParams(searchParams);
+      next.delete("commentLessonId");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Lesson completion modal
   const [lessonCompletionModal, setLessonCompletionModal] = useState({ open: false, itemId: null, title: "" });
@@ -941,10 +953,18 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                           title: item.displayTitle || item.title,
                                         });
                                       }}
-                                      className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500 transition-colors"
+                                      className="relative p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500 transition-colors"
                                       title={t("classContent.lessonComments.actions.open")}
                                     >
                                       <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                                      {item.unansweredCommentCount > 0 && (
+                                        <span
+                                          className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white"
+                                          title={t("classContent.lessonComments.unansweredTitle", { count: item.unansweredCommentCount })}
+                                        >
+                                          {item.unansweredCommentCount > 9 ? "9+" : item.unansweredCommentCount}
+                                        </span>
+                                      )}
                                     </button>
                                   )}
                                   <button
@@ -1404,6 +1424,14 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
       {/* ── Comment Drawer ── */}
       {commentDrawer.open && (
+        <>
+          {/* Backdrop: làm tối nền (đồng bộ mask ~45% của các Ant Design Drawer khác),
+              bấm ra ngoài để đóng. z-40 dưới panel z-50. */}
+          <div
+            className="fixed inset-0 z-40 bg-black/45"
+            onClick={closeCommentDrawer}
+            aria-hidden="true"
+          />
         <div className="fixed inset-y-0 right-0 z-50 w-full max-w-125 bg-white dark:bg-gray-900 shadow-2xl flex flex-col border-l border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
@@ -1423,10 +1451,12 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <LessonComments
               lectureId={commentDrawer.lessonId}
+              classSectionId={classSectionId}
               readOnlyReason={archived ? t("lessonComments.archivedReadOnly") : null}
             />
           </div>
         </div>
+        </>
       )}
     </div>
   );

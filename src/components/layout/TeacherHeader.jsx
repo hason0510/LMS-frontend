@@ -18,6 +18,7 @@ import {
 } from "../../api/notification";
 
 import useNotificationStore from "../../store/useNotificationStore";
+import NotificationSoundToggle from "../notifications/NotificationSoundToggle";
 
 // Format timestamp to readable format (HH:mm:ss DD/MM/YYYY)
 const formatNotificationTime = (timestamp) => {
@@ -186,6 +187,9 @@ export default function TeacherHeader({ toggleSidebar }) {
           >
             <UserCircleIcon className="h-6 w-6" />
           </Link>
+
+          {/* Notification sound toggle */}
+          <NotificationSoundToggle />
 
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>

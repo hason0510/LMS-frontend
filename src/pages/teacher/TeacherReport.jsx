@@ -1,25 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Alert, App, Button, Empty, Spin } from "antd";
 import { CheckOutlined, CloseOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import ClassSectionReportContent from "../../components/report/ClassSectionReportContent";
 import { approveEnrollment, rejectEnrollment } from "../../api/enrollment";
-import { getClassPeople } from "../../api/teaching";
-import {
-  getClassSectionGradeBook,
-  getClassSectionPendingRequests,
-  getClassReportOverview,
-  getClassAssignmentReport,
-  getTeacherReportSummary,
-  getClassQuizReport,
-} from "../../api/statistics";
-import { collectAllPagedItems, unwrapApiData } from "../../utils/reporting";
+import { getTeacherReportSummary } from "../../api/statistics";
+import { unwrapApiData } from "../../utils/reporting";
+import useClassReportData, { EMPTY_REPORT } from "../../hooks/useClassReportData";
 
-const REPORT_POLL_INTERVAL_MS = 30_000;
+const errMessage = (err, fallback) =>
+  err?.response?.data?.message || err?.message || fallback;
 
 // ── Main component ─────────────────────────────────────────────────────────
 
@@ -27,19 +22,6 @@ export default function TeacherReport() {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // Class list (for the report selector) + selected class report data
-  const [classSections, setClassSections] = useState([]);
-  const [gradeBook, setGradeBook] = useState([]);
-  const [peopleRows, setPeopleRows] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [classOverview, setClassOverview] = useState(null);
-  const [assignmentReport, setAssignmentReport] = useState(null);
-  const [quizReport, setQuizReport] = useState(null);
-  const [loadingClasses, setLoadingClasses] = useState(true);
-  const [loadingReport, setLoadingReport] = useState(false);
-
-  const [error, setError] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // URL state
@@ -52,96 +34,72 @@ export default function TeacherReport() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => { loadSummaryData(); }, []);
-
-  useEffect(() => {
-    if (!selectedClassSectionId) return;
-    loadReportData(selectedClassSectionId);
-  }, [selectedClassSectionId]);
-
-  useEffect(() => {
-    if (!selectedClassSectionId) return;
-    const id = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      loadReportData(selectedClassSectionId);
-    }, REPORT_POLL_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [selectedClassSectionId]);
-
   const selectClassSection = (classSectionId) => {
     const p = new URLSearchParams();
     if (classSectionId) p.set("classSectionId", String(classSectionId));
     setSearchParams(p, { replace: true });
   };
 
-  const loadSummaryData = async () => {
-    try {
-      setLoadingClasses(true);
-      setError(null);
-      const summaryRaw = await getTeacherReportSummary();
-      const s = unwrapApiData(summaryRaw) || {};
+  // ── Danh sách lớp (summary) ──
+  const summaryQuery = useQuery({
+    queryKey: ["teacherReportSummary"],
+    queryFn: getTeacherReportSummary,
+  });
 
-      const allClasses = [...(s.taughtClasses || []), ...(s.assistedClasses || [])];
-      // Filter out duplicate classes by ID, code, or title to avoid duplicate key warnings and duplicate render items
-      const uniqueClasses = [];
-      const seen = new Set();
-      allClasses.forEach((c) => {
-        if (!c) return;
-        const identifier = c.id || c.classSectionId || c.classCode || c.title;
-        if (identifier && !seen.has(identifier)) {
-          seen.add(identifier);
-          uniqueClasses.push(c);
-        } else if (!identifier) {
-          uniqueClasses.push(c);
-        }
-      });
-      setClassSections(uniqueClasses);
-
-      if (uniqueClasses.length && !uniqueClasses.some((c) => (c.id || c.classSectionId) === selectedClassSectionId)) {
-        if (selectedClassSectionId) {
-          messageApi.warning(
-            t("report.invalidClassRedirect", "Lớp không tồn tại hoặc bạn không có quyền, đã chuyển về lớp đầu tiên.")
-          );
-        }
-        selectClassSection(uniqueClasses[0].id || uniqueClasses[0].classSectionId);
+  const classSections = useMemo(() => {
+    const s = unwrapApiData(summaryQuery.data) || {};
+    const allClasses = [...(s.taughtClasses || []), ...(s.assistedClasses || [])];
+    // Lọc lớp trùng theo ID / mã / tiêu đề để tránh duplicate key & render trùng
+    const uniqueClasses = [];
+    const seen = new Set();
+    allClasses.forEach((c) => {
+      if (!c) return;
+      const identifier = c.id || c.classSectionId || c.classCode || c.title;
+      if (identifier && !seen.has(identifier)) {
+        seen.add(identifier);
+        uniqueClasses.push(c);
+      } else if (!identifier) {
+        uniqueClasses.push(c);
       }
-    } catch (err) {
-      setError(err?.response?.data?.message || err.message || t("reportsPage.teacher.errors.loadClasses"));
-    } finally {
-      setLoadingClasses(false);
-    }
-  };
+    });
+    return uniqueClasses;
+  }, [summaryQuery.data]);
 
-  const loadReportData = async (classSectionId = selectedClassSectionId) => {
-    if (!classSectionId) return;
-    try {
-      setLoadingReport(true);
-      setError(null);
-      const [gradeBookRes, peopleRes, pendingRes, overviewRes, assignRes, quizRes] = await Promise.all([
-        getClassSectionGradeBook(classSectionId),
-        getClassPeople(classSectionId, { status: "APPROVED" }),
-        collectAllPagedItems(
-          (page) => getClassSectionPendingRequests(classSectionId, page, 250),
-          { startPage: 1, maxPages: 8 }
-        ),
-        getClassReportOverview(classSectionId).catch(() => null),
-        getClassAssignmentReport(classSectionId).catch(() => null),
-        getClassQuizReport(classSectionId).catch(() => null),
-      ]);
-      setGradeBook(Array.isArray(unwrapApiData(gradeBookRes)) ? unwrapApiData(gradeBookRes) : []);
-      setPeopleRows(Array.isArray(peopleRes) ? peopleRes : peopleRes?.data || []);
-      setPendingRequests(pendingRes);
-      setClassOverview(unwrapApiData(overviewRes));
-      setAssignmentReport(unwrapApiData(assignRes));
-      setQuizReport(unwrapApiData(quizRes));
-    } catch (err) {
-      setError(err?.response?.data?.message || err.message || t("reportsPage.teacher.errors.loadReport"));
-    } finally {
-      setLoadingReport(false);
+  // Tự chuyển về lớp đầu nếu lớp đang chọn không hợp lệ
+  useEffect(() => {
+    if (!classSections.length) return;
+    if (!classSections.some((c) => (c.id || c.classSectionId) === selectedClassSectionId)) {
+      if (selectedClassSectionId) {
+        messageApi.warning(
+          t("report.invalidClassRedirect", "Lớp không tồn tại hoặc bạn không có quyền, đã chuyển về lớp đầu tiên.")
+        );
+      }
+      selectClassSection(classSections[0].id || classSections[0].classSectionId);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classSections, selectedClassSectionId]);
 
-  const currentClassSection = classSections.find((c) => (c.id || c.classSectionId) === selectedClassSectionId) || null;
+  // ── Dữ liệu báo cáo của lớp đang chọn (React Query → hết race khi đổi lớp) ──
+  const reportQuery = useClassReportData(selectedClassSectionId);
+  const {
+    gradeBook,
+    peopleRows,
+    pendingRequests,
+    classOverview,
+    assignmentReport,
+    quizReport,
+  } = reportQuery.data || EMPTY_REPORT;
+
+  const loadingClasses = summaryQuery.isLoading;
+  const loadingReport = reportQuery.isLoading; // chỉ true lần đầu/đổi lớp, không nhấp nháy khi refetch nền
+  const error = summaryQuery.isError
+    ? errMessage(summaryQuery.error, t("reportsPage.teacher.errors.loadClasses"))
+    : reportQuery.isError
+      ? errMessage(reportQuery.error, t("reportsPage.teacher.errors.loadReport"))
+      : null;
+
+  const currentClassSection =
+    classSections.find((c) => (c.id || c.classSectionId) === selectedClassSectionId) || null;
 
   const handleApprove = (record) => {
     modalApi.confirm({
@@ -154,7 +112,7 @@ export default function TeacherReport() {
         try {
           await approveEnrollment(record.studentId, null, record.classSectionId);
           messageApi.success(t("reportsPage.shared.messages.approveSuccess"));
-          loadReportData();
+          reportQuery.refetch();
         } catch (err) {
           messageApi.error(err?.response?.data?.message || err.message || t("reportsPage.shared.errors.approveFailed"));
         }
@@ -173,7 +131,7 @@ export default function TeacherReport() {
         try {
           await rejectEnrollment(record.studentId, null, record.classSectionId);
           messageApi.success(t("reportsPage.shared.messages.rejectSuccess"));
-          loadReportData();
+          reportQuery.refetch();
         } catch (err) {
           messageApi.error(err?.response?.data?.message || err.message || t("reportsPage.shared.errors.rejectFailed"));
         }
@@ -223,7 +181,7 @@ export default function TeacherReport() {
                   extendedInsights
                 />
                 <div className="flex justify-end">
-                  <Button icon={<ReloadOutlined />} onClick={() => loadReportData()} loading={loadingReport}>
+                  <Button icon={<ReloadOutlined />} onClick={() => reportQuery.refetch()} loading={reportQuery.isFetching}>
                     {t("reportsPage.teacher.actions.reload")}
                   </Button>
                 </div>

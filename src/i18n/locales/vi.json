@@ -41,6 +41,9 @@
     "giaoDien": "Giao diện",
     "cheDo Toi": "Chế độ tối",
     "dieuChinhGiaoDien": "Điều chỉnh giao diện sáng/tối",
+    "amThanhThongBao": "Âm thanh thông báo",
+    "phatAmThanh": "Phát âm thanh",
+    "amThanhThongBaoMoTa": "Phát tiếng khi có thông báo mới",
     "thongBaoEmail": "Thông báo qua Email",
     "nhanEmailKhoahoc": "Nhận email về các khóa học mới và khuyến mãi",
     "thongBao": "Thông báo"
@@ -276,6 +279,8 @@
   },
   "notifications": {
     "thongBao": "Thông báo",
+    "muteSound": "Tắt âm thanh thông báo",
+    "unmuteSound": "Bật âm thanh thông báo",
     "banCo": "Bạn có",
     "thongBaoChuaDa": "thông báo chưa đọc",
     "tatCaThongBao": "Tất cả thông báo đều đã được đọc",
@@ -1187,7 +1192,11 @@
       "shuffleQuestions": "Trộn thứ tự câu hỏi",
       "shuffleAnswers": "Trộn thứ tự đáp án",
       "showCorrectAnswer": "Hiển thị đáp án đúng",
-      "passingGradeLabel": "Điểm đạt (%)"
+      "passingGradeLabel": "Điểm đạt (%)",
+      "availableFromLabel": "Mở làm bài từ",
+      "availableFromPlaceholder": "Chọn thời điểm mở (tùy chọn)",
+      "availableUntilLabel": "Hết hạn làm bài",
+      "availableUntilPlaceholder": "Chọn thời điểm đóng (tùy chọn)"
     },
     "messages": {
       "loadQuizFailed": "Không thể tải quiz",
@@ -1713,6 +1722,7 @@
     },
     "lessonComments": {
       "title": "Bình luận bài học",
+      "unansweredTitle": "{{count}} câu hỏi chưa trả lời",
       "actions": {
         "open": "Xem bình luận người học"
       }
@@ -1851,7 +1861,11 @@
       "content": "Bình luận sẽ hiển thị trạng thái đã bị thu hồi và giữ lại các phản hồi bên dưới."
     },
     "labels": {
-      "edited": "(Đã chỉnh sửa)"
+      "edited": "(Đã chỉnh sửa)",
+      "instructor": "Giảng viên",
+      "assistant": "Trợ giảng",
+      "student": "Người học",
+      "admin": "Quản trị viên"
     },
     "time": {
       "justNow": "vừa xong",

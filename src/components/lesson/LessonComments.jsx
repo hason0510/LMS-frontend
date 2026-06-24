@@ -17,7 +17,7 @@ import UserIdentity from "../common/UserIdentity";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8081";
 
-export default function LessonComments({ lectureId, previewMode = false, readOnlyReason = null }) {
+export default function LessonComments({ lectureId, classSectionId = null, previewMode = false, readOnlyReason = null }) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const accessToken = useUserStore((state) => state.accessToken);
@@ -38,7 +38,7 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
     if (!lectureId) return;
     try {
       setLoading(true);
-      const response = await getCommentsByLesson(lectureId);
+      const response = await getCommentsByLesson(lectureId, 1, 20, classSectionId);
       // Response có cấu trúc: { data: { content: [...] } } từ PageResponse
       const commentsList = response.data.pageList;
     //   const commentsList = pageData.content
@@ -54,7 +54,7 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
     } finally {
       setLoading(false);
     }
-  }, [lectureId, t]);
+  }, [lectureId, classSectionId, t]);
 
   useEffect(() => {
     fetchComments();
@@ -195,11 +195,15 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
     return date.toLocaleDateString(i18n.language === "en" ? "en-US" : "vi-VN");
   };
 
+  // Đếm TỔNG tất cả bình luận, gồm cả reply lồng nhau (không chỉ comment gốc)
+  const countAllComments = (list = []) =>
+    list.reduce((sum, c) => sum + 1 + countAllComments(c.replies), 0);
+
   return (
     <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h3 className="m-0 text-xl font-bold text-[#111418] dark:text-white">
-          {t("lessonComments.title", { count: comments.length })}
+          {t("lessonComments.title", { count: countAllComments(comments) })}
         </h3>
         {!isReadOnly && user && !showCommentForm ? (
           <Button type="primary" onClick={() => setShowCommentForm(true)} className="shrink-0">
@@ -291,6 +295,23 @@ export default function LessonComments({ lectureId, previewMode = false, readOnl
                         <span className="text-sm font-semibold text-[#111418] dark:text-white">
                           {comment.fullName || t("lessonComments.unknownUser")}
                         </span>
+                        {comment.classRole === "TA" ? (
+                          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            {t("lessonComments.labels.assistant", "Trợ giảng")}
+                          </span>
+                        ) : comment.authorRole === "TEACHER" ? (
+                          <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">
+                            {t("lessonComments.labels.instructor", "Giảng viên")}
+                          </span>
+                        ) : comment.authorRole === "ADMIN" ? (
+                          <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600 dark:bg-rose-900/30 dark:text-rose-300">
+                            {t("lessonComments.labels.admin", "Quản trị viên")}
+                          </span>
+                        ) : comment.authorRole === "STUDENT" ? (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
+                            {t("lessonComments.labels.student", "Người học")}
+                          </span>
+                        ) : null}
                         <span className="text-gray-300 dark:text-gray-600">·</span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {formatDate(comment.createdAt)}

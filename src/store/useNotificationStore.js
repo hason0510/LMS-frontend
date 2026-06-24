@@ -8,6 +8,7 @@ import {
   getNotificationPreview,
   normalizeNotificationItem,
 } from '../utils/notificationText';
+import { playNotificationSound } from '../utils/notificationSound';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8081";
 
@@ -85,7 +86,9 @@ const useNotificationStore = create((set, get) => ({
       client.subscribe(`/user/queue/notifications`, (message) => {
         const newNotification = normalizeNotificationItem(JSON.parse(message.body));
 
-        // Add to list and play sound or show toast
+        // Phát âm thanh (dedupe theo id để không trùng với kênh polling)
+        playNotificationSound(newNotification.id);
+
         set((state) => ({
           notifications: [newNotification, ...state.notifications],
           unreadCount: state.unreadCount + 1,

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Avatar from "../common/Avatar";
 import ConfirmModal from "../common/ConfirmModal";
 import NotificationDetailModal from "../common/NotificationDetailModal";
+import NotificationSoundToggle from "../notifications/NotificationSoundToggle";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
@@ -262,6 +263,7 @@ export default function Header({ menuItems }) {
           <div className="flex flex-1 justify-end gap-3 sm:gap-6 items-center">
             {isLoggedIn ? (
               <>
+                <NotificationSoundToggle />
                 <div className="relative" ref={notificationRef}>
                   <button
                     onClick={() => setIsNotificationOpen(!isNotificationOpen)}

@@ -41,6 +41,9 @@
     "giaoDien": "Interface",
     "cheDo Toi": "Dark Mode",
     "dieuChinhGiaoDien": "Adjust light/dark interface.",
+    "amThanhThongBao": "Notification sound",
+    "phatAmThanh": "Play sound",
+    "amThanhThongBaoMoTa": "Play a sound when a new notification arrives.",
     "thongBaoEmail": "Email Notifications",
     "nhanEmailKhoahoc": "Receive emails about new courses and promotions.",
     "thongBao": "Notifications"
@@ -276,6 +279,8 @@
   },
   "notifications": {
     "thongBao": "Notifications",
+    "muteSound": "Mute notification sound",
+    "unmuteSound": "Unmute notification sound",
     "banCo": "You have",
     "thongBaoChuaDa": "unread notifications",
     "tatCaThongBao": "All notifications have been read",
@@ -1187,7 +1192,11 @@
       "shuffleQuestions": "Randomize questions",
       "shuffleAnswers": "Randomize answers",
       "showCorrectAnswer": "Show correct answer",
-      "passingGradeLabel": "Passing grade (%)"
+      "passingGradeLabel": "Passing grade (%)",
+      "availableFromLabel": "Open from",
+      "availableFromPlaceholder": "Pick an opening time (optional)",
+      "availableUntilLabel": "Closes at",
+      "availableUntilPlaceholder": "Pick a closing time (optional)"
     },
     "messages": {
       "loadQuizFailed": "Failed to load quiz",
@@ -1713,6 +1722,7 @@
     },
     "lessonComments": {
       "title": "Lesson comments",
+      "unansweredTitle": "{{count}} unanswered question(s)",
       "actions": {
         "open": "View student comments"
       }
@@ -1851,7 +1861,11 @@
       "content": "This comment will show as revoked and its replies will be kept."
     },
     "labels": {
-      "edited": "(Edited)"
+      "edited": "(Edited)",
+      "instructor": "Instructor",
+      "assistant": "Assistant",
+      "student": "Student",
+      "admin": "Admin"
     },
     "time": {
       "justNow": "just now",

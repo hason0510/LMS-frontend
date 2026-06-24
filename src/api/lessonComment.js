@@ -1,9 +1,9 @@
 import axiosClient from "./axiosClient";
 
-export async function getCommentsByLesson(lectureId, pageNumber = 1, pageSize = 20) {
-  const response = await axiosClient.get(`lessons/${lectureId}/comments`, {
-    params: { pageNumber, pageSize }
-  });
+export async function getCommentsByLesson(lectureId, pageNumber = 1, pageSize = 20, classSectionId = null) {
+  const params = { pageNumber, pageSize };
+  if (classSectionId != null) params.classSectionId = classSectionId;
+  const response = await axiosClient.get(`lessons/${lectureId}/comments`, { params });
   return response.data;
 }
 

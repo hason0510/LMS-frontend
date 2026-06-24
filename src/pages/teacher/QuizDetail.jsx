@@ -3,8 +3,9 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import {
   App, Button, Input, Select, Switch, InputNumber, Drawer, Checkbox,
-  Spin, Dropdown, Tag, Radio, Modal,
+  Spin, Dropdown, Tag, Radio, Modal, DatePicker,
 } from "antd";
+import dayjs from "dayjs";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import {
@@ -1499,6 +1500,36 @@ function SettingsPanel({ settings, onChange }) {
           />
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("quizEditor.settings.availableFromLabel")}</label>
+          <DatePicker
+            showTime
+            format="DD/MM/YYYY HH:mm"
+            className="w-full"
+            placeholder={t("quizEditor.settings.availableFromPlaceholder")}
+            value={settings.availableFrom ? dayjs(settings.availableFrom) : null}
+            onChange={(d) => onChange({ availableFrom: d ? d.format("YYYY-MM-DDTHH:mm:ss") : null })}
+            disabledDate={(current) =>
+              settings.availableUntil ? current && current.isAfter(dayjs(settings.availableUntil), "minute") : false
+            }
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("quizEditor.settings.availableUntilLabel")}</label>
+          <DatePicker
+            showTime
+            format="DD/MM/YYYY HH:mm"
+            className="w-full"
+            placeholder={t("quizEditor.settings.availableUntilPlaceholder")}
+            value={settings.availableUntil ? dayjs(settings.availableUntil) : null}
+            onChange={(d) => onChange({ availableUntil: d ? d.format("YYYY-MM-DDTHH:mm:ss") : null })}
+            disabledDate={(current) =>
+              settings.availableFrom ? current && current.isBefore(dayjs(settings.availableFrom), "minute") : false
+            }
+          />
+        </div>
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">{t("quizEditor.settings.displayModeLabel")}</label>
         <Select
@@ -1573,6 +1604,8 @@ export default function QuizDetail() {
     showCorrectAnswer: false,
     maxAttempts: 1,
     minPassScore: 80,
+    availableFrom: null,
+    availableUntil: null,
   });
   const [activeTab, setActiveTab] = useState("questions");
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -1649,6 +1682,8 @@ export default function QuizDetail() {
           showCorrectAnswer: !!quiz?.showCorrectAnswer,
           maxAttempts: quiz?.maxAttempts || 1,
           minPassScore: quiz?.minPassScore || 80,
+          availableFrom: quiz?.availableFrom || null,
+          availableUntil: (isTemplateMode ? quiz?.availableTo : quiz?.availableUntil) || null,
         });
         setQuestions((quiz?.questions || []).map(transformApiQuestion));
         const loadedBankSources = groupBankSourcesForEditor(quiz?.bankSources || []);
@@ -1824,13 +1859,18 @@ export default function QuizDetail() {
         showCorrectAnswer: settings.showCorrectAnswer,
         maxAttempts: settings.maxAttempts,
         minPassScore: settings.minPassScore,
+        availableFrom: settings.availableFrom,
         generateQuestionsPerAttempt: isBankRuleMode,
         questions: isBankRuleMode ? [] : processedQuestions,
         bankSources: isBankRuleMode ? processedBankSources : [],
-        ...(isTemplateMode ? {} : {
-          classSectionId: classSectionId ? Number(classSectionId) : null,
-          classContentItemId: classContentItemId ? Number(classContentItemId) : null,
-        }),
+        // Tên field "đến hạn" khác nhau giữa 2 DTO: quiz thường = availableUntil, template = availableTo
+        ...(isTemplateMode
+          ? { availableTo: settings.availableUntil }
+          : {
+              availableUntil: settings.availableUntil,
+              classSectionId: classSectionId ? Number(classSectionId) : null,
+              classContentItemId: classContentItemId ? Number(classContentItemId) : null,
+            }),
       };
 
       let savedQuiz;

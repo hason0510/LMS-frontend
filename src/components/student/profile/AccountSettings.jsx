@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Select } from "antd";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
+import {
+  isNotifSoundMuted,
+  setNotifSoundMuted,
+  onNotifSoundMuteChange,
+} from "../../../utils/notificationSound";
 
 export default function AccountSettings() {
   const { t, i18n } = useTranslation();
@@ -17,6 +22,18 @@ export default function AccountSettings() {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+
+  // Âm thanh thông báo (bật mặc định). Lưu localStorage, không đụng DB.
+  const [soundOn, setSoundOn] = useState(() => !isNotifSoundMuted());
+
+  // Đồng bộ với icon loa trên header nếu được bật/tắt ở nơi khác.
+  useEffect(() => onNotifSoundMuteChange((muted) => setSoundOn(!muted)), []);
+
+  const handleToggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    setNotifSoundMuted(!next);
+  };
 
   const handleLanguageChange = (newLang) => {
     setLanguage(newLang);
@@ -79,6 +96,34 @@ export default function AccountSettings() {
                 className="sr-only peer"
                 checked={isDarkMode}
                 onChange={toggleTheme}
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+            </label>
+          </div>
+        </div>
+
+        {/* Notification Sound Setting */}
+        <div className="flex items-center gap-4">
+          <h3 className="text-lg font-bold text-[#111418] dark:text-white">
+            {t("settings.amThanhThongBao")}:
+          </h3>
+
+          <div className="flex items-center justify-between gap-4 max-w-md p-4 border border-black/10 dark:border-white/10 rounded-lg">
+            <div className="flex flex-col">
+              <span className="text-base font-medium text-[#111418] dark:text-white">
+                {t("settings.phatAmThanh")}
+              </span>
+              <span className="text-sm text-[#617589] dark:text-gray-400">
+                {t("settings.amThanhThongBaoMoTa")}
+              </span>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={soundOn}
+                onChange={handleToggleSound}
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
             </label>

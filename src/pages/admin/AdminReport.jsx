@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Alert, App, Button, Empty, Spin } from "antd";
 import { CheckOutlined, CloseOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import {
   AcademicCapIcon,
   BuildingLibraryIcon,
@@ -26,21 +27,18 @@ import ReportSectionCard from "../../components/report/ReportSectionCard";
 import { getClassSections } from "../../api/classSection";
 import { approveEnrollment, rejectEnrollment } from "../../api/enrollment";
 import {
-  getClassSectionGradeBook,
-  getClassSectionPendingRequests,
   getAdminReportSummary,
   getAdminTeacherLoad,
   getAdminSubjectLoad,
   getAdminAssistants,
-  getClassReportOverview,
-  getClassAssignmentReport,
-  getClassQuizReport,
 } from "../../api/statistics";
-import { getClassPeople } from "../../api/teaching";
-import { collectAllPagedItems, unwrapApiData } from "../../utils/reporting";
+import { unwrapApiData } from "../../utils/reporting";
+import useClassReportData, { EMPTY_REPORT } from "../../hooks/useClassReportData";
 
-const REPORT_POLL_INTERVAL_MS = 30_000;
 const MAIN_TABS = ["overview", "report"];
+
+const errMessage = (err, fallback) =>
+  err?.response?.data?.message || err?.message || fallback;
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -78,27 +76,6 @@ export default function AdminReport() {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // Page-level data
-  const [systemStats, setSystemStats] = useState({
-    totalUsers: 0, totalClassSections: 0, totalSubjects: 0,
-    pendingEnrollments: 0, totalTeachers: 0, totalAssistants: 0,
-    pendingSubmissions: 0, pendingQuizReviews: 0,
-  });
-  const [statusCounts, setStatusCounts] = useState({ PUBLIC: 0, PRIVATE: 0, ARCHIVED: 0 });
-  const [managedClassSections, setManagedClassSections] = useState([]);
-  const [loadingPage, setLoadingPage] = useState(true);
-
-  // Class-level report data
-  const [gradeBook, setGradeBook] = useState([]);
-  const [peopleRows, setPeopleRows] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [classOverview, setClassOverview] = useState(null);
-  const [assignmentReport, setAssignmentReport] = useState(null);
-  const [quizReport, setQuizReport] = useState(null);
-  const [loadingReport, setLoadingReport] = useState(false);
-
-  const [error, setError] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // URL state
@@ -112,22 +89,6 @@ export default function AdminReport() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  useEffect(() => { loadPageData(); }, []);
-
-  useEffect(() => {
-    if (!selectedClassSectionId) return;
-    loadReportData(selectedClassSectionId);
-  }, [selectedClassSectionId]);
-
-  useEffect(() => {
-    if (!selectedClassSectionId) return;
-    const id = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      loadReportData(selectedClassSectionId);
-    }, REPORT_POLL_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [selectedClassSectionId]);
 
   const updateSearchState = (classSectionId, tab = activeMainTab, subtab = activeSubTab) => {
     const p = new URLSearchParams();
@@ -144,20 +105,28 @@ export default function AdminReport() {
     setSearchParams(p, { replace: true });
   };
 
-  const loadPageData = async () => {
-    try {
-      setLoadingPage(true);
-      setError(null);
+  // ── Dữ liệu cấp trang (thống kê hệ thống + danh sách lớp) ──
+  const pageQuery = useQuery({
+    queryKey: ["adminReportPage"],
+    queryFn: async () => {
       const [summaryRaw, classesRaw] = await Promise.all([
         getAdminReportSummary(),
         getClassSections({ pageNumber: 1, pageSize: 500 }),
       ]);
-      const s = unwrapApiData(summaryRaw) || {};
-      const classes = Array.isArray(unwrapApiData(classesRaw))
-        ? unwrapApiData(classesRaw)
-        : Array.isArray(classesRaw) ? classesRaw : [];
+      return { summaryRaw, classesRaw };
+    },
+  });
 
-      setSystemStats({
+  const { systemStats, statusCounts, managedClassSections } = useMemo(() => {
+    const s = unwrapApiData(pageQuery.data?.summaryRaw) || {};
+    const classesRaw = pageQuery.data?.classesRaw;
+    const classes = Array.isArray(unwrapApiData(classesRaw))
+      ? unwrapApiData(classesRaw)
+      : Array.isArray(classesRaw) ? classesRaw : [];
+    const counts = { PUBLIC: 0, PRIVATE: 0, ARCHIVED: 0 };
+    (s.classStatusBreakdown || []).forEach((item) => { counts[item.status] = item.count; });
+    return {
+      systemStats: {
         totalUsers: s.totalUsers || 0,
         totalClassSections: s.totalClassSections || 0,
         totalSubjects: s.totalSubjects || 0,
@@ -166,55 +135,44 @@ export default function AdminReport() {
         totalAssistants: s.totalAssistants || 0,
         pendingSubmissions: s.pendingSubmissions || 0,
         pendingQuizReviews: s.pendingQuizReviews || 0,
-      });
-      const counts = { PUBLIC: 0, PRIVATE: 0, ARCHIVED: 0 };
-      (s.classStatusBreakdown || []).forEach((item) => { counts[item.status] = item.count; });
-      setStatusCounts(counts);
-      setManagedClassSections(classes);
+      },
+      statusCounts: counts,
+      managedClassSections: classes,
+    };
+  }, [pageQuery.data]);
 
-      if (classes.length && !classes.some((c) => c.id === selectedClassSectionId)) {
-        if (selectedClassSectionId) {
-          messageApi.warning(
-            t("report.invalidClassRedirect", "Lớp không tồn tại hoặc bạn không có quyền, đã chuyển về lớp đầu tiên.")
-          );
-        }
-        updateSearchState(classes[0].id, activeMainTab);
+  // Tự chuyển về lớp đầu nếu lớp đang chọn không hợp lệ
+  useEffect(() => {
+    if (!managedClassSections.length) return;
+    if (!managedClassSections.some((c) => c.id === selectedClassSectionId)) {
+      if (selectedClassSectionId) {
+        messageApi.warning(
+          t("report.invalidClassRedirect", "Lớp không tồn tại hoặc bạn không có quyền, đã chuyển về lớp đầu tiên.")
+        );
       }
-    } catch (err) {
-      setError(err?.response?.data?.message || err.message || t("reportsPage.admin.errors.loadPage"));
-    } finally {
-      setLoadingPage(false);
+      updateSearchState(managedClassSections[0].id, activeMainTab);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [managedClassSections, selectedClassSectionId]);
 
-  const loadReportData = async (classSectionId = selectedClassSectionId) => {
-    if (!classSectionId) return;
-    try {
-      setLoadingReport(true);
-      setError(null);
-      const [gradeBookRes, peopleRes, pendingRes, overviewRes, assignRes, quizRes] = await Promise.all([
-        getClassSectionGradeBook(classSectionId),
-        getClassPeople(classSectionId, { status: "APPROVED" }),
-        collectAllPagedItems(
-          (page) => getClassSectionPendingRequests(classSectionId, page, 250),
-          { startPage: 1, maxPages: 8 }
-        ),
-        getClassReportOverview(classSectionId).catch(() => null),
-        getClassAssignmentReport(classSectionId).catch(() => null),
-        getClassQuizReport(classSectionId).catch(() => null),
-      ]);
-      setGradeBook(Array.isArray(unwrapApiData(gradeBookRes)) ? unwrapApiData(gradeBookRes) : []);
-      setPeopleRows(Array.isArray(peopleRes) ? peopleRes : peopleRes?.data || []);
-      setPendingRequests(pendingRes);
-      setClassOverview(unwrapApiData(overviewRes));
-      setAssignmentReport(unwrapApiData(assignRes));
-      setQuizReport(unwrapApiData(quizRes));
-    } catch (err) {
-      setError(err?.response?.data?.message || err.message || t("reportsPage.admin.errors.loadReport"));
-    } finally {
-      setLoadingReport(false);
-    }
-  };
+  // ── Dữ liệu báo cáo của lớp đang chọn (React Query → hết race khi đổi lớp) ──
+  const reportQuery = useClassReportData(selectedClassSectionId);
+  const {
+    gradeBook,
+    peopleRows,
+    pendingRequests,
+    classOverview,
+    assignmentReport,
+    quizReport,
+  } = reportQuery.data || EMPTY_REPORT;
+
+  const loadingPage = pageQuery.isLoading;
+  const loadingReport = reportQuery.isLoading;
+  const error = pageQuery.isError
+    ? errMessage(pageQuery.error, t("reportsPage.admin.errors.loadPage"))
+    : reportQuery.isError
+      ? errMessage(reportQuery.error, t("reportsPage.admin.errors.loadReport"))
+      : null;
 
   const currentClassSection = managedClassSections.find((c) => c.id === selectedClassSectionId) || null;
   const topClasses = useMemo(
@@ -247,7 +205,7 @@ export default function AdminReport() {
         try {
           await approveEnrollment(record.studentId, null, record.classSectionId);
           messageApi.success(t("reportsPage.shared.messages.approveSuccess"));
-          loadReportData();
+          reportQuery.refetch();
         } catch (err) {
           messageApi.error(err?.response?.data?.message || err.message || t("reportsPage.shared.errors.approveFailed"));
         }
@@ -266,7 +224,7 @@ export default function AdminReport() {
         try {
           await rejectEnrollment(record.studentId, null, record.classSectionId);
           messageApi.success(t("reportsPage.shared.messages.rejectSuccess"));
-          loadReportData();
+          reportQuery.refetch();
         } catch (err) {
           messageApi.error(err?.response?.data?.message || err.message || t("reportsPage.shared.errors.rejectFailed"));
         }
@@ -441,7 +399,7 @@ export default function AdminReport() {
                   />
 
                   <div className="flex justify-end">
-                    <Button icon={<ReloadOutlined />} onClick={() => { loadPageData(); if (selectedClassSectionId) loadReportData(); }} loading={loadingPage || loadingReport}>
+                    <Button icon={<ReloadOutlined />} onClick={() => { pageQuery.refetch(); if (selectedClassSectionId) reportQuery.refetch(); }} loading={pageQuery.isFetching || reportQuery.isFetching}>
                       {t("reportsPage.admin.actions.reload")}
                     </Button>
                   </div>

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Empty } from "antd";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -22,7 +23,6 @@ import { getStudentQuizFeed } from "../../api/quiz";
 import { getMyNotificationsPage } from "../../api/notification";
 import { getNotificationPreview, normalizeNotificationItem } from "../../utils/notificationText";
 import { getMySubmissions } from "../../api/submission";
-import useForegroundRefresh from "../../hooks/useForegroundRefresh";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -261,78 +261,74 @@ export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [myClasses, setMyClasses] = useState([]);
-  const [assignmentsUpcoming, setAssignmentsUpcoming] = useState([]);
-  const [assignmentsOverdue, setAssignmentsOverdue] = useState([]);
-  const [quizzesUpcoming, setQuizzesUpcoming] = useState([]);
-  const [quizzesOverdue, setQuizzesOverdue] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [recentResults, setRecentResults] = useState([]);
-  const [errors, setErrors] = useState({ classes: false, tasks: false, notifications: false, results: false });
+  // React Query: fetch khi mount + refetchOnWindowFocus (thay useForegroundRefresh).
+  // Gộp 8 call vào 1 query, allSettled → lỗi từng widget độc lập (giữ object errors).
+  const dashboardQuery = useQuery({
+    queryKey: ["studentDashboard"],
+    queryFn: async () => {
+      const [classesRes, aUpcoming, aOverdue, qUpcoming, qOverdue, notiRes, gradedRes, returnedRes] =
+        await Promise.allSettled([
+          searchClassSections({ scope: "MY", pageNumber: 1, pageSize: 24, sortBy: "createdDate", sortDirection: "ASC" }),
+          getStudentAssignmentFeed({ tab: "UPCOMING" }),
+          getStudentAssignmentFeed({ tab: "PAST_DUE" }),
+          getStudentQuizFeed({ tab: "UPCOMING" }),
+          getStudentQuizFeed({ tab: "PAST_DUE" }),
+          getMyNotificationsPage(1, 5),
+          getMySubmissions({ status: "GRADED" }),
+          getMySubmissions({ status: "RETURNED" }),
+        ]);
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
-    const [classesRes, aUpcoming, aOverdue, qUpcoming, qOverdue, notiRes, gradedRes, returnedRes] =
-      await Promise.allSettled([
-        searchClassSections({ scope: "MY", pageNumber: 1, pageSize: 24, sortBy: "createdDate", sortDirection: "ASC" }),
-        getStudentAssignmentFeed({ tab: "UPCOMING" }),
-        getStudentAssignmentFeed({ tab: "PAST_DUE" }),
-        getStudentQuizFeed({ tab: "UPCOMING" }),
-        getStudentQuizFeed({ tab: "PAST_DUE" }),
-        getMyNotificationsPage(1, 5),
-        getMySubmissions({ status: "GRADED" }),
-        getMySubmissions({ status: "RETURNED" }),
-      ]);
+      const mergedResults = [];
+      if (gradedRes.status === "fulfilled") mergedResults.push(...extractPageItems(gradedRes.value));
+      if (returnedRes.status === "fulfilled") mergedResults.push(...extractPageItems(returnedRes.value));
 
-    setErrors({
-      classes: classesRes.status === "rejected",
-      tasks:
-        aUpcoming.status === "rejected" &&
-        aOverdue.status === "rejected" &&
-        qUpcoming.status === "rejected" &&
-        qOverdue.status === "rejected",
-      notifications: notiRes.status === "rejected",
-      results: gradedRes.status === "rejected" && returnedRes.status === "rejected",
-    });
+      return {
+        errors: {
+          classes: classesRes.status === "rejected",
+          tasks:
+            aUpcoming.status === "rejected" &&
+            aOverdue.status === "rejected" &&
+            qUpcoming.status === "rejected" &&
+            qOverdue.status === "rejected",
+          notifications: notiRes.status === "rejected",
+          results: gradedRes.status === "rejected" && returnedRes.status === "rejected",
+        },
+        myClasses:
+          classesRes.status === "fulfilled"
+            ? (classesRes.value?.items || []).filter((item) => item?.status !== "ARCHIVED")
+            : [],
+        assignmentsUpcoming: aUpcoming.status === "fulfilled" ? extractPageItems(aUpcoming.value) : [],
+        assignmentsOverdue: aOverdue.status === "fulfilled" ? extractPageItems(aOverdue.value) : [],
+        quizzesUpcoming: qUpcoming.status === "fulfilled" ? extractPageItems(qUpcoming.value) : [],
+        quizzesOverdue: qOverdue.status === "fulfilled" ? extractPageItems(qOverdue.value) : [],
+        notifications:
+          notiRes.status === "fulfilled"
+            ? extractPageItems(notiRes.value).map((item) => normalizeNotificationItem(item))
+            : [],
+        recentResults: mergedResults
+          .filter((item) => item?.status === "GRADED" || item?.status === "RETURNED")
+          .sort((left, right) => {
+            const leftTime = dayjs(left.gradedAt || left.submissionTime).valueOf();
+            const rightTime = dayjs(right.gradedAt || right.submissionTime).valueOf();
+            return rightTime - leftTime;
+          })
+          .slice(0, 5),
+      };
+    },
+  });
 
-    setMyClasses(
-      classesRes.status === "fulfilled"
-        ? (classesRes.value?.items || []).filter((item) => item?.status !== "ARCHIVED")
-        : []
-    );
-    setAssignmentsUpcoming(aUpcoming.status === "fulfilled" ? extractPageItems(aUpcoming.value) : []);
-    setAssignmentsOverdue(aOverdue.status === "fulfilled" ? extractPageItems(aOverdue.value) : []);
-    setQuizzesUpcoming(qUpcoming.status === "fulfilled" ? extractPageItems(qUpcoming.value) : []);
-    setQuizzesOverdue(qOverdue.status === "fulfilled" ? extractPageItems(qOverdue.value) : []);
-    setNotifications(
-      notiRes.status === "fulfilled"
-        ? extractPageItems(notiRes.value).map((item) => normalizeNotificationItem(item))
-        : []
-    );
-
-    const mergedResults = [];
-    if (gradedRes.status === "fulfilled") mergedResults.push(...extractPageItems(gradedRes.value));
-    if (returnedRes.status === "fulfilled") mergedResults.push(...extractPageItems(returnedRes.value));
-    setRecentResults(
-      mergedResults
-        .filter((item) => item?.status === "GRADED" || item?.status === "RETURNED")
-        .sort((left, right) => {
-          const leftTime = dayjs(left.gradedAt || left.submissionTime).valueOf();
-          const rightTime = dayjs(right.gradedAt || right.submissionTime).valueOf();
-          return rightTime - leftTime;
-        })
-        .slice(0, 5)
-    );
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  useForegroundRefresh(loadDashboard);
+  const {
+    myClasses = [],
+    assignmentsUpcoming = [],
+    assignmentsOverdue = [],
+    quizzesUpcoming = [],
+    quizzesOverdue = [],
+    notifications = [],
+    recentResults = [],
+    errors = { classes: false, tasks: false, notifications: false, results: false },
+  } = dashboardQuery.data || {};
+  const loading = dashboardQuery.isLoading;
+  const reload = () => dashboardQuery.refetch();
 
   const now = dayjs();
   const approvedClasses = myClasses.filter((item) => item?.myEnrollmentStatus === "APPROVED");
@@ -450,7 +446,7 @@ export default function Home() {
                 onAction={() => navigate("/student/assignments")}
               >
                 {errors.tasks ? (
-                  <WidgetError message={t("studentOverview.errors.assignments")} onRetry={loadDashboard} retryLabel={t("studentOverview.actions.retry")} />
+                  <WidgetError message={t("studentOverview.errors.assignments")} onRetry={reload} retryLabel={t("studentOverview.actions.retry")} />
                 ) : taskItems.length === 0 ? (
                   <Empty description={t("studentOverview.empty.tasks")} />
                 ) : (
@@ -493,7 +489,7 @@ export default function Home() {
                 onAction={() => navigate("/classes")}
               >
                 {errors.classes ? (
-                  <WidgetError message={t("studentOverview.errors.classes")} onRetry={loadDashboard} retryLabel={t("studentOverview.actions.retry")} />
+                  <WidgetError message={t("studentOverview.errors.classes")} onRetry={reload} retryLabel={t("studentOverview.actions.retry")} />
                 ) : progressClasses.length === 0 ? (
                   <Empty description={t("studentOverview.empty.classes")} />
                 ) : (
@@ -533,7 +529,7 @@ export default function Home() {
             <div className="!grid !gap-6 xl:!grid-cols-2">
               <SectionCard title={t("studentOverview.sections.results.title")} subtitle={t("studentOverview.sections.results.subtitle")}>
                 {errors.results ? (
-                  <WidgetError message={t("studentOverview.errors.results")} onRetry={loadDashboard} retryLabel={t("studentOverview.actions.retry")} />
+                  <WidgetError message={t("studentOverview.errors.results")} onRetry={reload} retryLabel={t("studentOverview.actions.retry")} />
                 ) : recentResults.length === 0 ? (
                   <Empty description={t("studentOverview.empty.results")} />
                 ) : (
@@ -576,7 +572,7 @@ export default function Home() {
                 onAction={() => navigate("/student/profile/notifications")}
               >
                 {errors.notifications ? (
-                  <WidgetError message={t("studentOverview.errors.notifications")} onRetry={loadDashboard} retryLabel={t("studentOverview.actions.retry")} />
+                  <WidgetError message={t("studentOverview.errors.notifications")} onRetry={reload} retryLabel={t("studentOverview.actions.retry")} />
                 ) : notifications.length === 0 ? (
                   <Empty description={t("studentOverview.empty.notifications")} />
                 ) : (
