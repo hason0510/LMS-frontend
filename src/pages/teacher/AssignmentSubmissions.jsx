@@ -12,6 +12,7 @@ import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import TeachingLayout from "../../components/teaching/TeachingLayout";
 import UserIdentity from "../../components/common/UserIdentity";
+import SafeHtml from "../../components/common/SafeHtml";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getAssignmentById } from "../../api/assignment";
@@ -415,9 +416,9 @@ export default function AssignmentSubmissions({ isAdmin = false, teachingMode = 
             {selectedSubmission.description && (
               <div className="border border-slate-200 rounded-lg p-3">
                 <p className="text-xs uppercase text-slate-500 mb-2">{t("assignments.submissions.modal.content")}</p>
-                <div
+                <SafeHtml
                   className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: selectedSubmission.description }}
+                  html={selectedSubmission.description}
                 />
               </div>
             )}

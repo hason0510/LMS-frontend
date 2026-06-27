@@ -8,6 +8,7 @@ import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import LessonComments from "../../components/lesson/LessonComments";
 import FileItem from "../../components/common/FileItem";
 import VideoPlayer from "../../components/common/VideoPlayer";
+import SafeHtml from "../../components/common/SafeHtml";
 import { getLessonById } from "../../api/lesson";
 import { getResourcesByLessonId } from "../../api/resource";
 
@@ -197,9 +198,9 @@ export default function TeacherLessonPreview() {
                     <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-4">
                       Nội dung bài giảng
                     </h2>
-                    <div
+                    <SafeHtml
                       className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-justify]:text-justify [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:mb-6 [&_h1]:mt-4 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:mb-5 [&_h2]:mt-3 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:mb-4 [&_h3]:mt-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6"
-                      dangerouslySetInnerHTML={{ __html: lesson.content }}
+                      html={lesson.content}
                     />
                   </div>
                 )}

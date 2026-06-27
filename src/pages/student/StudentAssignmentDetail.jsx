@@ -6,6 +6,7 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import Header from "../../components/layout/Header";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import SafeHtml from "../../components/common/SafeHtml";
 import { getAssignmentById } from "../../api/assignment";
 import { getMySubmission, submitAssignment } from "../../api/submission";
 import { uploadStandaloneResource } from "../../api/resource";
@@ -328,9 +329,9 @@ export default function StudentAssignmentDetail() {
                 {assignment?.description && (
                   <section>
                     <h2 className="m-0 text-sm font-semibold uppercase tracking-wide text-slate-500">Mô tả</h2>
-                    <div
+                    <SafeHtml
                       className="prose prose-sm mt-3 max-w-none text-slate-700 dark:prose-invert dark:text-slate-200"
-                      dangerouslySetInnerHTML={{ __html: assignment.description }}
+                      html={assignment.description}
                     />
                   </section>
                 )}
@@ -338,9 +339,9 @@ export default function StudentAssignmentDetail() {
                 {assignment?.instruction && (
                   <section className="border-t border-slate-100 pt-5 dark:border-slate-700">
                     <h2 className="m-0 text-sm font-semibold uppercase tracking-wide text-slate-500">Hướng dẫn</h2>
-                    <div
+                    <SafeHtml
                       className="prose prose-sm mt-3 max-w-none text-slate-700 dark:prose-invert dark:text-slate-200"
-                      dangerouslySetInnerHTML={{ __html: assignment.instruction }}
+                      html={assignment.instruction}
                     />
                   </section>
                 )}
@@ -390,9 +391,9 @@ export default function StudentAssignmentDetail() {
                       Nội dung đã nộp
                     </h3>
                     {hasRichTextContent(submission?.description) ? (
-                      <div
+                      <SafeHtml
                         className="prose prose-sm mt-3 max-w-none rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 dark:prose-invert dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200"
-                        dangerouslySetInnerHTML={{ __html: submission.description }}
+                        html={submission.description}
                       />
                     ) : (
                       <p className="m-0 mt-3 rounded-md border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 dark:border-slate-700">
@@ -580,9 +581,9 @@ export default function StudentAssignmentDetail() {
             {submission?.feedback && (
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-gray-800">
                 <h2 className="m-0 text-base font-bold text-slate-950 dark:text-white">Nhận xét giảng viên</h2>
-                <div
+                <SafeHtml
                   className="prose prose-sm mt-3 max-w-none rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-slate-700 dark:prose-invert dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-slate-200"
-                  dangerouslySetInnerHTML={{ __html: submission.feedback }}
+                  html={submission.feedback}
                 />
               </div>
             )}

@@ -46,6 +46,7 @@ import {
   uploadStandaloneResource,
 } from "../../api/resource";
 import { parseClozeToItems } from "../../utils/cloze";
+import { escapeHtml } from "../../utils/sanitizeHtml";
 import { buildQuillModules, createQuillTableControl } from "../../utils/quillTable";
 
 const QUESTION_TYPE_VALUES = [
@@ -928,7 +929,10 @@ function ShortAnswerSection({ question, onChange }) {
 
 function ClozeSection({ question, onChange }) {
   const { t } = useTranslation();
-  const preview = (question.clozeSyntax || "").replace(/\[\[([^\]]+)\]\]/g, (_, inner) => {
+  // Escape the whole syntax first so any HTML the teacher typed (inside or outside
+  // the [[...]] tokens) is rendered as text, not markup. The bracket replacement
+  // then runs on the already-escaped string, so parts[0] is safe as-is.
+  const preview = escapeHtml(question.clozeSyntax || "").replace(/\[\[([^\]]+)\]\]/g, (_, inner) => {
     const parts = inner.split("|");
     return `<span style="border-bottom:2px solid #9ca3af;min-width:3rem;display:inline-block;margin:0 4px;color:#2563eb;font-weight:600">${parts[0]}</span>`;
   });

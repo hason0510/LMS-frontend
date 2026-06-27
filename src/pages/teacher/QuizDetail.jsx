@@ -28,6 +28,7 @@ import { createClassContentItem, getCourseById } from "../../api/classSection";
 import MediaAttachButton from "../../components/media/MediaAttachButton";
 import ResourceRenderer from "../../components/media/ResourceRenderer";
 import { parseClozeToItems } from "../../utils/cloze";
+import { escapeHtml } from "../../utils/sanitizeHtml";
 import {
   createContentItemTemplate,
   getQuizTemplateById,
@@ -942,7 +943,10 @@ function ShortAnswerSection({ question, onChange }) {
 }
 
 function ClozeSection({ question, onChange }) {
-  const preview = (question.clozeSyntax || "").replace(
+  // Escape the whole syntax first so any HTML the teacher typed (inside or outside
+  // the [[...]] tokens) is rendered as text, not markup. The bracket replacement
+  // then runs on the already-escaped string, so parts[0] is safe as-is.
+  const preview = escapeHtml(question.clozeSyntax || "").replace(
     /\[\[([^\]]+)\]\]/g,
     (_, inner) => {
       const parts = inner.split("|");

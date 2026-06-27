@@ -6,6 +6,7 @@ import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
+import SafeHtml from "../../components/common/SafeHtml";
 import { getAssignmentById } from "../../api/assignment";
 import FileItem from "../../components/common/FileItem";
 
@@ -114,9 +115,9 @@ export default function TeacherAssignmentPreview() {
               {assignment.description && (
                 <div className="border border-slate-200 dark:border-slate-600 rounded-lg p-4">
                   <p className="text-xs uppercase text-slate-500 mb-2">Mô tả</p>
-                  <div
+                  <SafeHtml
                     className="prose prose-sm max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: assignment.description }}
+                    html={assignment.description}
                   />
                 </div>
               )}
@@ -124,9 +125,9 @@ export default function TeacherAssignmentPreview() {
               {assignment.instruction && (
                 <div className="border border-slate-200 dark:border-slate-600 rounded-lg p-4">
                   <p className="text-xs uppercase text-slate-500 mb-2">Hướng dẫn</p>
-                  <div
+                  <SafeHtml
                     className="prose prose-sm max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: assignment.instruction }}
+                    html={assignment.instruction}
                   />
                 </div>
               )}
