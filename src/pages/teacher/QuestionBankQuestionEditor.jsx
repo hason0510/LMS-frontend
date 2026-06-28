@@ -34,6 +34,7 @@ import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import MediaAttachButton from "../../components/media/MediaAttachButton";
 import ResourceRenderer from "../../components/media/ResourceRenderer";
+import { isImageResource } from "../../utils/fileUtils";
 import {
   createQuestion,
   getQuestionBankById,
@@ -158,9 +159,6 @@ const mergeTagNames = (...lists) => {
 
 const buildTagOptions = (tagNames = []) =>
   mergeTagNames(tagNames).map((name) => ({ value: name, label: name }));
-
-const isImageResource = (resource) =>
-  !!resource && (resource.type === "IMAGE" || resource.mimeType?.startsWith("image/"));
 
 const isSingleSelectType = (questionType) =>
   ["SINGLE_CHOICE", "TRUE_FALSE", "IMAGE_ANSWERING"].includes(questionType);

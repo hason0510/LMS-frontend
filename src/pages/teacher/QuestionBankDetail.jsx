@@ -605,7 +605,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         key: 'delete_bank',
         danger: true,
         icon: <TrashIcon className="w-4 h-4" />,
-        label: t("questionBank.xoaBank") || "Xóa bank",
+        label: t("questionBank.xoaBank") || "Xóa ngân hàng",
         onClick: handleDeleteBank,
       }
     ] : [])
@@ -870,7 +870,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
                                   html={q?.content || ""}
                                   className="text-base leading-relaxed text-slate-800 dark:text-slate-100"
                                 />
-                                {q?.resource && <ResourcePreview resource={q.resource} className="mt-3" />}
+                                {q?.resource && <ResourcePreview resource={q.resource} className="!mt-1.5" />}
                               </div>
                               {canEditContent && (
                                 <div className="flex shrink-0 items-center gap-2">

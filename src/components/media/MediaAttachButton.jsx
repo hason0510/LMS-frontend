@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import MediaPickerModal from "./MediaPickerModal";
+import { isImageResource } from "../../utils/fileUtils";
 
 const TYPE_OPTIONS = [
   {
@@ -56,8 +57,7 @@ export default function MediaAttachButton({
   const resourceType = resource?.type || primaryType;
   const resourceOption = TYPE_OPTIONS.find((option) => option.type === resourceType) || primaryOption;
   const ResourceIcon = resourceOption?.Icon || ImagePlus;
-  const isImageResource =
-    !!resource && (resource.type === "IMAGE" || resource.mimeType?.startsWith("image/"));
+  const isImage = isImageResource(resource);
 
   const openPicker = (type) => {
     setSelectedType(type);
@@ -94,12 +94,12 @@ export default function MediaAttachButton({
               onClick={handleClick}
               aria-label={triggerLabel}
               className={`w-full overflow-hidden rounded-2xl border transition-colors ${
-                isImageResource
+                isImage
                   ? "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500"
                   : "border-dashed border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500 dark:hover:bg-slate-800"
               }`}
             >
-              {previewImage && isImageResource ? (
+              {previewImage && isImage ? (
                 <div className="aspect-[16/9] w-full bg-white dark:bg-slate-900">
                   <img
                     src={resource.fileUrl || resource.embedUrl}
@@ -116,7 +116,7 @@ export default function MediaAttachButton({
               )}
             </button>
           </Tooltip>
-          {isImageResource ? (
+          {isImage ? (
             <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-900/40 opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none">
               <button
                 type="button"
@@ -149,7 +149,7 @@ export default function MediaAttachButton({
                   : "border-slate-200 bg-slate-50 text-slate-400 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500 dark:hover:border-blue-500 dark:hover:bg-slate-800 dark:hover:text-blue-300"
               }`}
             >
-              {previewImage && isImageResource ? (
+              {previewImage && isImage ? (
                 <img
                   src={resource.fileUrl || resource.embedUrl}
                   alt={resource.title || triggerLabel}

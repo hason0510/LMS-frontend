@@ -141,6 +141,35 @@ export function getFileExtension(filename) {
   return parts.length > 1 ? parts.pop().toLowerCase() : "";
 }
 
+const IMAGE_URL_REGEX = /\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)(?:[?#]|$)/i;
+
+/**
+ * Đoán xem một URL có trỏ tới ảnh không (dựa trên đuôi file hoặc URL ảnh Cloudinary).
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function looksLikeImageUrl(url) {
+  if (!url) return false;
+  const str = String(url).trim();
+  if (IMAGE_URL_REGEX.test(str)) return true;
+  // URL ảnh của Cloudinary thường có transform thay vì đuôi file.
+  return /res\.cloudinary\.com\/.+\/image\/upload\//i.test(str);
+}
+
+/**
+ * Resource có nên hiển thị như ảnh không.
+ * Ảnh upload có type=IMAGE / mimeType image. Còn ảnh đính kèm bằng LINK bị backend
+ * ép source=LINK -> type=LINK (mất type IMAGE), nên phải nhận diện lại qua URL.
+ * @param {object} resource
+ * @returns {boolean}
+ */
+export function isImageResource(resource) {
+  if (!resource) return false;
+  if (resource.type === "IMAGE" || resource.mimeType?.startsWith("image/")) return true;
+  const isLinkish = resource.type === "LINK" || resource.source === "LINK";
+  return isLinkish && looksLikeImageUrl(resource.fileUrl || resource.embedUrl);
+}
+
 export function getDisplayFileType(resource) {
   if (!resource) return "FILE";
   if (resource.fileType) return resource.fileType;

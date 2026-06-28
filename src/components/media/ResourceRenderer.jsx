@@ -1,4 +1,5 @@
 import React from "react";
+import { looksLikeImageUrl } from "../../utils/fileUtils";
 
 export default function ResourceRenderer({ resource, className = "", compact = false, thumbnail = false }) {
   if (!resource) return null;
@@ -80,10 +81,46 @@ export default function ResourceRenderer({ resource, className = "", compact = f
 
   if (!mediaUrl) return null;
 
+  // Media kiểu LINK có thể trỏ tới một ảnh. Thử render thành ảnh; nếu URL không
+  // phải ảnh hợp lệ (tải lỗi) thì tự fallback về liên kết text. Bỏ qua ở chế độ
+  // thumbnail (lưới media) để không phá layout ô lưới.
+  const isLinkType = type === "LINK" || resource.source === "LINK";
+  if (!thumbnail && (isLinkType || looksLikeImageUrl(mediaUrl))) {
+    return <LinkImage src={mediaUrl} title={title} wrapperClass={wrapperClass} compact={compact} />;
+  }
+
   return (
     <a href={mediaUrl} target="_blank" rel="noreferrer" className={`${wrapperClass} block text-sm text-blue-600 underline`}>
       {title || mediaUrl}
     </a>
+  );
+}
+
+// Render ảnh từ URL (vd media kiểu LINK trỏ tới ảnh). Nếu ảnh tải lỗi -> coi như
+// "không có ảnh hợp lệ" -> hiển thị về liên kết text như cũ.
+function LinkImage({ src, title, wrapperClass, compact }) {
+  const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (failed) {
+    return (
+      <a href={src} target="_blank" rel="noreferrer" className={`${wrapperClass} block text-sm text-blue-600 underline`}>
+        {title || src}
+      </a>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={title || ""}
+      onError={() => setFailed(true)}
+      className={`${wrapperClass} max-w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 object-contain`}
+      style={{ maxHeight: compact ? 220 : 360 }}
+    />
   );
 }
 
