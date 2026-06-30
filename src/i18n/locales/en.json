@@ -1214,7 +1214,12 @@
       "clearedBankRulesForManual": "Removed the question bank rules to switch to manual mode.",
       "clearedManualForBankRule": "Removed the manual question list to switch to question bank rules.",
       "atLeastOneBankRuleRequired": "Please add at least one question bank rule.",
-      "libraryManualOnly": "You can only add from the questions library in manual mode."
+      "libraryManualOnly": "You can only add from the questions library in manual mode.",
+      "confirmSwitchMode": {
+        "title": "Switch question source mode?",
+        "content": "All data of the current mode will be cleared and cannot be recovered.",
+        "ok": "Switch & clear"
+      }
     }
   },
   "announcementsPage": {

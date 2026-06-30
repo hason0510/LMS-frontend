@@ -328,18 +328,55 @@ export default function QuizAttempt() {
     return [];
   };
 
+  const pendingSavesRef = useRef(new Set());
+  const textSaveTimersRef = useRef({});
+
+  const trackSave = (promise) => {
+    const p = Promise.resolve(promise);
+    pendingSavesRef.current.add(p);
+    p.finally(() => pendingSavesRef.current.delete(p));
+    return p;
+  };
+
+  const scheduleTextSave = (questionId, value) => {
+    const existing = textSaveTimersRef.current[questionId];
+    if (existing?.timer) clearTimeout(existing.timer);
+    const timer = setTimeout(() => {
+      delete textSaveTimersRef.current[questionId];
+      if (attempt) {
+        trackSave(
+          submitAnswer(attempt.id, questionId, { questionId, selectedAnswerIds: [], textAnswer: value })
+            .catch((err) => console.error("Failed to save answer", err))
+        );
+      }
+    }, 600);
+    textSaveTimersRef.current[questionId] = { timer, value };
+  };
+
+  const flushPendingSaves = async () => {
+    Object.entries(textSaveTimersRef.current).forEach(([questionId, entry]) => {
+      if (entry?.timer) clearTimeout(entry.timer);
+      if (attempt) {
+        trackSave(
+          submitAnswer(attempt.id, questionId, { questionId, selectedAnswerIds: [], textAnswer: entry.value })
+            .catch((err) => console.error("Failed to save answer", err))
+        );
+      }
+    });
+    textSaveTimersRef.current = {};
+    await Promise.allSettled([...pendingSavesRef.current]);
+  };
+
   const saveInteractionAnswer = async (question, answerState) => {
     if (!attempt) return;
-    try {
-      await submitAnswer(attempt.id, question.id, {
+    await trackSave(
+      submitAnswer(attempt.id, question.id, {
         questionId: question.id,
         selectedAnswerIds: [],
         textAnswer: null,
         answerItems: buildInteractionPayload(question, answerState),
-      });
-    } catch (err) {
-      console.error("Failed to submit interaction answer", err);
-    }
+      }).catch((err) => console.error("Failed to submit interaction answer", err))
+    );
   };
 
   const isQuestionAnswered = (question) => {
@@ -383,15 +420,13 @@ export default function QuizAttempt() {
 
     // API Call
     if (attempt) {
-        try {
-           await submitAnswer(attempt.id, questionId, {
-               questionId: questionId,
-               selectedAnswerIds: newSelectedIds,
-               textAnswer: null 
-           });
-        } catch (err) {
-           console.error("Failed to submit answer", err);
-        }
+        await trackSave(
+          submitAnswer(attempt.id, questionId, {
+              questionId: questionId,
+              selectedAnswerIds: newSelectedIds,
+              textAnswer: null
+          }).catch((err) => console.error("Failed to submit answer", err))
+        );
     }
   };
 
@@ -456,6 +491,7 @@ export default function QuizAttempt() {
       
       try {
           setSubmitting(true);
+          await flushPendingSaves();
           const submitRes = await submitQuiz(attempt.id);
           const result = submitRes?.data || submitRes;
           message.success(t("quizAttempt.messages.submitted"));
@@ -719,13 +755,7 @@ export default function QuizAttempt() {
             value={answers[question.id]?.[0] || ""}
             onChange={(e) => {
               setAnswers({ ...answers, [question.id]: [e.target.value] });
-              if (attempt) {
-                submitAnswer(attempt.id, question.id, {
-                  questionId: question.id,
-                  selectedAnswerIds: [],
-                  textAnswer: e.target.value,
-                }).catch((err) => console.error("Failed to save answer", err));
-              }
+              scheduleTextSave(question.id, e.target.value);
             }}
             placeholder="Viết câu trả lời của bạn ở đây..."
             className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"

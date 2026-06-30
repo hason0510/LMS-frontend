@@ -68,6 +68,7 @@ export default function LessonComments({ lectureId, classSectionId = null, previ
     const socket = new SockJS(`${BACKEND_URL}/ws`);
     const client = new Client({
       webSocketFactory: () => socket,
+      connectHeaders: { Authorization: `Bearer ${accessToken}` },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,

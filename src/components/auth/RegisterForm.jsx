@@ -106,11 +106,8 @@ export default function RegisterForm() {
         studentNumber: ""
       };
 
-      console.log('Register request data:', requestData);
-
       const res = await register(requestData);
-      console.log('Registration response:', res);
-      
+
       // After successful registration, show OTP modal
       if (res.data && res.data.userId) {
         console.log('Setting showOtpModal to true with userId:', res.data.userId);

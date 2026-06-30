@@ -178,6 +178,7 @@ export default function StudentLectureDetail() {
                       src={primaryVideoResourceEmbedUrl}
                       title={lesson?.title}
                       frameBorder="0"
+                      sandbox="allow-scripts allow-same-origin allow-presentation"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                       className="absolute top-0 left-0 w-full h-full"
@@ -206,6 +207,7 @@ export default function StudentLectureDetail() {
                   src={videoEmbedUrl}
                   title={lesson?.title}
                   frameBorder="0"
+                  sandbox="allow-scripts allow-same-origin allow-presentation"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="absolute top-0 left-0 w-full h-full"

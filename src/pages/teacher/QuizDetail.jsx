@@ -1585,7 +1585,7 @@ export default function QuizDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isAdmin = location.pathname.startsWith("/admin");
   const isTemplateMode = !!templateId;
@@ -1763,19 +1763,28 @@ export default function QuizDetail() {
 
   const handleSourceModeChange = (nextMode) => {
     if (nextMode === questionSourceMode) return;
-    if (nextMode === "MANUAL") {
-      if (bankSources.length > 0) {
+    const applyChange = () => {
+      if (nextMode === "MANUAL") {
         setBankSources([]);
-        message.info(t("quizEditor.messages.clearedBankRulesForManual"));
+        setQuestionSourceMode("MANUAL");
+      } else {
+        setQuestions([]);
+        setQuestionSourceMode("BANK_RULE");
       }
-      setQuestionSourceMode("MANUAL");
+    };
+    const hasDataToLose = nextMode === "MANUAL" ? bankSources.length > 0 : questions.length > 0;
+    if (!hasDataToLose) {
+      applyChange();
       return;
     }
-    if (questions.length > 0) {
-      setQuestions([]);
-      message.info(t("quizEditor.messages.clearedManualForBankRule"));
-    }
-    setQuestionSourceMode("BANK_RULE");
+    modal.confirm({
+      title: t("quizEditor.messages.confirmSwitchMode.title", "Đổi chế độ nguồn câu hỏi?"),
+      content: t("quizEditor.messages.confirmSwitchMode.content", "Toàn bộ dữ liệu của chế độ hiện tại sẽ bị xóa và không thể khôi phục."),
+      okText: t("quizEditor.messages.confirmSwitchMode.ok", "Đổi & xóa"),
+      cancelText: t("common.cancel", "Hủy"),
+      okButtonProps: { danger: true },
+      onOk: applyChange,
+    });
   };
 
   // save

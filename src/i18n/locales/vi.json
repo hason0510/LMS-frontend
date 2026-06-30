@@ -1214,7 +1214,12 @@
       "clearedBankRulesForManual": "Đã xóa các quy tắc rút câu hỏi để chuyển sang tạo thủ công.",
       "clearedManualForBankRule": "Đã xóa danh sách câu hỏi thủ công để chuyển sang rút từ ngân hàng câu hỏi.",
       "atLeastOneBankRuleRequired": "Vui lòng thêm ít nhất một quy tắc rút câu hỏi.",
-      "libraryManualOnly": "Chỉ có thể thêm từ thư viện câu hỏi khi ở chế độ tạo thủ công."
+      "libraryManualOnly": "Chỉ có thể thêm từ thư viện câu hỏi khi ở chế độ tạo thủ công.",
+      "confirmSwitchMode": {
+        "title": "Đổi chế độ nguồn câu hỏi?",
+        "content": "Toàn bộ dữ liệu của chế độ hiện tại sẽ bị xóa và không thể khôi phục.",
+        "ok": "Đổi & xóa"
+      }
     }
   },
   "announcementsPage": {
