@@ -2583,6 +2583,15 @@
         "rejectFailed": "Could not reject request",
         "deleteSuccess": "Students removed successfully",
         "deleteFailed": "Could not remove students"
+      },
+      "detail": {
+        "title": "Learner details",
+        "studentNumber": "Student ID",
+        "email": "Email",
+        "phone": "Phone number",
+        "birthday": "Date of birth",
+        "address": "Address",
+        "notUpdated": "Not updated"
       }
     }
   },

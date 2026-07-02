@@ -523,7 +523,7 @@ export default function ClassSectionDetailPage() {
                           {course.teacherImageUrl ? (
                             <img src={course.teacherImageUrl} alt={course.teacherName} className="w-6 h-6 rounded-full object-cover" />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
+                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
                               {course.teacherName.charAt(0).toUpperCase()}
                             </div>
                           )}

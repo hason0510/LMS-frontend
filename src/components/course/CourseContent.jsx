@@ -1361,7 +1361,6 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
           ) : filteredLessonCompletionRows.length > 0 ? (
             <div className="space-y-3">
               {filteredLessonCompletionRows.map((row) => {
-                const initials = (row.studentName || "U").trim().charAt(0).toUpperCase();
                 return (
                   <div
                     key={row.studentId}

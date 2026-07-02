@@ -2583,6 +2583,15 @@
         "rejectFailed": "Không thể từ chối yêu cầu",
         "deleteSuccess": "Đã xóa người học",
         "deleteFailed": "Không thể xóa người học"
+      },
+      "detail": {
+        "title": "Thông tin chi tiết người học",
+        "studentNumber": "Mã số người học",
+        "email": "Email",
+        "phone": "Số điện thoại",
+        "birthday": "Ngày sinh",
+        "address": "Địa chỉ",
+        "notUpdated": "Chưa cập nhật"
       }
     }
   },
