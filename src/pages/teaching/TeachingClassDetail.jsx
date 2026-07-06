@@ -16,8 +16,9 @@ import AnnouncementsTab from "../../components/course/AnnouncementsTab";
 import ClassPeopleTab from "../../components/teaching/ClassPeopleTab";
 import ClassReviewTab from "../../components/teaching/ClassReviewTab";
 import ClassStaffModal from "../../components/teaching/ClassStaffModal";
+import TeacherQuizAttempts from "../teacher/TeacherQuizAttempts";
 import { getClassSectionById } from "../../api/classSection";
-import { createAnnouncement } from "../../api/announcement";
+import { createAnnouncement, deleteAnnouncement, updateAnnouncement } from "../../api/announcement";
 import { getClassWorkbenchSummary } from "../../api/teaching";
 
 const CAP_VIEW_PEOPLE = "VIEW_PEOPLE";
@@ -35,6 +36,7 @@ const statusClass = {
 const tabFromPath = (pathname) => {
   if (pathname.endsWith("/people") || pathname.endsWith("/progress")) return "people";
   if (pathname.endsWith("/review")) return "review";
+  if (pathname.endsWith("/quiz-attempts")) return "quiz-attempts";
   if (pathname.endsWith("/announcements")) return "announcements";
   if (pathname.endsWith("/content")) return "content";
   return "overview";
@@ -52,6 +54,7 @@ export default function TeachingClassDetail() {
   const [summary, setSummary] = useState(null);
   const [staffOpen, setStaffOpen] = useState(false);
   const [announcementOpen, setAnnouncementOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [announcementVersion, setAnnouncementVersion] = useState(0);
   const [submittingAnnouncement, setSubmittingAnnouncement] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -101,27 +104,56 @@ export default function TeachingClassDetail() {
       message.warning(t("teaching.classDetail.archived.actionsBlocked"));
       return;
     }
+    setEditingAnnouncement(null);
     announcementForm.resetFields();
     setAnnouncementOpen(true);
   };
 
-  const handleCreateAnnouncement = async () => {
+  const openEditAnnouncementModal = (item) => {
+    if (isArchived) {
+      message.warning(t("teaching.classDetail.archived.actionsBlocked"));
+      return;
+    }
+    setEditingAnnouncement(item);
+    announcementForm.setFieldsValue({ title: item?.title, summary: item?.summary });
+    setAnnouncementOpen(true);
+  };
+
+  const handleSubmitAnnouncement = async () => {
     try {
       const values = await announcementForm.validateFields();
       setSubmittingAnnouncement(true);
-      await createAnnouncement({
+      const payload = {
         classSectionId: Number(id),
         title: values.title?.trim(),
         summary: values.summary,
-      });
-      message.success(t("teaching.classDetail.messages.announcementCreated"));
+      };
+      if (editingAnnouncement) {
+        await updateAnnouncement(editingAnnouncement.id, payload);
+        message.success(t("teaching.classDetail.messages.announcementUpdated"));
+      } else {
+        await createAnnouncement(payload);
+        message.success(t("teaching.classDetail.messages.announcementCreated"));
+      }
       setAnnouncementOpen(false);
+      setEditingAnnouncement(null);
       setAnnouncementVersion((value) => value + 1);
     } catch (err) {
       if (err?.errorFields) return;
-      message.error(err?.response?.data?.message || t("teaching.classDetail.errors.createAnnouncement"));
+      message.error(err?.response?.data?.message || t("teaching.classDetail.errors.saveAnnouncement"));
     } finally {
       setSubmittingAnnouncement(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (item) => {
+    if (!item?.id) return;
+    try {
+      await deleteAnnouncement(item.id);
+      message.success(t("teaching.classDetail.messages.announcementDeleted"));
+      setAnnouncementVersion((value) => value + 1);
+    } catch (err) {
+      message.error(err?.response?.data?.message || t("teaching.classDetail.errors.deleteAnnouncement"));
     }
   };
 
@@ -169,6 +201,14 @@ export default function TeachingClassDetail() {
       });
     }
 
+    if (canReviewQuizzes) {
+      items.push({
+        key: "quiz-attempts",
+        label: t("teaching.classDetail.tabs.quizAttempts"),
+        children: <TeacherQuizAttempts teachingMode fixedClassSectionId={Number(id)} />,
+      });
+    }
+
     if (canPostAnnouncements) {
       items.push({
         key: "announcements",
@@ -180,6 +220,9 @@ export default function TeachingClassDetail() {
             refreshKey={announcementVersion}
             onCreate={openAnnouncementModal}
             canCreate={canPostAnnouncementsActions}
+            canManage={canPostAnnouncementsActions}
+            onEdit={openEditAnnouncementModal}
+            onDelete={handleDeleteAnnouncement}
           />
         ),
       });
@@ -259,11 +302,14 @@ export default function TeachingClassDetail() {
       />
 
       <Modal
-        title={t("teaching.classDetail.announcements.modalTitle")}
+        title={editingAnnouncement ? t("teaching.classDetail.announcements.editModalTitle") : t("teaching.classDetail.announcements.modalTitle")}
         open={announcementOpen}
-        onCancel={() => setAnnouncementOpen(false)}
-        onOk={handleCreateAnnouncement}
-        okText={t("teaching.classDetail.announcements.submit")}
+        onCancel={() => {
+          setAnnouncementOpen(false);
+          setEditingAnnouncement(null);
+        }}
+        onOk={handleSubmitAnnouncement}
+        okText={editingAnnouncement ? t("teaching.classDetail.announcements.save") : t("teaching.classDetail.announcements.submit")}
         cancelText={t("teaching.classDetail.announcements.cancel")}
         confirmLoading={submittingAnnouncement}
         destroyOnHidden
@@ -299,11 +345,13 @@ function ClassHero({ course, role, canManageStaff, canPostAnnouncements, onOpenS
 
   return (
     <section className="!overflow-hidden !rounded-2xl !border !border-slate-200 !bg-white dark:!border-slate-800 dark:!bg-slate-900">
+      {/* Ảnh lớp học ở trang chi tiết được ẩn theo yêu cầu
       {course.imageUrl && (
         <div className="!aspect-[5/1] !min-h-36 !overflow-hidden !bg-slate-100 dark:!bg-slate-800">
           <img src={course.imageUrl} alt={title} className="!h-full !w-full !object-cover" />
         </div>
       )}
+      */}
       <div className="!flex !flex-col !gap-4 !p-5 sm:!p-6 lg:!flex-row lg:!items-start lg:!justify-between">
         <div className="!min-w-0">
           <div className="!mb-3 !flex !flex-wrap !items-center !gap-2">
@@ -411,7 +459,7 @@ function SummaryTile({ label, value, icon, tone = "slate" }) {
   );
 }
 
-function AnnouncementsPanel({ classSectionId, refreshKey, onCreate, canCreate, t }) {
+function AnnouncementsPanel({ classSectionId, refreshKey, onCreate, canCreate, canManage, onEdit, onDelete, t }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -423,7 +471,7 @@ function AnnouncementsPanel({ classSectionId, refreshKey, onCreate, canCreate, t
           {t("teaching.classDetail.announcements.create")}
         </Button>
       </div>
-      <AnnouncementsTab key={refreshKey} classSectionId={classSectionId} />
+      <AnnouncementsTab key={refreshKey} classSectionId={classSectionId} canManage={canManage} onEdit={onEdit} onDelete={onDelete} />
     </div>
   );
 }

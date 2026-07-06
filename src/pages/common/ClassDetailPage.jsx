@@ -495,6 +495,7 @@ export default function ClassSectionDetailPage() {
 
               {/* Class Hero Card */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+                {/* Ảnh lớp học ở trang chi tiết được ẩn theo yêu cầu
                 {course.imageUrl ? (
                   <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
                     <img
@@ -504,6 +505,7 @@ export default function ClassSectionDetailPage() {
                     />
                   </div>
                 ) : null}
+                */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">

@@ -1435,9 +1435,9 @@ function LibraryDrawer({ open, onClose, onAddQuestions }) {
           <div className="flex justify-center py-8"><Spin /></div>
         ) : filtered.length > 0 ? (
           <>
-            <div className="flex items-center gap-2 border-b pb-2">
+            <div className="flex items-center gap-2 py-1">
               <Checkbox checked={allSelected} indeterminate={someSelected} onChange={(e) => toggleAll(e.target.checked)} />
-              <span className="text-xs text-gray-500">{t("quizEditor.libraryQuestionCount", { count: filtered.length })}</span>
+              <span className="text-sm font-medium text-gray-600">{t("quizEditor.libraryQuestionCount", { count: filtered.length })}</span>
             </div>
             <div className="space-y-2 overflow-y-auto" style={{ maxHeight: "calc(100vh - 320px)" }}>
               {filtered.map((q) => (

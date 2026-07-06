@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Drawer, Empty, Select, Table, Tag } from "antd";
+import { Empty, Select, Table, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import Avatar from "../common/Avatar";
 import UserIdentity from "../common/UserIdentity";
@@ -10,7 +10,6 @@ export default function ClassPeopleTab({ classSectionId }) {
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState("ALL");
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -29,16 +28,14 @@ export default function ClassPeopleTab({ classSectionId }) {
     {
       title: t("teaching.people.columns.student"),
       render: (_, record) => (
-        <button onClick={() => setSelected(record)} className="block w-full text-left hover:opacity-80 transition-opacity">
-          <UserIdentity
-            user={{
-              name: record.studentName || "N/A",
-              avatarUrl: record.avatarUrl
-            }}
-            secondaryText={record.email || record.studentNumber || t("teaching.people.noStudentCode")}
-            avatarSizeClass="size-9"
-          />
-        </button>
+        <UserIdentity
+          user={{
+            name: record.studentName || "N/A",
+            avatarUrl: record.avatarUrl
+          }}
+          secondaryText={record.email || record.studentNumber || t("teaching.people.noStudentCode")}
+          avatarSizeClass="size-9"
+        />
       ),
     },
     {
@@ -113,47 +110,6 @@ export default function ClassPeopleTab({ classSectionId }) {
           />
         </div>
       )}
-      <Drawer
-        title={selected?.studentName || t("teaching.people.studentProfile")}
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        width={420}
-        destroyOnHidden
-      >
-        {selected && (
-          <div className="space-y-4">
-            <UserIdentity
-              user={{
-                name: selected.studentName,
-                avatarUrl: selected.avatarUrl
-              }}
-              secondaryText={selected.email || selected.studentNumber}
-              avatarSizeClass="size-10"
-              nameClassName="m-0 text-base font-black text-slate-950 dark:text-white"
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <Metric label={t("teaching.people.columns.progress")} value={`${selected.progress ?? 0}%`} />
-              <Metric label={t("teaching.people.columns.missingAssignments")} value={selected.missingAssignments} />
-              <Metric label={t("teaching.people.columns.pendingReviews")} value={selected.pendingReviews} />
-              <Metric label={t("teaching.people.columns.latestScore")} value={selected.latestScore ?? "-"} />
-            </div>
-            {selected.self && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                {t("teaching.people.selfNotice")}
-              </div>
-            )}
-          </div>
-        )}
-      </Drawer>
-    </div>
-  );
-}
-
-function Metric({ label, value }) {
-  return (
-    <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-      <p className="m-0 text-xs text-slate-500">{label}</p>
-      <p className="m-0 mt-1 text-xl font-black text-slate-950 dark:text-white">{value}</p>
     </div>
   );
 }

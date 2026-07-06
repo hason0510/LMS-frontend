@@ -234,6 +234,10 @@ function AppContent() {
         element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
       />
       <Route
+        path="/teaching/class-sections/:id/quiz-attempts"
+        element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
         path="/teaching/class-sections/:id/announcements"
         element={<ProtectedRoute element={<TeachingClassDetail />} allowedRoles={["STUDENT"]} />}
       />
@@ -374,6 +378,10 @@ function AppContent() {
       <Route
         path="/teacher/curriculums/:templateId/lectures/:lectureId"
         element={<ProtectedRoute element={<LectureDetail />} allowedRoles={["TEACHER"]} />}
+      />
+      <Route
+        path="/teacher/curriculums/:templateId/lectures/:lectureId/preview"
+        element={<ProtectedRoute element={<TeacherLessonPreview />} allowedRoles={["TEACHER"]} />}
       />
       <Route
         path="/teacher/curriculums/:templateId/quizzes/create"
@@ -572,6 +580,10 @@ function AppContent() {
       <Route
         path="/admin/curriculums/:templateId/lectures/:lectureId"
         element={<ProtectedRoute element={<LectureDetail isAdmin={true} />} allowedRoles={["ADMIN"]} />}
+      />
+      <Route
+        path="/admin/curriculums/:templateId/lectures/:lectureId/preview"
+        element={<ProtectedRoute element={<TeacherLessonPreview isAdmin={true} />} allowedRoles={["ADMIN"]} />}
       />
       <Route
         path="/admin/curriculums/:templateId/quizzes/create"

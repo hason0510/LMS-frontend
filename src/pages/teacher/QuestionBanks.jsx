@@ -54,6 +54,7 @@ export default function QuestionBanks({ isAdmin = false }) {
   const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(undefined);
   const [selectedSubjectId, setSelectedSubjectId] = useState(undefined);
+  const [selectedRole, setSelectedRole] = useState(undefined);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
@@ -96,7 +97,7 @@ export default function QuestionBanks({ isAdmin = false }) {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, ownerSearchQuery, selectedCategoryId, selectedSubjectId, pageSize]);
+  }, [searchQuery, ownerSearchQuery, selectedCategoryId, selectedSubjectId, selectedRole, pageSize]);
 
   const availableSubjects = useMemo(() => {
     if (!selectedCategoryId) return allSubjects;
@@ -120,9 +121,10 @@ export default function QuestionBanks({ isAdmin = false }) {
       const matchedSubject = allSubjects.find((subject) => subject.id === bank.subjectId);
       const matchesCategory = !selectedCategoryId || matchedSubject?.categoryId === selectedCategoryId;
       const matchesSubject = !selectedSubjectId || bank.subjectId === selectedSubjectId;
-      return matchesKeyword && matchesOwner && matchesCategory && matchesSubject;
+      const matchesRole = !selectedRole || bank.myRole === selectedRole;
+      return matchesKeyword && matchesOwner && matchesCategory && matchesSubject && matchesRole;
     });
-  }, [allSubjects, banks, ownerSearchQuery, searchQuery, selectedCategoryId, selectedSubjectId]);
+  }, [allSubjects, banks, ownerSearchQuery, searchQuery, selectedCategoryId, selectedSubjectId, selectedRole]);
 
   const pageItems = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -147,6 +149,12 @@ export default function QuestionBanks({ isAdmin = false }) {
     () => availableSubjects.map((subject) => ({ value: subject.id, label: formatSubjectLabel(subject) })),
     [availableSubjects]
   );
+
+  const roleOptions = [
+    { value: "OWNER", label: t("questionBank.roles.OWNER") },
+    { value: "EDITOR", label: t("questionBank.roles.EDITOR") },
+    { value: "VIEWER", label: t("questionBank.roles.VIEWER") },
+  ];
 
   const handleToolbarCategoryChange = (value) => {
     setSelectedCategoryId(value || undefined);
@@ -173,6 +181,7 @@ export default function QuestionBanks({ isAdmin = false }) {
     setOwnerSearchQuery("");
     setSelectedCategoryId(undefined);
     setSelectedSubjectId(undefined);
+    setSelectedRole(undefined);
   };
 
   const closeCreateModal = () => {
@@ -311,7 +320,9 @@ export default function QuestionBanks({ isAdmin = false }) {
         align: "center",
         render: (value) =>
           value ? (
-            <Tag color={value === "OWNER" ? "gold" : value === "EDITOR" ? "blue" : "default"}>{value}</Tag>
+            <Tag color={value === "OWNER" ? "gold" : value === "EDITOR" ? "blue" : "default"} className="text-sm font-semibold">
+              {t(`questionBank.roles.${value}`, value)}
+            </Tag>
           ) : (
             <span className="text-slate-400">—</span>
           ),
@@ -393,7 +404,7 @@ export default function QuestionBanks({ isAdmin = false }) {
               </div>
 
               <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_220px_220px_110px]">
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_190px_190px_150px_110px]">
                   <Input.Search
                     allowClear
                     value={searchQuery}
@@ -423,6 +434,13 @@ export default function QuestionBanks({ isAdmin = false }) {
                     onChange={handleToolbarSubjectChange}
                     placeholder={t("teacherLists.questionBanks.filters.subjectPlaceholder")}
                     options={subjectOptions}
+                  />
+                  <Select
+                    allowClear
+                    value={selectedRole}
+                    onChange={(value) => setSelectedRole(value || undefined)}
+                    placeholder={t("teacherLists.questionBanks.filters.rolePlaceholder")}
+                    options={roleOptions}
                   />
                   <Button onClick={resetFilters}>{t("teacherLists.shared.reset")}</Button>
                 </div>

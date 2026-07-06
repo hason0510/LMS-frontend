@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { Empty, Modal, Spin } from "antd";
+import { Button, Empty, Modal, Popconfirm, Spin } from "antd";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import { MegaphoneIcon } from "@heroicons/react/24/outline";
 import { getAnnouncementById, getAnnouncements } from "../../api/announcement";
 
-export default function AnnouncementsTab({ classSectionId: propClassSectionId }) {
+export default function AnnouncementsTab({ classSectionId: propClassSectionId, canManage = false, onEdit, onDelete }) {
+  const { t } = useTranslation();
   const params = useParams();
   const location = useLocation();
   const classSectionId = propClassSectionId || params.id || params.classSectionId;
@@ -71,7 +73,7 @@ export default function AnnouncementsTab({ classSectionId: propClassSectionId })
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-5!">
         {announcements.map((item) => (
           <button
             key={item.id}
@@ -134,6 +136,31 @@ export default function AnnouncementsTab({ classSectionId: propClassSectionId })
                 </p>
               </div>
             </div>
+            {canManage && (
+              <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <Popconfirm
+                  title={t("teaching.classDetail.announcements.deleteConfirm")}
+                  okText={t("teaching.classDetail.announcements.delete")}
+                  cancelText={t("teaching.classDetail.announcements.cancel")}
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => {
+                    onDelete?.(selected);
+                    setDetailOpen(false);
+                  }}
+                >
+                  <Button danger>{t("teaching.classDetail.announcements.delete")}</Button>
+                </Popconfirm>
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    setDetailOpen(false);
+                    onEdit?.(selected);
+                  }}
+                >
+                  {t("teaching.classDetail.announcements.edit")}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

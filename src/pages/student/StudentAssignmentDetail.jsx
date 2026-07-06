@@ -13,6 +13,7 @@ import { uploadStandaloneResource } from "../../api/resource";
 import FileItem from "../../components/common/FileItem";
 import { buildQuillModules, createQuillTableControl, extendQuillFormats } from "../../utils/quillTable";
 import useForegroundRefresh from "../../hooks/useForegroundRefresh";
+import { useTranslation } from "react-i18next";
 
 const quillModules = buildQuillModules([
   [{ header: [2, 3, false] }],
@@ -103,7 +104,7 @@ export default function StudentAssignmentDetail() {
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [editingSubmission, setEditingSubmission] = useState(false);
-
+  const { t } = useTranslation();
   const normalizeResources = (items = []) =>
     items.map((resource) => ({
       id: resource.id || `${resource.source}-${Math.random()}`,

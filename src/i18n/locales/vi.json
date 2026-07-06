@@ -1302,6 +1302,7 @@
       "fail": "Không đạt",
       "pending": "Chờ chấm"
     },
+    "missingContext": "Không tìm thấy ngữ cảnh quiz trong lớp.",
     "quizInfo": "Thông tin quiz",
     "quiz": "Quiz",
     "course": "Lớp học",
@@ -1436,6 +1437,7 @@
         "people": "Người học",
         "staff": "Nhân sự",
         "review": "Chấm bài",
+        "quizAttempts": "Lượt làm quiz",
         "announcements": "Bản tin",
         "progress": "Tiến độ"
       },
@@ -1452,10 +1454,14 @@
       },
       "errors": {
         "loadClass": "Không thể tải lớp học",
-        "createAnnouncement": "Không thể tạo bản tin lớp học"
+        "createAnnouncement": "Không thể tạo bản tin lớp học",
+        "saveAnnouncement": "Không thể lưu bản tin lớp học",
+        "deleteAnnouncement": "Không thể xóa bản tin lớp học"
       },
       "messages": {
-        "announcementCreated": "Đã đăng bản tin lớp học."
+        "announcementCreated": "Đã đăng bản tin lớp học.",
+        "announcementUpdated": "Đã cập nhật bản tin lớp học.",
+        "announcementDeleted": "Đã xóa bản tin lớp học."
       },
       "actions": {
         "createAnnouncement": "Tạo bản tin"
@@ -1469,6 +1475,11 @@
       },
       "announcements": {
         "modalTitle": "Tạo bản tin lớp học",
+        "editModalTitle": "Sửa bản tin lớp học",
+        "save": "Lưu",
+        "edit": "Sửa",
+        "delete": "Xóa",
+        "deleteConfirm": "Xóa bản tin này?",
         "create": "Tạo bản tin",
         "submit": "Đăng bản tin",
         "cancel": "Hủy",
@@ -1771,6 +1782,25 @@
       "defaults": {
         "noStudentInfo": "Chưa có thông tin liên hệ",
         "notCompletedTime": "Chưa hoàn thành"
+      }
+    },
+    "lessonPreview": {
+      "viewAsStudent": "Xem như người học",
+      "confirm": {
+        "title": "Xem trước bài giảng",
+        "content": "Trang xem trước hiển thị phiên bản đã lưu. Các thay đổi chưa lưu sẽ không xuất hiện.",
+        "ok": "Xem trước",
+        "cancel": "Hủy"
+      },
+      "banner": "Chế độ xem trước — Đây là giao diện người học thấy khi học bài giảng này",
+      "errorTitle": "Lỗi",
+      "loadError": "Không thể tải dữ liệu bài giảng",
+      "defaultTitle": "Bài giảng",
+      "contentHeading": "Nội dung bài giảng",
+      "resourcesHeading": "Tài liệu bài giảng",
+      "onedrive": {
+        "title": "Video OneDrive chưa được cấu hình đúng",
+        "hint": "Dùng link embed từ OneDrive thay vì link chia sẻ. URL đúng có dạng:"
       }
     },
     "lessonCompletionPicker": {
@@ -2391,6 +2421,11 @@
       "noData": "Chưa có dữ liệu",
       "untitled": "Chưa có tên",
       "noCode": "Chưa có mã",
+      "owner": {
+        "filterPlaceholder": "Chủ sở hữu",
+        "mine": "Của tôi",
+        "others": "Của người khác"
+      },
       "pagination": {
         "total": "Tổng số: {{count}}",
         "pageSize": "Số dòng/trang",
@@ -2420,7 +2455,8 @@
         "template": "Template",
         "chapterCount": "{{count}} chương",
         "subject": "Môn học",
-        "category": "Danh mục"
+        "category": "Danh mục",
+        "createdBy": "Người tạo"
       },
       "confirm": {
         "deleteTitle": "Xóa chương trình học?",
@@ -2465,6 +2501,7 @@
         "statusPlaceholder": "Lọc theo trạng thái"
       },
       "labels": {
+        "teacher": "Giảng viên",
         "students": "Người học",
         "schedule": "Thời gian",
         "noSchedule": "Chưa có lịch học"
@@ -2495,7 +2532,8 @@
         "searchPlaceholder": "Tìm theo tiêu đề hoặc mô tả ngân hàng...",
         "ownerSearchPlaceholder": "Tìm theo người sở hữu...",
         "categoryPlaceholder": "Lọc theo danh mục",
-        "subjectPlaceholder": "Lọc theo môn học"
+        "subjectPlaceholder": "Lọc theo môn học",
+        "rolePlaceholder": "Lọc theo vai trò"
       },
       "columns": {
         "bank": "Ngân hàng",
@@ -2917,5 +2955,105 @@
     "allQuizzes": "Tất cả quiz",
     "quizPassRateLabel": "Tỷ lệ pass",
     "statusLabel": "Trạng thái"
+  },
+  "quizPreview": {
+    "common": {
+      "cancel": "Hủy",
+      "back": "Quay lại",
+      "unlimited": "Không giới hạn",
+      "minutes": "{{count}} phút",
+      "previewBadge": "Xem trước",
+      "quizFallbackTitle": "Bài kiểm tra"
+    },
+    "questionTypes": {
+      "SINGLE_CHOICE": "Trắc nghiệm 1 đáp án",
+      "MULTIPLE_CHOICE": "Trắc nghiệm nhiều đáp án",
+      "TRUE_FALSE": "Đúng / Sai",
+      "SHORT_ANSWER": "Trả lời ngắn",
+      "ESSAY": "Tự luận",
+      "MATCHING": "Ghép cặp",
+      "IMAGE_MATCHING": "Ghép ảnh",
+      "DRAG_ORDER": "Sắp xếp",
+      "CLOZE": "Điền chỗ trống"
+    },
+    "intro": {
+      "loadError": "Không thể tải thông tin bài kiểm tra",
+      "loadFailed": "Không tải được dữ liệu",
+      "previewBanner": "Chế độ xem trước — Đây là giao diện người học thấy khi truy cập bài kiểm tra này",
+      "defaultDescription": "Bài kiểm tra này đánh giá kiến thức của người học.",
+      "startPreview": "Bắt đầu xem trước",
+      "questionsLabel": "Câu hỏi",
+      "questionsCount": "{{count}} câu",
+      "timeLabel": "Thời gian",
+      "passScoreLabel": "Điểm đạt",
+      "attemptsLabel": "Số lần làm",
+      "maxAttemptsValue": "Tối đa {{count}}",
+      "instructionsTitle": "Lưu ý khi làm bài",
+      "instruction1": "Hệ thống sẽ tự động nộp bài khi hết thời gian quy định.",
+      "instruction2": "Nếu trình duyệt bị đóng đột ngột, bạn có thể quay lại làm bài nếu còn thời gian.",
+      "instruction3": "Kết quả sẽ được hiển thị ngay sau khi bạn nhấn nút \"Nộp bài\".",
+      "instruction4": "Bạn cần đạt ít nhất {{count}}% số điểm để hoàn thành bài kiểm tra.",
+      "teacherNote": "Lưu ý dành cho giảng viên: Đây là chế độ xem trước. Kết quả bài làm thử nghiệm không được lưu vào hệ thống. Tất cả các loại câu hỏi sẽ được hiển thị và chấm điểm theo đáp án đúng đã cài đặt.",
+      "confirmTitle": "Xác nhận bắt đầu xem trước",
+      "confirmBody": "Bạn sắp bắt đầu xem trước bài kiểm tra \"{{title}}\" ở chế độ giảng viên.",
+      "confirmNote": "Kết quả không được ghi nhận vào hệ thống. Đây chỉ là mô phỏng giao diện người học."
+    },
+    "attempt": {
+      "generatingSample": "Đang sinh đề mẫu cho chế độ xem trước...",
+      "sampleGenError": "Không thể sinh đề mẫu cho preview.",
+      "noQuestions": "Không có câu hỏi phù hợp để sinh đề mẫu ở cấu hình hiện tại.",
+      "regenerateSample": "Sinh mẫu khác",
+      "backToPreview": "Quay lại trang xem trước",
+      "promptContentFallback": "Nội dung {{count}}",
+      "answerFallback": "Đáp án {{count}}",
+      "selectAnswer": "Chọn đáp án",
+      "enterAnswer": "Nhập đáp án",
+      "enterEssay": "Nhập bài tự luận của bạn:",
+      "enterYourAnswer": "Nhập câu trả lời của bạn:",
+      "answerPlaceholder": "Viết câu trả lời của bạn ở đây...",
+      "questionNumber": "Câu hỏi {{count}}",
+      "flag": "Đánh dấu",
+      "prevQuestion": "Câu trước",
+      "nextQuestion": "Câu tiếp theo",
+      "questionList": "Danh sách câu hỏi",
+      "pickNumberScroll": "Chọn một số để cuộn tới câu",
+      "pickNumberSwitch": "Chọn một số để chuyển câu",
+      "submit": "Nộp bài",
+      "submitConfirmTitle": "Xác nhận nộp bài (Xem trước)",
+      "submitAndView": "Nộp bài & xem kết quả",
+      "submitConfirmBody": "Bạn có muốn nộp bài và xem kết quả mô phỏng không?",
+      "submissionInfo": "Thông tin bài nộp:",
+      "totalQuestions": "Tổng câu hỏi",
+      "answered": "Câu đã làm",
+      "unanswered": "Câu chưa làm",
+      "notSavedNote": "Kết quả không được lưu vào hệ thống — đây là chế độ xem trước dành cho giảng viên."
+    },
+    "result": {
+      "previewBanner": "Kết quả xem trước — Không được lưu vào hệ thống",
+      "noResultData": "Không có dữ liệu kết quả. Vui lòng thực hiện xem trước lại.",
+      "image": "Ảnh",
+      "noAnswer": "Không có câu trả lời",
+      "notSelected": "Không chọn",
+      "noResponse": "Không trả lời",
+      "manualGrading": "Chấm tay",
+      "passed": "Đạt",
+      "failed": "Không đạt",
+      "simulatedForTeacher": "Kết quả mô phỏng dành cho giảng viên",
+      "passedMessage": "Bài kiểm tra đạt yêu cầu.",
+      "failedMessage": "Bài kiểm tra chưa đạt yêu cầu.",
+      "previewAgain": "Xem trước lại",
+      "backToEdit": "Về chỉnh sửa quiz",
+      "correct": "Câu đúng",
+      "incorrect": "Câu sai",
+      "unanswered": "Chưa trả lời",
+      "reviewTitle": "Chi tiết bài làm",
+      "partial": "Một phần",
+      "correctBadge": "Đúng",
+      "incorrectBadge": "Sai",
+      "notGraded": "Chưa chấm",
+      "selectedAnswer": "Câu trả lời đã chọn",
+      "points": "{{earned}} / {{max}} điểm",
+      "correctAnswer": "Đáp án đúng"
+    }
   }
 }

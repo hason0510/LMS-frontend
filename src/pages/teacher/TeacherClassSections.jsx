@@ -51,6 +51,7 @@ export default function TeacherClassSections({ isAdmin = false }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(undefined);
   const [selectedSubjectId, setSelectedSubjectId] = useState(undefined);
   const [selectedStatus, setSelectedStatus] = useState(undefined);
+  const [selectedOwner, setSelectedOwner] = useState(undefined);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
@@ -95,7 +96,7 @@ export default function TeacherClassSections({ isAdmin = false }) {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategoryId, selectedSubjectId, selectedStatus, pageSize]);
+  }, [searchQuery, selectedCategoryId, selectedSubjectId, selectedStatus, selectedOwner, pageSize]);
 
   const availableSubjects = useMemo(() => {
     if (!selectedCategoryId) return subjects;
@@ -113,9 +114,13 @@ export default function TeacherClassSections({ isAdmin = false }) {
       const matchesCategory = !selectedCategoryId || section.categoryId === selectedCategoryId;
       const matchesSubject = !selectedSubjectId || section.subjectId === selectedSubjectId;
       const matchesStatus = !selectedStatus || section.status === selectedStatus;
-      return matchesKeyword && matchesCategory && matchesSubject && matchesStatus;
+      const matchesOwner =
+        !isAdmin ||
+        !selectedOwner ||
+        (selectedOwner === "MINE" ? section.teacherId === teacherId : section.teacherId !== teacherId);
+      return matchesKeyword && matchesCategory && matchesSubject && matchesStatus && matchesOwner;
     });
-  }, [classSections, searchQuery, selectedCategoryId, selectedStatus, selectedSubjectId]);
+  }, [classSections, searchQuery, selectedCategoryId, selectedStatus, selectedSubjectId, selectedOwner, isAdmin, teacherId]);
 
   const pageItems = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -140,6 +145,11 @@ export default function TeacherClassSections({ isAdmin = false }) {
     { value: "PUBLIC", label: t("teacherLists.classSections.status.public") },
     { value: "PRIVATE", label: t("teacherLists.classSections.status.private") },
     { value: "ARCHIVED", label: t("teacherLists.classSections.status.archived") },
+  ];
+
+  const ownerOptions = [
+    { value: "MINE", label: t("teacherLists.shared.owner.mine") },
+    { value: "OTHERS", label: t("teacherLists.shared.owner.others") },
   ];
 
   const handleCategoryChange = (value) => {
@@ -168,6 +178,7 @@ export default function TeacherClassSections({ isAdmin = false }) {
     setSelectedCategoryId(undefined);
     setSelectedSubjectId(undefined);
     setSelectedStatus(undefined);
+    setSelectedOwner(undefined);
   };
 
   const handleDelete = async (id) => {
@@ -208,7 +219,7 @@ export default function TeacherClassSections({ isAdmin = false }) {
               </div>
 
               <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.2fr)_220px_220px_180px_110px]">
+                <div className={`grid grid-cols-1 gap-3 ${isAdmin ? "xl:grid-cols-[minmax(0,1.1fr)_200px_200px_170px_170px_110px]" : "xl:grid-cols-[minmax(0,1.2fr)_220px_220px_180px_110px]"}`}>
                   <Input.Search
                     allowClear
                     value={searchQuery}
@@ -242,6 +253,15 @@ export default function TeacherClassSections({ isAdmin = false }) {
                     placeholder={t("teacherLists.classSections.filters.statusPlaceholder")}
                     options={statusOptions}
                   />
+                  {isAdmin && (
+                    <Select
+                      allowClear
+                      value={selectedOwner}
+                      onChange={(value) => setSelectedOwner(value || undefined)}
+                      placeholder={t("teacherLists.shared.owner.filterPlaceholder")}
+                      options={ownerOptions}
+                    />
+                  )}
                   <Button onClick={resetFilters}>{t("teacherLists.shared.reset")}</Button>
                 </div>
               </div>
@@ -279,14 +299,30 @@ export default function TeacherClassSections({ isAdmin = false }) {
                                 {section.classCode || t("teacherLists.shared.noCode")}
                               </p>
                             </div>
-                            <Tag
-                              color={section.status === "PUBLIC" ? "green" : section.status === "PRIVATE" ? "gold" : "default"}
-                            >
-                              {t(`teacherLists.classSections.status.${String(section.status || "archived").toLowerCase()}`)}
-                            </Tag>
+                            <div className="flex shrink-0 flex-col items-end gap-1">
+                              {isAdmin && section.teacherId === teacherId && (
+                                <Tag color="blue" className="m-0">
+                                  {t("teacherLists.shared.owner.mine")}
+                                </Tag>
+                              )}
+                              <Tag
+                                color={section.status === "PUBLIC" ? "green" : section.status === "PRIVATE" ? "gold" : "default"}
+                                className="m-0"
+                              >
+                                {t(`teacherLists.classSections.status.${String(section.status || "archived").toLowerCase()}`)}
+                              </Tag>
+                            </div>
                           </div>
 
                           <div className="mt-4 space-y-2 text-sm">
+                            {isAdmin && (
+                              <div className="text-slate-600 dark:text-slate-300">
+                                <span className="font-medium text-slate-800 dark:text-slate-100">
+                                  {t("teacherLists.classSections.labels.teacher")}:
+                                </span>{" "}
+                                {section.teacherName || t("teacherLists.shared.noData")}
+                              </div>
+                            )}
                             <div className="text-slate-600 dark:text-slate-300">
                               <span className="font-medium text-slate-800 dark:text-slate-100">
                                 {t("teacherLists.curriculums.labels.category")}:

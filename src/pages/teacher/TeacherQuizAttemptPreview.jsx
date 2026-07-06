@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { FlagIcon as FlagIconSolid } from "@heroicons/react/24/solid";
 import { Modal, Select } from "antd";
+import { useTranslation } from "react-i18next";
 import ResourcePreview from "../../components/common/ResourcePreview";
 import QuizRichText from "../../components/common/QuizRichText";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
@@ -28,17 +29,17 @@ const isMatchingQuestion = (type) => type === "MATCHING" || type === "IMAGE_MATC
 const isInteractionQuestion = (type) => ["MATCHING", "IMAGE_MATCHING", "DRAG_ORDER", "CLOZE"].includes(type);
 const isTextAnswerQuestion = (type) => ["SHORT_ANSWER", "ESSAY"].includes(type);
 
-const getQuestionTypeLabel = (type) => {
+const getQuestionTypeLabel = (type, t) => {
   const labels = {
-    SINGLE_CHOICE: "Trắc nghiệm 1 đáp án",
-    MULTIPLE_CHOICE: "Trắc nghiệm nhiều đáp án",
-    TRUE_FALSE: "Đúng / Sai",
-    SHORT_ANSWER: "Trả lời ngắn",
-    ESSAY: "Tự luận",
-    MATCHING: "Ghép cặp",
-    IMAGE_MATCHING: "Ghép ảnh",
-    DRAG_ORDER: "Sắp xếp",
-    CLOZE: "Điền chỗ trống",
+    SINGLE_CHOICE: t("quizPreview.questionTypes.SINGLE_CHOICE"),
+    MULTIPLE_CHOICE: t("quizPreview.questionTypes.MULTIPLE_CHOICE"),
+    TRUE_FALSE: t("quizPreview.questionTypes.TRUE_FALSE"),
+    SHORT_ANSWER: t("quizPreview.questionTypes.SHORT_ANSWER"),
+    ESSAY: t("quizPreview.questionTypes.ESSAY"),
+    MATCHING: t("quizPreview.questionTypes.MATCHING"),
+    IMAGE_MATCHING: t("quizPreview.questionTypes.IMAGE_MATCHING"),
+    DRAG_ORDER: t("quizPreview.questionTypes.DRAG_ORDER"),
+    CLOZE: t("quizPreview.questionTypes.CLOZE"),
   };
   return labels[type] || "";
 };
@@ -148,6 +149,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
   const { classSectionId, quizId, templateId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const isTemplate = !!templateId;
   const quizData = location.state?.quizData;
   const isBankRuleMode = (quizData?.questions || []).length === 0 && (quizData?.bankSources || []).length > 0;
@@ -208,7 +210,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
       } catch (error) {
         if (!cancelled) {
           setSampleQuestions([]);
-          setSampleError(error?.response?.data?.message || "Không thể sinh đề mẫu cho preview.");
+          setSampleError(error?.response?.data?.message || t("quizPreview.attempt.sampleGenError"));
         }
       } finally {
         if (!cancelled) {
@@ -239,7 +241,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
     return (
       <div className="teacher-quiz-attempt-preview-page h-screen flex flex-col items-center justify-center gap-4 text-center p-8">
         <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 max-w-md">
-          Đang sinh đề mẫu cho chế độ xem trước...
+          {t("quizPreview.attempt.generatingSample")}
         </p>
       </div>
     );
@@ -249,21 +251,21 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
     return (
       <div className="teacher-quiz-attempt-preview-page h-screen flex flex-col items-center justify-center gap-4 text-center p-8">
         <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 max-w-md">
-          {sampleError || "Không có câu hỏi phù hợp để sinh đề mẫu ở cấu hình hiện tại."}
+          {sampleError || t("quizPreview.attempt.noQuestions")}
         </p>
         {isBankRuleMode && (
           <button
             onClick={() => setPreviewSeed(Date.now())}
             className="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
           >
-            Sinh mẫu khác
+            {t("quizPreview.attempt.regenerateSample")}
           </button>
         )}
         <button
           onClick={() => navigate(previewRoot)}
           className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
         >
-          Quay lại trang xem trước
+          {t("quizPreview.attempt.backToPreview")}
         </button>
       </div>
     );
@@ -454,7 +456,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
           {prompts.map((prompt, index) => (
             <div key={prompt.id} className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-3 items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50">
               <div className="font-medium text-slate-700 dark:text-slate-200 flex flex-row items-center gap-2">
-                {renderItem(prompt, `Nội dung ${index + 1}`)}
+                {renderItem(prompt, t("quizPreview.attempt.promptContentFallback", { count: index + 1 }))}
               </div>
               <Select
                 value={current.matches?.[prompt.id]}
@@ -463,9 +465,9 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                 optionFilterProp="label"
                 options={matches.map((match, matchIndex) => ({
                   value: match.id,
-                  label: renderItem(match, `Đáp án ${matchIndex + 1}`),
+                  label: renderItem(match, t("quizPreview.attempt.answerFallback", { count: matchIndex + 1 })),
                 }))}
-                placeholder="Chọn đáp án"
+                placeholder={t("quizPreview.attempt.selectAnswer")}
                 className="w-full"
               />
             </div>
@@ -534,14 +536,14 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                       showSearch
                       optionFilterProp="label"
                       options={options.map((option) => ({ value: option, label: option }))}
-                      placeholder="Chọn đáp án"
+                      placeholder={t("quizPreview.attempt.selectAnswer")}
                       className="w-full"
                     />
                   ) : (
                     <input
                       value={current.blanks?.[blank.id] || ""}
                       onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
-                      placeholder="Nhập đáp án"
+                      placeholder={t("quizPreview.attempt.enterAnswer")}
                       className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                     />
                   )}
@@ -587,7 +589,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                     onChange={(e) => handleClozeChange(question, blank.id, e.target.value)}
                     className="min-w-36 max-w-[220px] rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 py-1 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/40"
                   >
-                    <option value="">Chọn đáp án</option>
+                    <option value="">{t("quizPreview.attempt.selectAnswer")}</option>
                     {resolvedOptions.map((option) => (
                       <option key={`${blank.id}-${option}`} value={option}>
                         {option}
@@ -619,14 +621,14 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
       ) : isTextAnswerQuestion(question.type) ? (
         <div className="space-y-2">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            {question.type === "ESSAY" ? "Nhập bài tự luận của bạn:" : "Nhập câu trả lời của bạn:"}
+            {question.type === "ESSAY" ? t("quizPreview.attempt.enterEssay") : t("quizPreview.attempt.enterYourAnswer")}
           </label>
           <textarea
             value={answers[question.id]?.[0] || ""}
             onChange={(e) =>
               setAnswers((prev) => ({ ...prev, [question.id]: [e.target.value] }))
             }
-            placeholder="Viết câu trả lời của bạn ở đây..."
+            placeholder={t("quizPreview.attempt.answerPlaceholder")}
             className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
             rows="6"
           />
@@ -684,9 +686,9 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
             {index + 1}
           </span>
           <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Câu hỏi {index + 1}</h2>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("quizPreview.attempt.questionNumber", { count: index + 1 })}</h2>
             <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${getTypeBgColor(question.type)} w-fit`}>
-              {getQuestionTypeLabel(question.type)}
+              {getQuestionTypeLabel(question.type, t)}
             </span>
           </div>
         </div>
@@ -701,7 +703,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
           {flaggedQuestions.includes(question.id)
             ? <FlagIconSolid className="h-5 w-5" />
             : <FlagIcon className="h-5 w-5" />}
-          <span className="hidden sm:inline">Đánh dấu</span>
+          <span className="hidden sm:inline">{t("quizPreview.attempt.flag")}</span>
         </button>
       </div>
 
@@ -726,7 +728,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-lg text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              Xem trước
+              {t("quizPreview.common.previewBadge")}
             </div>
             <h1 className="text-base md:text-lg font-bold leading-tight tracking-tight">
               {quizData?.title}
@@ -738,13 +740,13 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                 onClick={() => setPreviewSeed(Date.now())}
                 className="hidden md:inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
               >
-                Sinh mẫu khác
+                {t("quizPreview.attempt.regenerateSample")}
               </button>
             )}
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
               <ClockIcon className="h-5 w-5 text-primary" />
               <span className="font-mono text-lg font-bold text-primary tabular-nums">
-                {hasTimeLimit ? formatTime(timeLeft ?? 0) : "Không giới hạn"}
+                {hasTimeLimit ? formatTime(timeLeft ?? 0) : t("quizPreview.common.unlimited")}
               </span>
             </div>
             <div className="md:hidden flex items-center gap-1 text-primary font-bold bg-primary/10 px-2 py-1 rounded">
@@ -783,7 +785,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                     }`}
                   >
                     <ArrowLeftIcon className="h-4 w-4" />
-                    <span>Câu trước</span>
+                    <span>{t("quizPreview.attempt.prevQuestion")}</span>
                   </button>
                   <button
                     onClick={() => scrollToQuestion(Math.min(questions.length - 1, currentQuestionIndex + 1))}
@@ -794,7 +796,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
                         : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
                     }`}
                   >
-                    <span>Câu tiếp theo</span>
+                    <span>{t("quizPreview.attempt.nextQuestion")}</span>
                     <ArrowRightIcon className="h-4 w-4" />
                   </button>
                 </div>
@@ -806,8 +808,8 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex flex-col w-[320px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 z-20 shadow-xl shadow-slate-200/50 dark:shadow-none">
           <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-            <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-1">Danh sách câu hỏi</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{isOnePageMode ? "Chọn một số để cuộn tới câu" : "Chọn một số để chuyển câu"}</p>
+            <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-1">{t("quizPreview.attempt.questionList")}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{isOnePageMode ? t("quizPreview.attempt.pickNumberScroll") : t("quizPreview.attempt.pickNumberSwitch")}</p>
           </div>
           <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
             <div className="grid grid-cols-5 gap-3">
@@ -831,7 +833,7 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
               className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5"
             >
               <PaperAirplaneIcon className="h-4 w-4" />
-              Nộp bài
+              {t("quizPreview.attempt.submit")}
             </button>
           </div>
         </aside>
@@ -847,28 +849,28 @@ export default function TeacherQuizAttemptPreview({ isAdmin = false }) {
 
       {/* Submit Modal */}
       <Modal
-        title="Xác nhận nộp bài (Xem trước)"
+        title={t("quizPreview.attempt.submitConfirmTitle")}
         open={showSubmitConfirm}
         onOk={handleConfirmSubmit}
         onCancel={() => setShowSubmitConfirm(false)}
-        okText="Nộp bài & xem kết quả"
-        cancelText="Hủy"
+        okText={t("quizPreview.attempt.submitAndView")}
+        cancelText={t("quizPreview.common.cancel")}
         centered
       >
         <div className="space-y-3">
           <p className="text-base text-slate-700 dark:text-slate-300">
-            Bạn có muốn nộp bài và xem kết quả mô phỏng không?
+            {t("quizPreview.attempt.submitConfirmBody")}
           </p>
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 space-y-1">
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">Thông tin bài nộp:</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">{t("quizPreview.attempt.submissionInfo")}</p>
             <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-0.5">
-              <li>• Tổng câu hỏi: <span className="font-bold">{questions.length}</span></li>
-              <li>• Câu đã làm: <span className="font-bold">{answeredCount}</span></li>
-              <li>• Câu chưa làm: <span className="font-bold">{questions.length - answeredCount}</span></li>
+              <li>• {t("quizPreview.attempt.totalQuestions")}: <span className="font-bold">{questions.length}</span></li>
+              <li>• {t("quizPreview.attempt.answered")}: <span className="font-bold">{answeredCount}</span></li>
+              <li>• {t("quizPreview.attempt.unanswered")}: <span className="font-bold">{questions.length - answeredCount}</span></li>
             </ul>
           </div>
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-sm text-amber-700 dark:text-amber-400">
-            Kết quả không được lưu vào hệ thống — đây là chế độ xem trước dành cho giảng viên.
+            {t("quizPreview.attempt.notSavedNote")}
           </div>
         </div>
       </Modal>

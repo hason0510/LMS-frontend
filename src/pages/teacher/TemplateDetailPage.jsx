@@ -716,12 +716,12 @@ export default function TemplateDetailPage({ isAdmin = false }) {
         open={contentTypeModalOpen}
         onCancel={() => setContentTypeModalOpen(false)}
         footer={null}
-        width={420}
+        width={460}
       >
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
           Chọn loại nội dung bạn muốn thêm vào chương này:
         </p>
-        <div className="space-y-2">
+        <div className="flex flex-col !gap-5">
           {[
             { type: "LESSON", desc: "Bài giảng có video, nội dung, tài liệu đính kèm" },
             { type: "QUIZ", desc: "Bài kiểm tra trắc nghiệm từ ngân hàng câu hỏi" },
@@ -732,16 +732,16 @@ export default function TemplateDetailPage({ isAdmin = false }) {
               <button
                 key={type}
                 onClick={() => handleSelectContentType(type)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all text-left group ${cfg.badgeClass.replace("text-", "hover:").replace("bg-", "bg-")}`}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl border-2 border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all text-left group ${cfg.badgeClass.replace("text-", "hover:").replace("bg-", "bg-")}`}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cfg.badgeClass}`}>
-                  <Icon className="w-5 h-5" />
+                <div className={`!w-12 !h-12 rounded-xl flex items-center justify-center shrink-0 ${cfg.badgeClass}`}>
+                  <Icon className="!w-6 !h-6" />
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">
+                  <p className="font-semibold !leading-tight !mb-0 text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">
                     {cfg.label}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{desc}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 !mt-0.5 !mb-0">{desc}</p>
                 </div>
                 <ChevronRightIcon className="w-4 h-4 text-slate-300 group-hover:text-primary ml-auto transition-colors" />
               </button>

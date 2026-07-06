@@ -354,7 +354,7 @@ export default function TeacherQuizAttemptReview({ isAdmin = false, teachingMode
             onChange={(event) => setInstructorFeedback(event.target.value)}
           />
 
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-3">
             <Button type="primary" loading={saving} onClick={saveReview}>
               {t("quizAttempts.saveReview")}
             </Button>

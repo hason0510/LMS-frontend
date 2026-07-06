@@ -162,6 +162,7 @@ export default function LectureDetail({ isAdmin = false }) {
   };
 
   const canOpenLessonCompletion = !isAdmin && !isTemplateMode && classSectionId && lectureId;
+  const canPreviewTemplateAsStudent = isTemplateMode && !!templateIdFromPath && !!lectureId;
 
   const lessonCompletionCounts = lessonCompletionRows.reduce(
     (acc, row) => {
@@ -295,7 +296,6 @@ export default function LectureDetail({ isAdmin = false }) {
     setVideoSourceType(nextType);
 
     if (nextType === "upload") {
-      setVideoUrl("");
       return;
     }
 
@@ -663,7 +663,8 @@ export default function LectureDetail({ isAdmin = false }) {
       setSubmitting(true);
       
       // Prepare lesson data
-      const effectiveVideoUrl = videoSourceType === "embed" ? videoUrl.trim() : "";
+      const hasUploadedVideo = Boolean(videoResource) || Boolean(pendingVideoFile);
+      const effectiveVideoUrl = hasUploadedVideo ? "" : videoUrl.trim();
       const lessonData = {
         title: title.trim(),
         content: content.trim(),
@@ -1045,10 +1046,10 @@ export default function LectureDetail({ isAdmin = false }) {
                               const doNavigate = () => navigate(`/teacher/class-sections/${classSectionId}/lectures/${lectureId}/preview`);
                               if (isEditMode) {
                                 modalApi.confirm({
-                                  title: "Xem trước bài giảng",
-                                  content: "Trang xem trước hiển thị phiên bản đã lưu. Các thay đổi chưa lưu sẽ không xuất hiện.",
-                                  okText: "Xem trước",
-                                  cancelText: "Hủy",
+                                  title: t("classContent.lessonPreview.confirm.title"),
+                                  content: t("classContent.lessonPreview.confirm.content"),
+                                  okText: t("classContent.lessonPreview.confirm.ok"),
+                                  cancelText: t("classContent.lessonPreview.confirm.cancel"),
                                   onOk: doNavigate,
                                 });
                               } else {
@@ -1058,9 +1059,31 @@ export default function LectureDetail({ isAdmin = false }) {
                             className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
                             icon={<EyeIcon className="h-4 w-4" />}
                           >
-                            Xem như người học
+                            {t("classContent.lessonPreview.viewAsStudent")}
                           </Button>
                         </>
+                      )}
+                      {canPreviewTemplateAsStudent && (
+                        <Button
+                          onClick={() => {
+                            const doNavigate = () => navigate(`${isAdmin ? "/admin" : "/teacher"}/curriculums/${templateIdFromPath}/lectures/${lectureId}/preview`);
+                            if (isEditMode) {
+                              modalApi.confirm({
+                                title: t("classContent.lessonPreview.confirm.title"),
+                                content: t("classContent.lessonPreview.confirm.content"),
+                                okText: t("classContent.lessonPreview.confirm.ok"),
+                                cancelText: t("classContent.lessonPreview.confirm.cancel"),
+                                onOk: doNavigate,
+                              });
+                            } else {
+                              doNavigate();
+                            }
+                          }}
+                          className="px-6 py-2.5 h-10 rounded-lg font-bold flex items-center gap-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-amber-700"
+                          icon={<EyeIcon className="h-4 w-4" />}
+                        >
+                          {t("classContent.lessonPreview.viewAsStudent")}
+                        </Button>
                       )}
                     </div>
                   )}
@@ -1187,8 +1210,9 @@ export default function LectureDetail({ isAdmin = false }) {
                               />
                               {videoUrl && (
                                 <Button
+                                  size="large"
                                   onClick={() => setVideoUrl("")}
-                                  className="px-4 h-11 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30 rounded-lg font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/40"
+                                  className="px-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30 rounded-lg font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/40"
                                 >
                                   Xóa
                                 </Button>

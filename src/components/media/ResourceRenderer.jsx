@@ -81,11 +81,12 @@ export default function ResourceRenderer({ resource, className = "", compact = f
 
   if (!mediaUrl) return null;
 
-  // Media kiểu LINK có thể trỏ tới một ảnh. Thử render thành ảnh; nếu URL không
-  // phải ảnh hợp lệ (tải lỗi) thì tự fallback về liên kết text. Bỏ qua ở chế độ
-  // thumbnail (lưới media) để không phá layout ô lưới.
+  // Media kiểu LINK có thể trỏ tới một ảnh. Thử render thành ảnh (kể cả ở lưới
+  // thumbnail); nếu URL không phải ảnh hợp lệ (tải lỗi) thì LinkImage tự fallback
+  // về liên kết text. compact/maxHeight + object-contain giữ ảnh vừa trong ô lưới
+  // nên không phá layout.
   const isLinkType = type === "LINK" || resource.source === "LINK";
-  if (!thumbnail && (isLinkType || looksLikeImageUrl(mediaUrl))) {
+  if (isLinkType || looksLikeImageUrl(mediaUrl)) {
     return <LinkImage src={mediaUrl} title={title} wrapperClass={wrapperClass} compact={compact} />;
   }
 

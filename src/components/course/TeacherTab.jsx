@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Spin, message } from "antd";
 import { getUserById } from "../../api/user";
+import Avatar from "../common/Avatar";
 import dayjs from "dayjs";
 
 export default function TeacherTab({ course }) {
@@ -51,17 +52,12 @@ export default function TeacherTab({ course }) {
         {/* Teacher Header */}
         <div className="flex items-start gap-6 mb-8">
           <div className="flex-shrink-0">
-            {teacher.imageUrl ? (
-              <img
-                alt={`Avatar giảng viên ${teacher.fullName}`}
-                className="w-24 h-24 rounded-full object-cover"
-                src={teacher.imageUrl}
-              />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-semibold">
-                {teacher.fullName?.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              src={teacher.imageUrl}
+              alt={teacher.fullName}
+              sizeClass="size-24"
+              initialsClass="text-3xl"
+            />
           </div>
 
           <div className="flex-1">

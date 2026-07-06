@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Spin, Modal } from "antd";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
@@ -12,6 +13,7 @@ import { getQuizTemplateById } from "../../api/curriculumTemplate";
 export default function TeacherQuizPreview({ isAdmin = false }) {
   const { classSectionId, quizId, templateId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const isTemplate = !!templateId;
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
         const res = isTemplate ? await getQuizTemplateById(quizId) : await getQuizById(quizId);
         setQuiz(isTemplate ? res : res?.data);
       } catch (err) {
-        setError(err.message || "Không thể tải thông tin bài kiểm tra");
+        setError(err.message || t("quizPreview.intro.loadError"));
       } finally {
         setLoading(false);
       }
@@ -75,9 +77,9 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
           {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
           <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
             <div className="text-center">
-              <p className="text-lg font-semibold text-red-600 mb-4">{error || "Không tải được dữ liệu"}</p>
+              <p className="text-lg font-semibold text-red-600 mb-4">{error || t("quizPreview.intro.loadFailed")}</p>
               <button onClick={() => navigate(-1)} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                Quay lại
+                {t("quizPreview.common.back")}
               </button>
             </div>
           </main>
@@ -88,7 +90,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
 
   const totalQuestions = quiz.questionCount ?? (quiz.questions?.length || 0);
   const timeLimitMinutes = quiz.timeLimitMinutes || 0;
-  const timeLimitLabel = timeLimitMinutes > 0 ? `${timeLimitMinutes} phút` : "Không giới hạn";
+  const timeLimitLabel = timeLimitMinutes > 0 ? t("quizPreview.common.minutes", { count: timeLimitMinutes }) : t("quizPreview.common.unlimited");
   const minPassScore = quiz.minPassScore || 0;
   const maxAttempts = quiz.maxAttempts;
 
@@ -102,7 +104,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              Chế độ xem trước — Đây là giao diện người học thấy khi truy cập bài kiểm tra này
+              {t("quizPreview.intro.previewBanner")}
             </div>
           </div>
 
@@ -119,10 +121,10 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
             <div className="flex flex-col md:flex-row gap-4 mb-8 justify-between items-start md:items-end">
               <div className="flex flex-col gap-2 flex-1">
                 <h1 className="text-[#111418] dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">
-                  {quiz.title || "Bài kiểm tra"}
+                  {quiz.title || t("quizPreview.common.quizFallbackTitle")}
                 </h1>
                 <p className="text-[#617589] dark:text-gray-400 text-lg font-normal leading-normal max-w-3xl">
-                  {quiz.description || "Bài kiểm tra này đánh giá kiến thức của người học."}
+                  {quiz.description || t("quizPreview.intro.defaultDescription")}
                 </p>
               </div>
               <button
@@ -130,7 +132,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                 className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg font-bold text-base transition-all shadow-md whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white"
               >
                 <EyeIcon className="h-4 w-4" />
-                Bắt đầu xem trước
+                {t("quizPreview.intro.startPreview")}
               </button>
             </div>
 
@@ -141,8 +143,8 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                   <span className="material-symbols-outlined">quiz</span>
                 </div>
                 <div>
-                  <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Câu hỏi</p>
-                  <p className="text-[#111418] dark:text-white text-2xl font-bold">{totalQuestions} câu</p>
+                  <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">{t("quizPreview.intro.questionsLabel")}</p>
+                  <p className="text-[#111418] dark:text-white text-2xl font-bold">{t("quizPreview.intro.questionsCount", { count: totalQuestions })}</p>
                 </div>
               </div>
               <div className="flex flex-col gap-3 rounded-xl p-6 bg-white dark:bg-[#1c2a38] border border-[#dbe0e6] dark:border-[#2d3748] shadow-sm">
@@ -150,7 +152,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                   <span className="material-symbols-outlined">timer</span>
                 </div>
                 <div>
-                  <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Thời gian</p>
+                  <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">{t("quizPreview.intro.timeLabel")}</p>
                   <p className="text-[#111418] dark:text-white text-2xl font-bold">{timeLimitLabel}</p>
                 </div>
               </div>
@@ -159,7 +161,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                   <span className="material-symbols-outlined">verified_user</span>
                 </div>
                 <div>
-                  <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Điểm đạt</p>
+                  <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">{t("quizPreview.intro.passScoreLabel")}</p>
                   <p className="text-[#111418] dark:text-white text-2xl font-bold">{minPassScore}/100</p>
                 </div>
               </div>
@@ -168,9 +170,9 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                   <span className="material-symbols-outlined">repeat</span>
                 </div>
                 <div>
-                  <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Số lần làm</p>
+                  <p className="text-[#617589] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">{t("quizPreview.intro.attemptsLabel")}</p>
                   <p className="text-[#111418] dark:text-white text-2xl font-bold">
-                    {maxAttempts === null ? "Không giới hạn" : `Tối đa ${maxAttempts}`}
+                    {maxAttempts === null ? t("quizPreview.common.unlimited") : t("quizPreview.intro.maxAttemptsValue", { count: maxAttempts })}
                   </p>
                 </div>
               </div>
@@ -179,14 +181,14 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
             {/* Instructions */}
             <div className="flex flex-col gap-4 mb-10">
               <h2 className="text-[#111418] dark:text-white text-2xl font-bold leading-tight border-l-4 border-primary pl-4">
-                Lưu ý khi làm bài
+                {t("quizPreview.intro.instructionsTitle")}
               </h2>
               <div className="bg-blue-50 dark:bg-primary/10 p-5 rounded-xl text-[#111418] dark:text-gray-300">
                 <ul className="list-disc ml-5 space-y-2 text-sm leading-relaxed">
-                  <li>Hệ thống sẽ tự động nộp bài khi hết thời gian quy định.</li>
-                  <li>Nếu trình duyệt bị đóng đột ngột, bạn có thể quay lại làm bài nếu còn thời gian.</li>
-                  <li>Kết quả sẽ được hiển thị ngay sau khi bạn nhấn nút "Nộp bài".</li>
-                  <li>Bạn cần đạt ít nhất {minPassScore}% số điểm để hoàn thành bài kiểm tra.</li>
+                  <li>{t("quizPreview.intro.instruction1")}</li>
+                  <li>{t("quizPreview.intro.instruction2")}</li>
+                  <li>{t("quizPreview.intro.instruction3")}</li>
+                  <li>{t("quizPreview.intro.instruction4", { count: minPassScore })}</li>
                 </ul>
               </div>
             </div>
@@ -194,8 +196,7 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
             {/* Teacher note */}
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-5">
               <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-                Lưu ý dành cho giảng viên: Đây là chế độ xem trước. Kết quả bài làm thử nghiệm không được lưu vào hệ thống.
-                Tất cả các loại câu hỏi sẽ được hiển thị và chấm điểm theo đáp án đúng đã cài đặt.
+                {t("quizPreview.intro.teacherNote")}
               </p>
             </div>
           </div>
@@ -203,23 +204,23 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
       </div>
 
       <Modal
-        title="Xác nhận bắt đầu xem trước"
+        title={t("quizPreview.intro.confirmTitle")}
         open={showConfirm}
         onCancel={() => setShowConfirm(false)}
         footer={[
           <button key="cancel" onClick={() => setShowConfirm(false)} className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-[#111418] dark:text-white rounded-lg hover:bg-gray-300 mr-2">
-            Hủy
+            {t("quizPreview.common.cancel")}
           </button>,
           <button key="start" onClick={handleConfirmStart} className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold">
-            Bắt đầu xem trước
+            {t("quizPreview.intro.startPreview")}
           </button>,
         ]}
         centered
       >
         <div className="space-y-3 py-2">
-          <p>Bạn sắp bắt đầu xem trước bài kiểm tra <strong>{quiz?.title}</strong> ở chế độ giảng viên.</p>
+          <p>{t("quizPreview.intro.confirmBody", { title: quiz?.title })}</p>
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-sm text-amber-700 dark:text-amber-400">
-            Kết quả không được ghi nhận vào hệ thống. Đây chỉ là mô phỏng giao diện người học.
+            {t("quizPreview.intro.confirmNote")}
           </div>
         </div>
       </Modal>

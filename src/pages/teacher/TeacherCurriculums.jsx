@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { App, Button, DatePicker, Empty, Form, Input, Modal, Popconfirm, Select, Spin, Table } from "antd";
+import { App, Button, DatePicker, Empty, Form, Input, Modal, Popconfirm, Select, Spin, Table, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import { EyeIcon, PlusCircleIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
@@ -47,6 +47,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
   const { t } = useTranslation();
   const basePath = isAdmin ? "/admin" : "/teacher";
   const currentUserId = user?.id || user?.sub;
+  const currentUserName = user?.userName || user?.username;
 
   const [templates, setTemplates] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -58,6 +59,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(undefined);
   const [selectedSubjectId, setSelectedSubjectId] = useState(undefined);
+  const [selectedOwner, setSelectedOwner] = useState(undefined);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
@@ -120,7 +122,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedKeyword, selectedCategoryId, selectedSubjectId, pageSize]);
+  }, [debouncedKeyword, selectedCategoryId, selectedSubjectId, selectedOwner, pageSize]);
 
   const availableSubjects = useMemo(() => {
     if (!selectedCategoryId) return subjects;
@@ -142,10 +144,22 @@ export default function TeacherCurriculums({ isAdmin = false }) {
     [availableSubjects]
   );
 
+  const ownerOptions = [
+    { value: "MINE", label: t("teacherLists.shared.owner.mine") },
+    { value: "OTHERS", label: t("teacherLists.shared.owner.others") },
+  ];
+
+  const filteredTemplates = useMemo(() => {
+    if (!isAdmin || !selectedOwner) return templates;
+    return templates.filter((template) =>
+      selectedOwner === "MINE" ? template.createdBy === currentUserName : template.createdBy !== currentUserName
+    );
+  }, [templates, isAdmin, selectedOwner, currentUserName]);
+
   const pageItems = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return templates.slice(start, start + pageSize);
-  }, [page, pageSize, templates]);
+    return filteredTemplates.slice(start, start + pageSize);
+  }, [page, pageSize, filteredTemplates]);
 
   const columns = useMemo(
     () => [
@@ -154,12 +168,24 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         key: "name",
         render: (_, record) => (
           <div className="flex flex-col gap-1 min-w-0">
-            <div className="truncate text-sm font-semibold leading-tight text-slate-900 dark:text-white">
-              {getTemplateName(record)}
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-sm font-semibold leading-tight text-slate-900 dark:text-white">
+                {getTemplateName(record)}
+              </span>
+              {isAdmin && record.createdBy === currentUserName && (
+                <Tag color="blue" className="m-0 shrink-0">
+                  {t("teacherLists.shared.owner.mine")}
+                </Tag>
+              )}
             </div>
             <div className="truncate text-xs leading-tight text-slate-500 dark:text-slate-400">
               {getTemplateDescription(record) || t("teacherLists.shared.noDescription")}
             </div>
+            {isAdmin && (
+              <div className="truncate text-xs leading-tight text-slate-400 dark:text-slate-500">
+                {t("teacherLists.curriculums.labels.createdBy")}: {record.createdByName || record.createdBy || t("teacherLists.shared.noData")}
+              </div>
+            )}
           </div>
         ),
       },
@@ -217,7 +243,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         ),
       },
     ],
-    [basePath, navigate, t]
+    [basePath, navigate, t, isAdmin, currentUserName]
   );
 
   const handleCategoryChange = (value) => {
@@ -246,6 +272,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
     setDebouncedKeyword("");
     setSelectedCategoryId(undefined);
     setSelectedSubjectId(undefined);
+    setSelectedOwner(undefined);
   };
 
   const openInstantiateModal = async (template) => {
@@ -363,7 +390,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
               </div>
 
               <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.3fr)_220px_220px_110px]">
+                <div className={`grid grid-cols-1 gap-3 ${isAdmin ? "xl:grid-cols-[minmax(0,1.2fr)_200px_200px_180px_110px]" : "xl:grid-cols-[minmax(0,1.3fr)_220px_220px_110px]"}`}>
                   <Input.Search
                     allowClear
                     value={searchQuery}
@@ -388,6 +415,15 @@ export default function TeacherCurriculums({ isAdmin = false }) {
                     placeholder={t("teacherLists.curriculums.filters.subjectPlaceholder")}
                     options={subjectOptions}
                   />
+                  {isAdmin && (
+                    <Select
+                      allowClear
+                      value={selectedOwner}
+                      onChange={(value) => setSelectedOwner(value || undefined)}
+                      placeholder={t("teacherLists.shared.owner.filterPlaceholder")}
+                      options={ownerOptions}
+                    />
+                  )}
                   <Button onClick={resetFilters}>{t("teacherLists.shared.reset")}</Button>
                 </div>
               </div>
@@ -397,7 +433,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
                   <div className="flex justify-center py-16">
                     <Spin size="large" />
                   </div>
-                ) : templates.length === 0 ? (
+                ) : filteredTemplates.length === 0 ? (
                   <div className="py-16">
                     <Empty description={t("teacherLists.curriculums.empty")} />
                   </div>
@@ -415,16 +451,16 @@ export default function TeacherCurriculums({ isAdmin = false }) {
                 )}
               </div>
 
-              {!loading && templates.length > 0 && (
+              {!loading && filteredTemplates.length > 0 && (
                 <DataPaginationFooter
                   currentPage={page}
                   pageSize={pageSize}
-                  total={templates.length}
-                  totalLabel={t("teacherLists.shared.pagination.total", { count: templates.length })}
+                  total={filteredTemplates.length}
+                  totalLabel={t("teacherLists.shared.pagination.total", { count: filteredTemplates.length })}
                   pageSizeLabel={t("teacherLists.shared.pagination.pageSize")}
                   rangeLabel={t("teacherLists.shared.pagination.range", {
                     start: (page - 1) * pageSize + 1,
-                    end: Math.min(page * pageSize, templates.length),
+                    end: Math.min(page * pageSize, filteredTemplates.length),
                   })}
                   onPageChange={setPage}
                   onPageSizeChange={(nextSize) => {

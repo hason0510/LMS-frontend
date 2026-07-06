@@ -66,10 +66,14 @@ function ResultTag({ record, t }) {
   return <Tag color="red">{t("quizAttempts.fail")}</Tag>;
 }
 
-export default function TeacherQuizAttempts({ isAdmin = false }) {
+export default function TeacherQuizAttempts({ isAdmin = false, teachingMode = false, fixedClassSectionId = null }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const initialFilters =
+    teachingMode && fixedClassSectionId
+      ? { ...DEFAULT_FILTERS, classSectionId: fixedClassSectionId }
+      : DEFAULT_FILTERS;
   const [loading, setLoading] = useState(false);
   const [attempts, setAttempts] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -79,8 +83,8 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [activeTab, setActiveTab] = useState("ALL");
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [debouncedFilters, setDebouncedFilters] = useState(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState(initialFilters);
+  const [debouncedFilters, setDebouncedFilters] = useState(initialFilters);
 
   const base = isAdmin ? "/admin" : "/teacher";
   const result = RESULT_TABS.find((tab) => tab.key === activeTab)?.result;
@@ -116,6 +120,7 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
 
   useEffect(() => {
     const loadCourses = async () => {
+      if (teachingMode) return;
       try {
         setFiltersLoading(true);
         const response = isAdmin ? await getAdminCourses(1, 200) : await getTeacherCourses(1, 200);
@@ -128,7 +133,7 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
     };
 
     loadCourses();
-  }, [isAdmin, message, t]);
+  }, [isAdmin, message, t, teachingMode]);
 
   useEffect(() => {
     const loadQuizOptions = async () => {
@@ -167,7 +172,9 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
         setQuizOptions(nextQuizOptions);
       } catch (error) {
         setQuizOptions([]);
-        message.error(error?.response?.data?.message || error?.message || t("quizAttempts.loadQuizOptionsFailed"));
+        if (!teachingMode) {
+          message.error(error?.response?.data?.message || error?.message || t("quizAttempts.loadQuizOptionsFailed"));
+        }
       } finally {
         setFiltersLoading(false);
       }
@@ -229,12 +236,16 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
           </div>
         ),
       },
-      {
-        title: t("quizAttempts.course"),
-        dataIndex: "classSectionTitle",
-        width: 180,
-        render: (value) => <span className="text-slate-700 dark:text-slate-300">{value || "-"}</span>,
-      },
+      ...(teachingMode
+        ? []
+        : [
+            {
+              title: t("quizAttempts.course"),
+              dataIndex: "classSectionTitle",
+              width: 180,
+              render: (value) => <span className="text-slate-700 dark:text-slate-300">{value || "-"}</span>,
+            },
+          ]),
       {
         title: t("quizAttempts.questions"),
         dataIndex: "totalQuestions",
@@ -272,57 +283,53 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
         render: (_, record) => (
           <Button
             className="app-table-action-btn"
-            onClick={() => navigate(`${base}/quiz-attempts/${record.id}`)}
+            onClick={() => navigate(teachingMode ? `/teaching/quiz-attempts/${record.id}` : `${base}/quiz-attempts/${record.id}`)}
           >
             {t("quizAttempts.review")}
           </Button>
         ),
       },
     ],
-    [base, locale, navigate, t]
+    [base, locale, navigate, t, teachingMode]
   );
 
-  return (
-    <div className="teacher-list-page min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-900 dark:text-white">
-      <TeacherHeader />
-      <div className="flex">
-        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-        <main className="flex-1 pt-16 lg:pl-64">
-          <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
-            <AppBreadcrumb className="mb-4" />
-
-            <div className="app-table-shell">
-              <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0">
-                    <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">{t("quizAttempts.title")}</h1>
-                    <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">{t("quizAttempts.subtitle")}</p>
+  const shell = (
+    <div className="app-table-shell">
+              {!teachingMode && (
+                <div className="border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <h1 className="m-0 text-2xl font-bold text-slate-900 dark:text-white">{t("quizAttempts.title")}</h1>
+                      <p className="m-0 mt-1 text-sm text-slate-500 dark:text-slate-400">{t("quizAttempts.subtitle")}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-                  <Select
-                    className="w-full"
-                    allowClear
-                    showSearch
-                    optionFilterProp="label"
-                    placeholder={t("quizAttempts.filters.classSection")}
-                    loading={filtersLoading}
-                    value={filters.classSectionId}
-                    onChange={(value) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        classSectionId: value,
-                        quizId: undefined,
-                      }))
-                    }
-                    options={courses.map((course) => ({
-                      value: course.id,
-                      label: course.title,
-                    }))}
-                  />
+                <div className={`grid grid-cols-1 gap-3 ${teachingMode ? "xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" : "xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"}`}>
+                  {!teachingMode && (
+                    <Select
+                      className="w-full"
+                      allowClear
+                      showSearch
+                      optionFilterProp="label"
+                      placeholder={t("quizAttempts.filters.classSection")}
+                      loading={filtersLoading}
+                      value={filters.classSectionId}
+                      onChange={(value) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          classSectionId: value,
+                          quizId: undefined,
+                        }))
+                      }
+                      options={courses.map((course) => ({
+                        value: course.id,
+                        label: course.title,
+                      }))}
+                    />
+                  )}
                   <Select
                     className="w-full"
                     allowClear
@@ -348,9 +355,9 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
                   <Button
                     icon={<ArrowPathIcon className="h-4 w-4" />}
                     onClick={() => {
-                      setFilters(DEFAULT_FILTERS);
-                      setDebouncedFilters(DEFAULT_FILTERS);
-                      setQuizOptions([]);
+                      setFilters(initialFilters);
+                      setDebouncedFilters(initialFilters);
+                      if (!teachingMode) setQuizOptions([]);
                       setPage(1);
                     }}
                   >
@@ -404,6 +411,21 @@ export default function TeacherQuizAttempts({ isAdmin = false }) {
                 }}
               />
             </div>
+  );
+
+  if (teachingMode) {
+    return shell;
+  }
+
+  return (
+    <div className="teacher-list-page min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-900 dark:text-white">
+      <TeacherHeader />
+      <div className="flex">
+        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
+        <main className="flex-1 pt-16 lg:pl-64">
+          <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+            <AppBreadcrumb className="mb-4" />
+            {shell}
           </div>
         </main>
       </div>

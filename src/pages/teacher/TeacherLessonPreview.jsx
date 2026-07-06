@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Spin, Alert } from "antd";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import AdminSidebar from "../../components/layout/AdminSidebar";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import LessonComments from "../../components/lesson/LessonComments";
 import FileItem from "../../components/common/FileItem";
@@ -11,9 +13,12 @@ import VideoPlayer from "../../components/common/VideoPlayer";
 import SafeHtml from "../../components/common/SafeHtml";
 import { getLessonById } from "../../api/lesson";
 import { getResourcesByLessonId } from "../../api/resource";
+import { getLessonTemplateById } from "../../api/curriculumTemplate";
 
-export default function TeacherLessonPreview() {
-  const { lectureId } = useParams();
+export default function TeacherLessonPreview({ isAdmin = false }) {
+  const { lectureId, templateId } = useParams();
+  const isTemplate = !!templateId;
+  const { t } = useTranslation();
   const [lesson, setLesson] = useState(null);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,24 +36,31 @@ export default function TeacherLessonPreview() {
     const init = async () => {
       try {
         setLoading(true);
-        const lessonRes = await getLessonById(lectureId);
-        const lessonData = lessonRes?.data || lessonRes;
-        setLesson(lessonData);
-        try {
-          const res = await getResourcesByLessonId(lectureId);
-          setResources(Array.isArray(res) ? res : res?.data || []);
-        } catch {
-          setResources([]);
+        if (isTemplate) {
+          const lessonRes = await getLessonTemplateById(lectureId);
+          const lessonData = lessonRes?.data || lessonRes;
+          setLesson(lessonData);
+          setResources(Array.isArray(lessonData?.resources) ? lessonData.resources : []);
+        } else {
+          const lessonRes = await getLessonById(lectureId);
+          const lessonData = lessonRes?.data || lessonRes;
+          setLesson(lessonData);
+          try {
+            const res = await getResourcesByLessonId(lectureId);
+            setResources(Array.isArray(res) ? res : res?.data || []);
+          } catch {
+            setResources([]);
+          }
         }
       } catch (err) {
-        setError("Không thể tải dữ liệu bài giảng");
+        setError(t("classContent.lessonPreview.loadError"));
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
     init();
-  }, [lectureId]);
+  }, [lectureId, isTemplate]);
 
   const extractVideoId = (url) => {
     if (!url) return null;
@@ -84,7 +96,7 @@ export default function TeacherLessonPreview() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <TeacherHeader />
         <div className="flex">
-          <TeacherSidebar />
+          {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
           <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
             <Spin size="large" />
           </main>
@@ -111,19 +123,19 @@ export default function TeacherLessonPreview() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <TeacherHeader />
       <div className="flex">
-        <TeacherSidebar />
+        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
         <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
           {/* Preview Banner */}
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              Chế độ xem trước — Đây là giao diện người học thấy khi học bài giảng này
+              {t("classContent.lessonPreview.banner")}
             </div>
           </div>
 
           {error && (
             <div className="max-w-7xl mx-auto px-6 pt-6">
-              <Alert message="Lỗi" description={error} type="error" showIcon />
+              <Alert message={t("classContent.lessonPreview.errorTitle")} description={error} type="error" showIcon />
             </div>
           )}
 
@@ -132,12 +144,13 @@ export default function TeacherLessonPreview() {
               className="mb-5"
               context={{
                 classTitle: lesson?.classSectionTitle || lesson?.classTitle,
+                templateName: lesson?.templateName || lesson?.name,
                 lectureTitle: lesson?.title,
               }}
             />
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-[#111418] dark:text-white mb-2">
-                {lesson?.title || "Bài giảng"}
+                {lesson?.title || t("classContent.lessonPreview.defaultTitle")}
               </h1>
             </div>
 
@@ -160,8 +173,8 @@ export default function TeacherLessonPreview() {
                   <>
                     {primaryVideoResourceInfo?.platform === "onedrive-share" ? (
                       <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
-                        <p className="text-yellow-800 dark:text-yellow-400 text-sm font-medium">Video OneDrive chưa được cấu hình đúng</p>
-                        <p className="text-yellow-700 dark:text-yellow-500 text-xs mt-1">Dùng link embed từ OneDrive thay vì link chia sẻ. URL đúng có dạng: <code>https://onedrive.live.com/embed?resid=...</code></p>
+                        <p className="text-yellow-800 dark:text-yellow-400 text-sm font-medium">{t("classContent.lessonPreview.onedrive.title")}</p>
+                        <p className="text-yellow-700 dark:text-yellow-500 text-xs mt-1">{t("classContent.lessonPreview.onedrive.hint")} <code>https://onedrive.live.com/embed?resid=...</code></p>
                       </div>
                     ) : (
                       <VideoPlayer
@@ -186,8 +199,8 @@ export default function TeacherLessonPreview() {
               </div>
             ) : videoInfo?.platform === "onedrive-share" ? (
               <div className="mb-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
-                <p className="text-yellow-800 dark:text-yellow-400 text-sm font-medium">Video OneDrive chưa được cấu hình đúng</p>
-                <p className="text-yellow-700 dark:text-yellow-500 text-xs mt-1">Dùng link embed từ OneDrive thay vì link chia sẻ. URL đúng có dạng: <code>https://onedrive.live.com/embed?resid=...</code></p>
+                <p className="text-yellow-800 dark:text-yellow-400 text-sm font-medium">{t("classContent.lessonPreview.onedrive.title")}</p>
+                <p className="text-yellow-700 dark:text-yellow-500 text-xs mt-1">{t("classContent.lessonPreview.onedrive.hint")} <code>https://onedrive.live.com/embed?resid=...</code></p>
               </div>
             ) : null}
 
@@ -196,7 +209,7 @@ export default function TeacherLessonPreview() {
                 {lesson?.content && (
                   <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg px-6 py-4 shadow-md">
                     <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-4">
-                      Nội dung bài giảng
+                      {t("classContent.lessonPreview.contentHeading")}
                     </h2>
                     <SafeHtml
                       className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-justify]:text-justify [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:mb-6 [&_h1]:mt-4 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:mb-5 [&_h2]:mt-3 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:mb-4 [&_h3]:mt-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6"
@@ -210,7 +223,7 @@ export default function TeacherLessonPreview() {
                 <div>
                   <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-4 shadow-md sticky top-36">
                     <h3 className="text-md font-semibold text-[#111418] dark:text-white mb-3">
-                      Tài liệu bài giảng
+                      {t("classContent.lessonPreview.resourcesHeading")}
                     </h3>
                     <div className="space-y-2">
                       {nonVideoResources.map((resource) => (
@@ -232,7 +245,7 @@ export default function TeacherLessonPreview() {
               )}
             </div>
 
-            <LessonComments lectureId={lectureId} previewMode />
+            {!isTemplate && <LessonComments lectureId={lectureId} previewMode />}
           </div>
         </main>
       </div>

@@ -1302,6 +1302,7 @@
       "fail": "Fail",
       "pending": "Pending"
     },
+    "missingContext": "Quiz context not found in this class.",
     "quizInfo": "Quiz Info",
     "quiz": "Quiz",
     "course": "Class",
@@ -1436,6 +1437,7 @@
         "people": "People",
         "staff": "Staff",
         "review": "Review",
+        "quizAttempts": "Quiz attempts",
         "announcements": "Announcements",
         "progress": "Progress"
       },
@@ -1452,10 +1454,14 @@
       },
       "errors": {
         "loadClass": "Unable to load class",
-        "createAnnouncement": "Unable to create class announcement"
+        "createAnnouncement": "Unable to create class announcement",
+        "saveAnnouncement": "Unable to save class announcement",
+        "deleteAnnouncement": "Unable to delete class announcement"
       },
       "messages": {
-        "announcementCreated": "Class announcement posted."
+        "announcementCreated": "Class announcement posted.",
+        "announcementUpdated": "Class announcement updated.",
+        "announcementDeleted": "Class announcement deleted."
       },
       "actions": {
         "createAnnouncement": "Create announcement"
@@ -1469,6 +1475,11 @@
       },
       "announcements": {
         "modalTitle": "Create Class Announcement",
+        "editModalTitle": "Edit Class Announcement",
+        "save": "Save",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Delete this announcement?",
         "create": "Create Announcement",
         "submit": "Post Announcement",
         "cancel": "Cancel",
@@ -1771,6 +1782,25 @@
       "defaults": {
         "noStudentInfo": "No contact details yet",
         "notCompletedTime": "Not completed"
+      }
+    },
+    "lessonPreview": {
+      "viewAsStudent": "View as student",
+      "confirm": {
+        "title": "Preview lesson",
+        "content": "The preview shows the saved version. Unsaved changes will not appear.",
+        "ok": "Preview",
+        "cancel": "Cancel"
+      },
+      "banner": "Preview mode — This is what learners see when studying this lesson",
+      "errorTitle": "Error",
+      "loadError": "Unable to load lesson data",
+      "defaultTitle": "Lesson",
+      "contentHeading": "Lesson content",
+      "resourcesHeading": "Lesson materials",
+      "onedrive": {
+        "title": "OneDrive video is not configured correctly",
+        "hint": "Use the OneDrive embed link instead of the share link. The correct URL looks like:"
       }
     },
     "lessonCompletionPicker": {
@@ -2391,6 +2421,11 @@
       "noData": "No data",
       "untitled": "Untitled",
       "noCode": "No code",
+      "owner": {
+        "filterPlaceholder": "Owner",
+        "mine": "Mine",
+        "others": "Others"
+      },
       "pagination": {
         "total": "Total: {{count}}",
         "pageSize": "Rows per page",
@@ -2420,7 +2455,8 @@
         "template": "Template",
         "chapterCount": "{{count}} chapters",
         "subject": "Subject",
-        "category": "Category"
+        "category": "Category",
+        "createdBy": "Created by"
       },
       "confirm": {
         "deleteTitle": "Delete curriculum?",
@@ -2465,6 +2501,7 @@
         "statusPlaceholder": "Filter by status"
       },
       "labels": {
+        "teacher": "Teacher",
         "students": "Students",
         "schedule": "Schedule",
         "noSchedule": "No schedule yet"
@@ -2495,7 +2532,8 @@
         "searchPlaceholder": "Search by bank title or description...",
         "ownerSearchPlaceholder": "Search by owner...",
         "categoryPlaceholder": "Filter by category",
-        "subjectPlaceholder": "Filter by subject"
+        "subjectPlaceholder": "Filter by subject",
+        "rolePlaceholder": "Filter by role"
       },
       "columns": {
         "bank": "Bank",
@@ -2917,5 +2955,105 @@
     "allQuizzes": "All Quizzes",
     "quizPassRateLabel": "Pass Rate",
     "statusLabel": "Status"
+  },
+  "quizPreview": {
+    "common": {
+      "cancel": "Cancel",
+      "back": "Back",
+      "unlimited": "Unlimited",
+      "minutes": "{{count}} min",
+      "previewBadge": "Preview",
+      "quizFallbackTitle": "Quiz"
+    },
+    "questionTypes": {
+      "SINGLE_CHOICE": "Single choice",
+      "MULTIPLE_CHOICE": "Multiple choice",
+      "TRUE_FALSE": "True / False",
+      "SHORT_ANSWER": "Short answer",
+      "ESSAY": "Essay",
+      "MATCHING": "Matching",
+      "IMAGE_MATCHING": "Image matching",
+      "DRAG_ORDER": "Ordering",
+      "CLOZE": "Fill in the blank"
+    },
+    "intro": {
+      "loadError": "Unable to load quiz information",
+      "loadFailed": "Failed to load data",
+      "previewBanner": "Preview mode — This is what learners see when they open this quiz",
+      "defaultDescription": "This quiz assesses the learner's knowledge.",
+      "startPreview": "Start preview",
+      "questionsLabel": "Questions",
+      "questionsCount": "{{count}} questions",
+      "timeLabel": "Time",
+      "passScoreLabel": "Pass score",
+      "attemptsLabel": "Attempts",
+      "maxAttemptsValue": "Max {{count}}",
+      "instructionsTitle": "Notes before you start",
+      "instruction1": "The system will automatically submit your quiz when the time runs out.",
+      "instruction2": "If your browser closes unexpectedly, you can return to continue if time remains.",
+      "instruction3": "Results will be shown right after you click the \"Submit\" button.",
+      "instruction4": "You need at least {{count}}% of the points to complete the quiz.",
+      "teacherNote": "Note for instructors: This is preview mode. Trial results are not saved to the system. All question types are displayed and graded according to the configured correct answers.",
+      "confirmTitle": "Confirm start preview",
+      "confirmBody": "You are about to preview the quiz \"{{title}}\" in instructor mode.",
+      "confirmNote": "Results are not recorded in the system. This is only a simulation of the learner interface."
+    },
+    "attempt": {
+      "generatingSample": "Generating a sample quiz for preview mode...",
+      "sampleGenError": "Unable to generate a sample quiz for preview.",
+      "noQuestions": "No suitable questions to generate a sample quiz with the current configuration.",
+      "regenerateSample": "Generate another sample",
+      "backToPreview": "Back to preview page",
+      "promptContentFallback": "Content {{count}}",
+      "answerFallback": "Answer {{count}}",
+      "selectAnswer": "Select an answer",
+      "enterAnswer": "Enter an answer",
+      "enterEssay": "Enter your essay:",
+      "enterYourAnswer": "Enter your answer:",
+      "answerPlaceholder": "Write your answer here...",
+      "questionNumber": "Question {{count}}",
+      "flag": "Flag",
+      "prevQuestion": "Previous",
+      "nextQuestion": "Next",
+      "questionList": "Question list",
+      "pickNumberScroll": "Pick a number to scroll to a question",
+      "pickNumberSwitch": "Pick a number to switch questions",
+      "submit": "Submit",
+      "submitConfirmTitle": "Confirm submission (Preview)",
+      "submitAndView": "Submit & view results",
+      "submitConfirmBody": "Do you want to submit and view the simulated results?",
+      "submissionInfo": "Submission details:",
+      "totalQuestions": "Total questions",
+      "answered": "Answered",
+      "unanswered": "Unanswered",
+      "notSavedNote": "Results are not saved to the system — this is preview mode for instructors."
+    },
+    "result": {
+      "previewBanner": "Preview result — Not saved to the system",
+      "noResultData": "No result data. Please run the preview again.",
+      "image": "Image",
+      "noAnswer": "No answer",
+      "notSelected": "Not selected",
+      "noResponse": "No response",
+      "manualGrading": "Manual grading",
+      "passed": "Passed",
+      "failed": "Failed",
+      "simulatedForTeacher": "Simulated result for instructors",
+      "passedMessage": "The quiz meets the requirements.",
+      "failedMessage": "The quiz does not meet the requirements yet.",
+      "previewAgain": "Preview again",
+      "backToEdit": "Back to edit quiz",
+      "correct": "Correct",
+      "incorrect": "Incorrect",
+      "unanswered": "Unanswered",
+      "reviewTitle": "Answer details",
+      "partial": "Partial",
+      "correctBadge": "Correct",
+      "incorrectBadge": "Incorrect",
+      "notGraded": "Not graded",
+      "selectedAnswer": "Selected answer",
+      "points": "{{earned}} / {{max}} pts",
+      "correctAnswer": "Correct answer"
+    }
   }
 }
