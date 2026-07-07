@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { App, Button, Input, Select, Spin, Tag } from "antd";
+import { App, Button, Checkbox, Input, Select, Spin, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import {
   createStandaloneResource,
@@ -14,6 +14,8 @@ import {
 } from "../../api/resource";
 import { getQuestionBanks } from "../../api/questionBank";
 import { getMyTeachingClasses } from "../../api/teaching";
+import { getClassSections } from "../../api/classSection";
+import { getTemplates } from "../../api/curriculumTemplate";
 import { useAuth } from "../../contexts/AuthContext";
 import DataPaginationFooter from "../common/DataPaginationFooter";
 import MediaDetailModal from "./MediaDetailModal";
@@ -23,7 +25,9 @@ import { getDisplayFileType } from "../../utils/fileUtils";
 const DEFAULT_PAGE_SIZE = 24;
 const PAGE_SIZE_OPTIONS = [12, 24, 48];
 const RESOURCE_TYPES = ["IMAGE", "VIDEO", "AUDIO", "PDF", "FILE", "LINK"];
-const RESOURCE_SCOPES = ["QUESTION_BANK", "CLASS_SECTION", "PRIVATE_USER", "INSTITUTION_SHARED"];
+const RESOURCE_SCOPES = ["QUESTION_BANK", "CLASS_SECTION", "CURRICULUM_TEMPLATE", "PRIVATE_USER", "INSTITUTION_SHARED"];
+const SCOPES_WITH_TARGET = ["CLASS_SECTION", "QUESTION_BANK", "CURRICULUM_TEMPLATE"];
+const ALL_TARGET = "__ALL__";
 const RESOURCE_VISIBILITY = ["PRIVATE", "SHARED", "INSTITUTION"];
 
 const formatBytes = (value) => {
@@ -57,12 +61,14 @@ export default function MediaLibraryPanel({
   const [type, setType] = useState();
   const [sortBy, setSortBy] = useState("date");
   const [status, setStatus] = useState("ACTIVE");
+  const [hideSubmissions, setHideSubmissions] = useState(governance);
   const [scopeFilter, setScopeFilter] = useState(scopeType);
   const [ownerFilter, setOwnerFilter] = useState("");
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [scopeTargetFilter, setScopeTargetFilter] = useState();
   const [classScopeOptions, setClassScopeOptions] = useState([]);
   const [questionBankScopeOptions, setQuestionBankScopeOptions] = useState([]);
+  const [templateScopeOptions, setTemplateScopeOptions] = useState([]);
   const [scopeTargetLoading, setScopeTargetLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editTitle, setEditTitle] = useState("");
@@ -97,9 +103,24 @@ export default function MediaLibraryPanel({
   const startItem = pagination.totalElements === 0 ? 0 : (pagination.currentPage - 1) * pageSize + 1;
   const endItem = Math.min(pagination.currentPage * pageSize, pagination.totalElements);
   const totalSize = resources.reduce((sum, item) => sum + (item.fileSize || 0), 0);
-  const requiresScopeTarget = !fixedScope && (scopeFilter === "CLASS_SECTION" || scopeFilter === "QUESTION_BANK");
-  const activeScopeTargetOptions = scopeFilter === "CLASS_SECTION" ? classScopeOptions : questionBankScopeOptions;
-  const missingRequiredScopeTarget = requiresScopeTarget && !scopeTargetFilter;
+  const hasScopeTargetDropdown = !fixedScope && SCOPES_WITH_TARGET.includes(scopeFilter);
+  const effectiveScopeTarget = hasScopeTargetDropdown ? (scopeTargetFilter ?? ALL_TARGET) : undefined;
+  const isSpecificTarget = hasScopeTargetDropdown && effectiveScopeTarget !== ALL_TARGET;
+  const activeScopeTargetOptions = useMemo(() => {
+    const specifics = scopeFilter === "CLASS_SECTION"
+      ? classScopeOptions
+      : scopeFilter === "QUESTION_BANK"
+        ? questionBankScopeOptions
+        : scopeFilter === "CURRICULUM_TEMPLATE"
+          ? templateScopeOptions
+          : [];
+    const allLabel = scopeFilter === "CLASS_SECTION"
+      ? t("mediaManager.filters.allClasses")
+      : scopeFilter === "QUESTION_BANK"
+        ? t("mediaManager.filters.allBanks")
+        : t("mediaManager.filters.allTemplates");
+    return [{ value: ALL_TARGET, label: allLabel }, ...specifics];
+  }, [scopeFilter, classScopeOptions, questionBankScopeOptions, templateScopeOptions, t]);
 
   const uploadParams = useMemo(() => {
     const params = {};
@@ -115,41 +136,52 @@ export default function MediaLibraryPanel({
       params.scopeType = scopeFilter;
       return params;
     }
-    if (requiresScopeTarget && scopeTargetFilter) {
+    if (hasScopeTargetDropdown && isSpecificTarget) {
       params.scopeType = scopeFilter;
       params.scopeId = scopeTargetFilter;
     }
     return params;
-  }, [fixedScope, requiresScopeTarget, scopeFilter, scopeId, scopeTargetFilter, scopeType]);
+  }, [fixedScope, hasScopeTargetDropdown, isSpecificTarget, scopeFilter, scopeId, scopeTargetFilter, scopeType]);
 
   const queryParams = useMemo(() => {
     const params = {
       pageSize,
       sortBy,
     };
-    const activeScope = fixedScope ? scopeType : scopeFilter;
-    if (activeScope) params.scopeType = activeScope;
-    if (fixedScope && scopeId) params.scopeId = scopeId;
-    if (!fixedScope && requiresScopeTarget && scopeTargetFilter) {
-      params.scopeId = scopeTargetFilter;
+    if (!fixedScope && hasScopeTargetDropdown) {
+      if (scopeFilter === "CLASS_SECTION") {
+        if (isSpecificTarget) params.usedInClassId = scopeTargetFilter;
+        else params.usedInAnyClass = true;
+      } else {
+        params.scopeType = scopeFilter;
+        if (isSpecificTarget) params.scopeId = scopeTargetFilter;
+      }
+    } else {
+      const activeScope = fixedScope ? scopeType : scopeFilter;
+      if (activeScope) params.scopeType = activeScope;
+      if (fixedScope && scopeId) params.scopeId = scopeId;
     }
     if (type) params.type = type;
-    if (status) params.status = status;
+    if (status === "ALL") params.allStatuses = true;
+    else if (status) params.status = status;
     if (createdByMe) params.createdByMe = true;
     if (ownerLibrary) params.ownerLibrary = true;
     if (includeCurrentScope) params.includeCurrentScope = true;
     if (governance && ownerFilter.trim()) params.owner = ownerFilter.trim();
+    if (governance && hideSubmissions) params.excludeSubmissions = true;
     if (search.trim()) params.search = search.trim();
     return params;
   }, [
     createdByMe,
     fixedScope,
     governance,
+    hasScopeTargetDropdown,
+    hideSubmissions,
     includeCurrentScope,
+    isSpecificTarget,
     ownerFilter,
     ownerLibrary,
     pageSize,
-    requiresScopeTarget,
     scopeFilter,
     scopeId,
     scopeTargetFilter,
@@ -199,11 +231,6 @@ export default function MediaLibraryPanel({
   const formatSourceLabel = (source) => (source ? t(`mediaManager.sources.${source}`, source) : "-");
 
   const loadResources = async (pageNumber = 1) => {
-    if (missingRequiredScopeTarget) {
-      setResources([]);
-      setPagination({ currentPage: 1, totalPage: 1, totalElements: 0 });
-      return;
-    }
     setLoading(true);
     try {
       const page = await getResourcePage({ ...queryParams, pageNumber });
@@ -226,7 +253,7 @@ export default function MediaLibraryPanel({
 
   useEffect(() => {
     if (!fixedScope) {
-      setScopeTargetFilter(undefined);
+      setScopeTargetFilter(SCOPES_WITH_TARGET.includes(scopeFilter) ? ALL_TARGET : undefined);
     }
   }, [fixedScope, scopeFilter]);
 
@@ -236,7 +263,7 @@ export default function MediaLibraryPanel({
     }
     if (scopeFilter === "CLASS_SECTION" && classScopeOptions.length === 0) {
       setScopeTargetLoading(true);
-      getMyTeachingClasses()
+      (isAdmin ? getClassSections() : getMyTeachingClasses())
         .then((response) => {
           const items = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
           setClassScopeOptions(
@@ -271,7 +298,26 @@ export default function MediaLibraryPanel({
         })
         .finally(() => setScopeTargetLoading(false));
     }
-  }, [classScopeOptions.length, fixedScope, questionBankScopeOptions.length, scopeFilter]);
+    if (scopeFilter === "CURRICULUM_TEMPLATE" && templateScopeOptions.length === 0) {
+      setScopeTargetLoading(true);
+      getTemplates()
+        .then((items) => {
+          const list = Array.isArray(items) ? items : Array.isArray(items?.data) ? items.data : [];
+          setTemplateScopeOptions(
+            list
+              .filter((item) => item?.id)
+              .map((item) => ({
+                value: item.id,
+                label: item.name || item.title || `#${item.id}`,
+              })),
+          );
+        })
+        .catch(() => {
+          setTemplateScopeOptions([]);
+        })
+        .finally(() => setScopeTargetLoading(false));
+    }
+  }, [classScopeOptions.length, fixedScope, isAdmin, questionBankScopeOptions.length, templateScopeOptions.length, scopeFilter]);
 
   useEffect(() => {
     getResourceUploadPolicy()
@@ -283,7 +329,7 @@ export default function MediaLibraryPanel({
     const files = Array.from(event.target.files || []);
     event.target.value = "";
     if (!files.length) return;
-    if (requiresScopeTarget && !scopeTargetFilter) {
+    if (hasScopeTargetDropdown && !isSpecificTarget) {
       message.warning(t("mediaManager.messages.scopeTargetRequired"));
       return;
     }
@@ -314,7 +360,7 @@ export default function MediaLibraryPanel({
       message.warning(t("mediaManager.link.invalidUrl"));
       return;
     }
-    if (requiresScopeTarget && !scopeTargetFilter) {
+    if (hasScopeTargetDropdown && !isSpecificTarget) {
       message.warning(t("mediaManager.messages.scopeTargetRequired"));
       return;
     }
@@ -490,13 +536,13 @@ export default function MediaLibraryPanel({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 md:flex-row md:items-center overflow-x-auto scrollbar-hide">
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 md:flex-row md:flex-wrap md:items-center">
         <Input.Search
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder={t("mediaManager.searchPlaceholder")}
           allowClear
-          className="md:max-w-xs"
+          className="w-full md:w-64 md:flex-shrink-0"
         />
         {governance ? (
           <div className="w-[250px] min-w-[250px] flex-shrink-0">
@@ -522,18 +568,19 @@ export default function MediaLibraryPanel({
             optionFilterProp="label"
           />
         ) : null}
-        {requiresScopeTarget ? (
+        {hasScopeTargetDropdown ? (
           <Select
-            allowClear
             showSearch
             loading={scopeTargetLoading}
             placeholder={
               scopeFilter === "CLASS_SECTION"
                 ? t("mediaManager.filters.scopeTargetClass")
-                : t("mediaManager.filters.scopeTargetQuestionBank")
+                : scopeFilter === "QUESTION_BANK"
+                  ? t("mediaManager.filters.scopeTargetQuestionBank")
+                  : t("mediaManager.filters.scopeTargetTemplate")
             }
-            value={scopeTargetFilter}
-            onChange={setScopeTargetFilter}
+            value={effectiveScopeTarget}
+            onChange={(value) => setScopeTargetFilter(value ?? ALL_TARGET)}
             options={activeScopeTargetOptions}
             className="w-full md:w-auto"
             style={{ minWidth: 260, maxWidth: 260 }}
@@ -564,6 +611,7 @@ export default function MediaLibraryPanel({
           showSearch
           optionFilterProp="label"
           options={[
+            { value: "ALL", label: t("mediaManager.status.all") },
             { value: "ACTIVE", label: t("mediaManager.status.ACTIVE") },
             { value: "ARCHIVED", label: t("mediaManager.status.ARCHIVED") },
           ]}
@@ -583,18 +631,21 @@ export default function MediaLibraryPanel({
           className="w-full md:w-auto"
           style={{ minWidth: 150, maxWidth: 150 }}
         />
+        {governance ? (
+          <Checkbox
+            checked={hideSubmissions}
+            onChange={(event) => setHideSubmissions(event.target.checked)}
+            className="whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"
+          >
+            {t("mediaManager.filters.hideSubmissions")}
+          </Checkbox>
+        ) : null}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
         {loading && resources.length === 0 ? (
           <div className="flex justify-center py-16">
             <Spin />
-          </div>
-        ) : missingRequiredScopeTarget ? (
-          <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
-            {scopeFilter === "CLASS_SECTION"
-              ? t("mediaManager.emptyStates.scopeTargetClass")
-              : t("mediaManager.emptyStates.scopeTargetQuestionBank")}
           </div>
         ) : resources.length > 0 ? (
           <div className="p-4 sm:p-5">
@@ -620,7 +671,16 @@ export default function MediaLibraryPanel({
 
                     </div>
                     <div className="flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
-                      <span className="truncate">{resource.createdBy || "-"}</span>
+                      <span
+                        className="truncate"
+                        title={
+                          resource.createdByName
+                            ? `${resource.createdByName} (${resource.createdBy})`
+                            : resource.createdBy || "-"
+                        }
+                      >
+                        {resource.createdByName || resource.createdBy || "-"}
+                      </span>
                       <span className="whitespace-nowrap">
                         {(resource.usageCount || 0) > 0 ? t("mediaManager.usedCount", { count: resource.usageCount }) : t("mediaManager.unused")}
                       </span>
@@ -632,7 +692,9 @@ export default function MediaLibraryPanel({
           </div>
         ) : (
           <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
-            {t("mediaManager.empty")}
+            {!fixedScope && scopeFilter === "CLASS_SECTION" && isSpecificTarget
+              ? t("mediaManager.emptyStates.usedInClass")
+              : t("mediaManager.empty")}
           </div>
         )}
 

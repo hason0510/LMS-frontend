@@ -1623,12 +1623,12 @@ export default function QuizDetail() {
 
   const sensors = useSensors(useSensor(PointerSensor));
   const quizMediaContext = useMemo(() => {
-    if (!classSectionId || isTemplateMode) return null;
-    return {
-      scopeType: "CLASS_SECTION",
-      scopeId: Number(classSectionId),
-    };
-  }, [classSectionId, isTemplateMode]);
+    if (isTemplateMode) {
+      return templateId ? { scopeType: "CURRICULUM_TEMPLATE", scopeId: Number(templateId) } : null;
+    }
+    if (!classSectionId) return null;
+    return { scopeType: "CLASS_SECTION", scopeId: Number(classSectionId) };
+  }, [classSectionId, isTemplateMode, templateId]);
   const activeChapter = useMemo(
     () =>
       (course?.chapters || []).find(

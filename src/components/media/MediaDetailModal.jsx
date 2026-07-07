@@ -148,7 +148,14 @@ export default function MediaDetailModal({
                 <DetailField label={t("mediaManager.fields.size")} value={formatBytes(resource.fileSize)} />
                 <DetailField label={t("mediaManager.fields.source")} value={sourceValue} />
                 <DetailField label={t("mediaManager.fields.createdDate")} value={createdDate} />
-                <DetailField label={t("mediaManager.fields.owner")} value={resource.createdBy || "-"} />
+                <DetailField
+                  label={t("mediaManager.fields.owner")}
+                  value={
+                    resource.createdByName
+                      ? `${resource.createdByName} (${resource.createdBy})`
+                      : resource.createdBy || "-"
+                  }
+                />
                 <DetailField label={t("mediaManager.fields.lastUsedAt")} value={lastUsedAt} />
                 <DetailField label={t("mediaManager.fields.scope")} value={scopeDisplay} />
                 <DetailField label={t("mediaManager.fields.scopeTarget")} value={scopeTarget} />

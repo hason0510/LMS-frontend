@@ -708,7 +708,7 @@
     "loadFailed": "Không thể tải thư viện media",
     "uploadSuccess": "Tải file thành công",
     "uploadFailed": "Tải file thất bại",
-    "uploadPolicy": "Cho phép: {{extensions}} · Tối đa {{size}}",
+    "uploadPolicy": "Cho phép: {{extensions}} · Tối đa {{size}} (video/âm thanh tối đa 100MB)",
     "invalidFileType": "Định dạng file này chưa được hỗ trợ",
     "fileTooLarge": "File vượt quá giới hạn {{size}}",
     "loadMore": "Tải thêm",
@@ -751,7 +751,7 @@
     }
   },
   "mediaManager": {
-    "uploadPolicy": "Giới hạn tải lên: {{size}}. Định dạng cho phép: {{extensions}}",
+    "uploadPolicy": "Giới hạn tải lên: {{size}} (video/âm thanh tối đa 100MB). Định dạng cho phép: {{extensions}}",
     "searchPlaceholder": "Tìm media",
     "empty": "Chưa có media nào phù hợp bộ lọc hiện tại.",
     "untitled": "Chưa đặt tên",
@@ -789,11 +789,13 @@
     "scopes": {
       "QUESTION_BANK": "Ngân hàng câu hỏi",
       "CLASS_SECTION": "Lớp học",
+      "CURRICULUM_TEMPLATE": "Chương trình học",
       "PRIVATE_USER": "Kho cá nhân",
       "INSTITUTION_SHARED": "Thư viện chung",
       "LEGACY": "Dữ liệu cũ"
     },
     "status": {
+      "all": "Tất cả",
       "ACTIVE": "Đang dùng",
       "ARCHIVED": "Ngừng sử dụng"
     },
@@ -806,8 +808,13 @@
       "scope": "Phạm vi",
       "scopeTargetClass": "Chọn lớp học cụ thể",
       "scopeTargetQuestionBank": "Chọn ngân hàng cụ thể",
+      "scopeTargetTemplate": "Chọn chương trình học cụ thể",
+      "allClasses": "Tất cả lớp học",
+      "allBanks": "Tất cả ngân hàng",
+      "allTemplates": "Tất cả chương trình học",
       "type": "Loại media",
-      "owner": "Người tạo"
+      "owner": "Tên hoặc username người tạo",
+      "hideSubmissions": "Ẩn bài nộp học viên"
     },
     "stats": {
       "currentResult": "Kết quả hiện tại",
@@ -912,7 +919,7 @@
       "loadFailed": "Không thể tải media",
       "uploadSuccess": "Tải media lên thành công",
       "uploadFailed": "Tải media lên thất bại",
-      "scopeTargetRequired": "Hãy chọn lớp học hoặc ngân hàng câu hỏi cụ thể trước khi tiếp tục.",
+      "scopeTargetRequired": "Hãy chọn một lớp/ngân hàng/chương trình học CỤ THỂ trước khi tải lên (không thể tải vào 'Tất cả').",
       "detailsFailed": "Không thể tải lịch sử media",
       "updateSuccess": "Đã cập nhật thông tin media",
       "updateFailed": "Không thể cập nhật media",
@@ -925,8 +932,9 @@
       "deleteFailed": "Không thể xóa media"
     },
     "emptyStates": {
-      "scopeTargetClass": "Chọn một lớp học để xem media trong phạm vi lớp đó.",
-      "scopeTargetQuestionBank": "Chọn một ngân hàng câu hỏi để xem media trong phạm vi ngân hàng đó."
+      "scopeTargetClass": "Chọn một lớp học để xem media đang được dùng trong lớp đó.",
+      "scopeTargetQuestionBank": "Chọn một ngân hàng câu hỏi để xem media trong phạm vi ngân hàng đó.",
+      "usedInClass": "Lớp này chưa có media nào đang được dùng."
     },
     "unused": "Chưa được dùng"
   },

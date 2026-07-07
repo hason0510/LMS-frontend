@@ -708,7 +708,7 @@
     "loadFailed": "Could not load media library",
     "uploadSuccess": "File uploaded successfully",
     "uploadFailed": "File upload failed",
-    "uploadPolicy": "Allowed: {{extensions}} · Max {{size}}",
+    "uploadPolicy": "Allowed: {{extensions}} · Max {{size}} (video/audio up to 100MB)",
     "invalidFileType": "This file format is not supported",
     "fileTooLarge": "File exceeds the {{size}} limit",
     "loadMore": "Load more",
@@ -751,7 +751,7 @@
     }
   },
   "mediaManager": {
-    "uploadPolicy": "Upload limit: {{size}}. Allowed formats: {{extensions}}",
+    "uploadPolicy": "Upload limit: {{size}} (video/audio up to 100MB). Allowed formats: {{extensions}}",
     "searchPlaceholder": "Search media",
     "empty": "No media matches the current filters.",
     "untitled": "Untitled",
@@ -789,11 +789,13 @@
     "scopes": {
       "QUESTION_BANK": "Question bank",
       "CLASS_SECTION": "Class",
+      "CURRICULUM_TEMPLATE": "Curriculum",
       "PRIVATE_USER": "Personal library",
       "INSTITUTION_SHARED": "Shared library",
       "LEGACY": "Legacy data"
     },
     "status": {
+      "all": "All",
       "ACTIVE": "Active",
       "ARCHIVED": "Archived"
     },
@@ -806,8 +808,13 @@
       "scope": "Scope",
       "scopeTargetClass": "Select a class",
       "scopeTargetQuestionBank": "Select a question bank",
+      "scopeTargetTemplate": "Select a curriculum",
+      "allClasses": "All classes",
+      "allBanks": "All question banks",
+      "allTemplates": "All curriculums",
       "type": "Media type",
-      "owner": "Creator"
+      "owner": "Creator name or username",
+      "hideSubmissions": "Hide learner submissions"
     },
     "stats": {
       "currentResult": "Current results",
@@ -912,7 +919,7 @@
       "loadFailed": "Could not load media",
       "uploadSuccess": "Media uploaded successfully",
       "uploadFailed": "Media upload failed",
-      "scopeTargetRequired": "Select a specific class or question bank before continuing.",
+      "scopeTargetRequired": "Select a SPECIFIC class/bank/curriculum before uploading (cannot upload to 'All').",
       "detailsFailed": "Could not load media history",
       "updateSuccess": "Media information updated",
       "updateFailed": "Could not update media",
@@ -925,8 +932,9 @@
       "deleteFailed": "Could not delete media"
     },
     "emptyStates": {
-      "scopeTargetClass": "Select a class to view media in that class scope.",
-      "scopeTargetQuestionBank": "Select a question bank to view media in that bank scope."
+      "scopeTargetClass": "Select a class to view media currently used in that class.",
+      "scopeTargetQuestionBank": "Select a question bank to view media in that bank scope.",
+      "usedInClass": "This class has no media in use yet."
     },
     "unused": "Unused"
   },
