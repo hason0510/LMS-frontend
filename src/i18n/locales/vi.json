@@ -592,7 +592,7 @@
     "sortBy": "Sắp xếp",
     "sortDesc": "Mới nhất",
     "sortAsc": "Cũ nhất",
-    "dueDateFilter": "Hạn nộp",
+    "dueDateFilter": "Hạn nộp đến ngày",
     "loadFailed": "Không thể tải dữ liệu bài tập",
     "empty": "Không có bài tập phù hợp",
     "details": "Chi tiết",
@@ -1500,6 +1500,7 @@
       "selfNotice": "Đây là hồ sơ của chính bạn. Các thao tác chấm bài với bài làm của bạn sẽ bị khóa.",
       "noStudentCode": "Chưa có mã người học",
       "empty": "Không có người học phù hợp.",
+      "searchPlaceholder": "Tìm theo tên, MSSV hoặc email",
       "filters": {
         "all": "Tất cả",
         "approved": "Đã duyệt",
@@ -1507,12 +1508,30 @@
         "rejected": "Từ chối"
       },
       "columns": {
+        "index": "#",
         "student": "Người học",
         "status": "Trạng thái",
         "progress": "Tiến độ",
         "missingAssignments": "Thiếu bài",
         "pendingReviews": "Chờ chấm",
-        "latestScore": "Điểm gần nhất"
+        "latestScore": "Điểm gần nhất",
+        "standing": "Đánh giá",
+        "submittedAssignments": "Bài tập đã nộp",
+        "passedQuizzes": "Bài kiểm tra đạt",
+        "notSubmitted": "Số bài chưa nộp"
+      },
+      "standing": {
+        "atRisk": "Nguy cơ",
+        "average": "Trung bình",
+        "good": "Tốt"
+      },
+      "progressFilter": {
+        "all": "Tất cả tiến độ"
+      },
+      "pagination": {
+        "total": "Tổng: {{count}}",
+        "pageSize": "Số dòng/trang",
+        "range": "{{start}} - {{end}}"
       }
     },
     "enrollmentStatus": {
@@ -1595,7 +1614,7 @@
       },
       "permissions": {
         "VIEW_CLASS": "Xem lớp hỗ trợ",
-        "VIEW_PEOPLE": "Xem danh sách người học",
+        "VIEW_PEOPLE": "Xem người học & tiến độ",
         "VIEW_PROGRESS": "Xem tiến độ người học",
         "MANAGE_ASSIGNMENTS": "Tạo, quản lý và chấm bài tập",
         "REVIEW_QUIZZES": "Xem và rà soát bài quiz",
@@ -1835,7 +1854,13 @@
       "hidden": "Ẩn",
       "locked": "Khóa",
       "notOpenYet": "Chưa mở",
-      "closed": "Đã đóng"
+      "closed": "Đã đóng",
+      "viewOnly": "Chỉ xem"
+    },
+    "teachingReadOnly": {
+      "lessonBanner": "Chế độ chỉ xem nội dung bài giảng",
+      "quizBanner": "Chế độ chỉ xem — bạn không có quyền rà soát bài quiz này",
+      "assignmentBanner": "Chế độ chỉ xem — bạn không có quyền chấm bài tập này"
     },
     "access": {
       "waitForApproval": "Vui lòng chờ giảng viên duyệt đơn đăng ký để truy cập nội dung.",
@@ -2945,6 +2970,12 @@
     "learnerList": "Danh sách Người học",
     "approvedLearners": "người học đã được duyệt",
     "searchLearner": "Tìm người học...",
+    "progressFilter": {
+      "all": "Tất cả tiến độ",
+      "atRisk": "Nguy cơ",
+      "average": "Trung bình",
+      "good": "Tốt"
+    },
     "export": "Xuất",
     "colLearner": "Người học",
     "colProgress": "Tiến độ",

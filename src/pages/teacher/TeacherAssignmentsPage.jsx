@@ -128,9 +128,10 @@ export default function TeacherAssignmentsPage({ isAdmin = false }) {
     let result = [...items];
 
     if (filterDate) {
-      const targetDate = dayjs(filterDate).format("YYYY-MM-DD");
+      // Lọc "hạn nộp đến/trước ngày X": giữ bài có hạn <= hết ngày được chọn (gồm cả ngày đó).
+      const cutoff = dayjs(filterDate).endOf("day");
       result = result.filter(
-        (item) => item.dueAt && dayjs(item.dueAt).format("YYYY-MM-DD") === targetDate
+        (item) => item.dueAt && !dayjs(item.dueAt).isAfter(cutoff)
       );
     }
 

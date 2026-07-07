@@ -162,6 +162,15 @@ export const updateClassContentItem = async (classSectionId, classContentItemId,
 // alias — same endpoint, kept for compatibility
 export const overrideClassContentItem = updateClassContentItem;
 
+export const moveClassContentItem = async (classSectionId, classContentItemId, direction) => {
+  const response = await axiosClient.patch(
+    `class-sections/${classSectionId}/content-items/${classContentItemId}/move`,
+    null,
+    { params: { direction } }
+  );
+  return response.data;
+};
+
 export const deleteClassContentItem = async (classSectionId, classContentItemId) => {
   const response = await axiosClient.delete(`class-sections/${classSectionId}/content-items/${classContentItemId}`);
   return response.data;

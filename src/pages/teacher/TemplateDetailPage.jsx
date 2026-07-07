@@ -98,6 +98,9 @@ export default function TemplateDetailPage({ isAdmin = false }) {
   const classImageUrl = Form.useWatch("imageUrl", classForm);
   const classImageResourceId = Form.useWatch("imageResourceId", classForm);
   const currentUserId = user?.id || user?.sub;
+  const currentUserName = user?.userName || user?.username;
+  // Thư viện dùng chung: ai cũng xem/tạo lớp, nhưng chỉ chủ sở hữu hoặc admin mới sửa/xóa.
+  const canManage = isAdmin || (!!template?.createdBy && template.createdBy === currentUserName);
 
   const buildOwnerLabel = (account, fallback = "Người dùng") =>
     `${account?.fullName || account?.userName || account?.username || fallback}${account?.gmail ? ` - ${account.gmail}` : ""}`;
@@ -429,15 +432,17 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Tooltip title="Chỉnh sửa thông tin template">
-                    <button
-                      onClick={() => navigate(`${basePath}/curriculums/edit/${templateId}`)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary text-sm font-medium transition-all"
-                    >
-                      <PencilSquareIcon className="w-4 h-4" />
-                      Chỉnh sửa
-                    </button>
-                  </Tooltip>
+                  {canManage && (
+                    <Tooltip title="Chỉnh sửa thông tin template">
+                      <button
+                        onClick={() => navigate(`${basePath}/curriculums/edit/${templateId}`)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary text-sm font-medium transition-all"
+                      >
+                        <PencilSquareIcon className="w-4 h-4" />
+                        Chỉnh sửa
+                      </button>
+                    </Tooltip>
+                  )}
                   <button
                     onClick={() => {
                       classForm.setFieldsValue({
@@ -467,13 +472,15 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                   Nội dung chương trình
                 </h2>
-                <button
-                  onClick={() => openChapterModal()}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary text-sm font-medium transition-all"
-                >
-                  <PlusCircleIcon className="w-4 h-4" />
-                  Thêm Chương
-                </button>
+                {canManage && (
+                  <button
+                    onClick={() => openChapterModal()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary text-sm font-medium transition-all"
+                  >
+                    <PlusCircleIcon className="w-4 h-4" />
+                    Thêm Chương
+                  </button>
+                )}
               </div>
 
               {!template?.chapters?.length ? (
@@ -483,13 +490,15 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                   <p className="text-slate-400 dark:text-slate-500 text-sm mb-4">
                     Thêm chương đầu tiên để bắt đầu thiết kế chương trình học.
                   </p>
-                  <button
-                    onClick={() => openChapterModal()}
-                    className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-all"
-                  >
-                    <PlusCircleIcon className="w-4 h-4" />
-                    Thêm Chương Đầu Tiên
-                  </button>
+                  {canManage && (
+                    <button
+                      onClick={() => openChapterModal()}
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-all"
+                    >
+                      <PlusCircleIcon className="w-4 h-4" />
+                      Thêm Chương Đầu Tiên
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -523,49 +532,53 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                             <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:block">
                               {items.length} nội dung
                             </span>
-                            {/* Reorder buttons */}
-                            <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                disabled={idx === 0 || reorderingChapter}
-                                onClick={(e) => { e.stopPropagation(); handleMoveChapter(sortedChapters, idx, "up"); }}
-                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                                title="Di chuyển lên"
-                              >
-                                <ChevronUpIcon className="w-4 h-4" />
-                              </button>
-                              <button
-                                disabled={idx === sortedChapters.length - 1 || reorderingChapter}
-                                onClick={(e) => { e.stopPropagation(); handleMoveChapter(sortedChapters, idx, "down"); }}
-                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                                title="Di chuyển xuống"
-                              >
-                                <ChevronDownIcon className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <Tooltip title="Chỉnh sửa chương">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); openChapterModal(chapter); }}
-                                className="p-1.5 rounded-md text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
-                              >
-                                <PencilSquareIcon className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
-                            <Popconfirm
-                              title="Xóa chương này?"
-                              description="Tất cả nội dung trong chương sẽ bị xóa."
-                              onConfirm={(e) => { e?.stopPropagation(); handleDeleteChapter(chapter.id); }}
-                              onCancel={(e) => e?.stopPropagation()}
-                              okText="Xóa"
-                              cancelText="Hủy"
-                              okButtonProps={{ danger: true }}
-                            >
-                              <button
-                                onClick={(e) => e.stopPropagation()}
-                                className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                              >
-                                <TrashIcon className="w-4 h-4" />
-                              </button>
-                            </Popconfirm>
+                            {canManage && (
+                              <>
+                                {/* Reorder buttons */}
+                                <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    disabled={idx === 0 || reorderingChapter}
+                                    onClick={(e) => { e.stopPropagation(); handleMoveChapter(sortedChapters, idx, "up"); }}
+                                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                    title="Di chuyển lên"
+                                  >
+                                    <ChevronUpIcon className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    disabled={idx === sortedChapters.length - 1 || reorderingChapter}
+                                    onClick={(e) => { e.stopPropagation(); handleMoveChapter(sortedChapters, idx, "down"); }}
+                                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                    title="Di chuyển xuống"
+                                  >
+                                    <ChevronDownIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <Tooltip title="Chỉnh sửa chương">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); openChapterModal(chapter); }}
+                                    className="p-1.5 rounded-md text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                                  >
+                                    <PencilSquareIcon className="w-4 h-4" />
+                                  </button>
+                                </Tooltip>
+                                <Popconfirm
+                                  title="Xóa chương này?"
+                                  description="Tất cả nội dung trong chương sẽ bị xóa."
+                                  onConfirm={(e) => { e?.stopPropagation(); handleDeleteChapter(chapter.id); }}
+                                  onCancel={(e) => e?.stopPropagation()}
+                                  okText="Xóa"
+                                  cancelText="Hủy"
+                                  okButtonProps={{ danger: true }}
+                                >
+                                  <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                  >
+                                    <TrashIcon className="w-4 h-4" />
+                                  </button>
+                                </Popconfirm>
+                              </>
+                            )}
                             <span className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}>
                               <ChevronRightIcon className="w-4 h-4 text-slate-400" />
                             </span>
@@ -608,62 +621,66 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${cfg.badgeClass}`}>
                                         {cfg.label}
                                       </span>
-                                      <div className="flex items-center gap-0.5">
-                                        {/* Reorder buttons */}
-                                        <button
-                                          disabled={itemIdx === 0 || reorderingItem}
-                                          onClick={() => handleMoveContentItem(chapter.id, sortedItems, itemIdx, "up")}
-                                          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                                          title="Di chuyển lên"
-                                        >
-                                          <ChevronUpIcon className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                          disabled={itemIdx === sortedItems.length - 1 || reorderingItem}
-                                          onClick={() => handleMoveContentItem(chapter.id, sortedItems, itemIdx, "down")}
-                                          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                                          title="Di chuyển xuống"
-                                        >
-                                          <ChevronDownIcon className="w-3.5 h-3.5" />
-                                        </button>
-                                        {/* Edit / Delete */}
-                                        {(item.lessonTemplateId || item.quizTemplateId) && (
-                                          <Tooltip title="Chỉnh sửa nội dung">
-                                            <button
-                                              onClick={() => navigateToContentItem(item, chapter.id)}
-                                              className="p-1.5 rounded-md text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
-                                            >
-                                              <PencilSquareIcon className="w-3.5 h-3.5" />
-                                            </button>
-                                          </Tooltip>
-                                        )}
-                                        <Popconfirm
-                                          title="Xóa nội dung này?"
-                                          onConfirm={() => handleDeleteContentItem(chapter.id, item.id)}
-                                          okText="Xóa"
-                                          cancelText="Hủy"
-                                          okButtonProps={{ danger: true }}
-                                        >
-                                          <button className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                                            <TrashIcon className="w-3.5 h-3.5" />
+                                      {canManage && (
+                                        <div className="flex items-center gap-0.5">
+                                          {/* Reorder buttons */}
+                                          <button
+                                            disabled={itemIdx === 0 || reorderingItem}
+                                            onClick={() => handleMoveContentItem(chapter.id, sortedItems, itemIdx, "up")}
+                                            className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                            title="Di chuyển lên"
+                                          >
+                                            <ChevronUpIcon className="w-3.5 h-3.5" />
                                           </button>
-                                        </Popconfirm>
-                                      </div>
+                                          <button
+                                            disabled={itemIdx === sortedItems.length - 1 || reorderingItem}
+                                            onClick={() => handleMoveContentItem(chapter.id, sortedItems, itemIdx, "down")}
+                                            className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                            title="Di chuyển xuống"
+                                          >
+                                            <ChevronDownIcon className="w-3.5 h-3.5" />
+                                          </button>
+                                          {/* Edit / Delete */}
+                                          {(item.lessonTemplateId || item.quizTemplateId) && (
+                                            <Tooltip title="Chỉnh sửa nội dung">
+                                              <button
+                                                onClick={() => navigateToContentItem(item, chapter.id)}
+                                                className="p-1.5 rounded-md text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                                              >
+                                                <PencilSquareIcon className="w-3.5 h-3.5" />
+                                              </button>
+                                            </Tooltip>
+                                          )}
+                                          <Popconfirm
+                                            title="Xóa nội dung này?"
+                                            onConfirm={() => handleDeleteContentItem(chapter.id, item.id)}
+                                            okText="Xóa"
+                                            cancelText="Hủy"
+                                            okButtonProps={{ danger: true }}
+                                          >
+                                            <button className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                              <TrashIcon className="w-3.5 h-3.5" />
+                                            </button>
+                                          </Popconfirm>
+                                        </div>
+                                      )}
                                     </div>
                                   );
                                   });
                                 })()}
                               </div>
                             )}
-                            <div className="px-5 py-3 bg-slate-50/50 dark:bg-slate-700/20">
-                              <button
-                                onClick={() => openContentTypeModal(chapter.id)}
-                                className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-                              >
-                                <PlusCircleIcon className="w-4 h-4" />
-                                Thêm nội dung
-                              </button>
-                            </div>
+                            {canManage && (
+                              <div className="px-5 py-3 bg-slate-50/50 dark:bg-slate-700/20">
+                                <button
+                                  onClick={() => openContentTypeModal(chapter.id)}
+                                  className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                                >
+                                  <PlusCircleIcon className="w-4 h-4" />
+                                  Thêm nội dung
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -671,13 +688,15 @@ export default function TemplateDetailPage({ isAdmin = false }) {
                   })}
 
                   {/* Add chapter button at bottom */}
+                  {canManage && (
                     <button
                       onClick={() => openChapterModal()}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-primary hover:text-primary hover:bg-primary/5 text-sm font-medium transition-all"
-                  >
-                    <PlusCircleIcon className="w-4 h-4" />
-                    Thêm chương mới
-                  </button>
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-primary hover:text-primary hover:bg-primary/5 text-sm font-medium transition-all"
+                    >
+                      <PlusCircleIcon className="w-4 h-4" />
+                      Thêm chương mới
+                    </button>
+                  )}
                 </div>
               )}
             </div>

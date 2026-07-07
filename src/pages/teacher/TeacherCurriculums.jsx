@@ -154,7 +154,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
     return templates.filter((template) =>
       selectedOwner === "MINE" ? template.createdBy === currentUserName : template.createdBy !== currentUserName
     );
-  }, [templates, isAdmin, selectedOwner, currentUserName]);
+  }, [templates, selectedOwner, currentUserName, isAdmin]);
 
   const pageItems = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -181,7 +181,7 @@ export default function TeacherCurriculums({ isAdmin = false }) {
             <div className="truncate text-xs leading-tight text-slate-500 dark:text-slate-400">
               {getTemplateDescription(record) || t("teacherLists.shared.noDescription")}
             </div>
-            {isAdmin && (
+            {(isAdmin || record.createdBy !== currentUserName) && (
               <div className="truncate text-xs leading-tight text-slate-400 dark:text-slate-500">
                 {t("teacherLists.curriculums.labels.createdBy")}: {record.createdByName || record.createdBy || t("teacherLists.shared.noData")}
               </div>
@@ -208,7 +208,9 @@ export default function TeacherCurriculums({ isAdmin = false }) {
         key: "action",
         width: 140,
         align: "center",
-        render: (_, record) => (
+        render: (_, record) => {
+          const canManage = isAdmin || record.createdBy === currentUserName;
+          return (
           <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
             <button
               className="p-1 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
@@ -224,23 +226,26 @@ export default function TeacherCurriculums({ isAdmin = false }) {
             >
               <PlusCircleIcon className="h-4 w-4" />
             </button>
-            <Popconfirm
-              title={t("teacherLists.curriculums.confirm.deleteTitle")}
-              description={t("teacherLists.curriculums.confirm.deleteDescription")}
-              okText={t("teacherLists.shared.delete")}
-              cancelText={t("teacherLists.shared.cancel")}
-              okButtonProps={{ danger: true }}
-              onConfirm={() => handleDeleteTemplate(record.id)}
-            >
-              <button
-                className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                title={t("teacherLists.shared.delete")}
+            {canManage && (
+              <Popconfirm
+                title={t("teacherLists.curriculums.confirm.deleteTitle")}
+                description={t("teacherLists.curriculums.confirm.deleteDescription")}
+                okText={t("teacherLists.shared.delete")}
+                cancelText={t("teacherLists.shared.cancel")}
+                okButtonProps={{ danger: true }}
+                onConfirm={() => handleDeleteTemplate(record.id)}
               >
-                <TrashIcon className="h-4 w-4" />
-              </button>
-            </Popconfirm>
+                <button
+                  className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                  title={t("teacherLists.shared.delete")}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </Popconfirm>
+            )}
           </div>
-        ),
+          );
+        },
       },
     ],
     [basePath, navigate, t, isAdmin, currentUserName]
@@ -390,7 +395,13 @@ export default function TeacherCurriculums({ isAdmin = false }) {
               </div>
 
               <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-6">
-                <div className={`grid grid-cols-1 gap-3 ${isAdmin ? "xl:grid-cols-[minmax(0,1.2fr)_200px_200px_180px_110px]" : "xl:grid-cols-[minmax(0,1.3fr)_220px_220px_110px]"}`}>
+                <div
+                  className={`grid grid-cols-1 gap-3 ${
+                    isAdmin
+                      ? "xl:grid-cols-[minmax(0,1.2fr)_200px_200px_180px_110px]"
+                      : "xl:grid-cols-[minmax(0,1.4fr)_220px_220px_110px]"
+                  }`}
+                >
                   <Input.Search
                     allowClear
                     value={searchQuery}

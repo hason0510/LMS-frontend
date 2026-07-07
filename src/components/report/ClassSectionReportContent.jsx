@@ -106,12 +106,14 @@ export default function ClassSectionReportContent({
   const [activeSubTab, setActiveSubTab] = useState("overview");
   const [histogramMode, setHistogramMode] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [standingFilter, setStandingFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   React.useEffect(() => {
     setPage(1);
     setSearchTerm("");
+    setStandingFilter("ALL");
   }, [selectedClassSectionId]);
 
   // Xử lý dữ liệu classOverview cho Tab Tổng quan
@@ -139,13 +141,14 @@ export default function ClassSectionReportContent({
   const totalAttempts = qzInfo.totalAttempts || 0;
   const quizWaitReview = qzInfo.totalWaitingReview || 0;
   const quizAvgScore = typeof qzInfo.averageScore === 'number' ? qzInfo.averageScore.toFixed(1) : "0.0";
-  const passRate = qzInfo.totalParticipants > 0
-    ? Math.round((qzInfo.totalPassed / qzInfo.totalParticipants) * 100)
+  // Tỷ lệ pass tính theo HỌC VIÊN (distinct HV đạt / distinct HV tham gia), không theo lượt thi.
+  const passRate = qzInfo.participantStudents > 0
+    ? Math.round((qzInfo.passedStudents / qzInfo.participantStudents) * 100)
     : 0;
 
-  // Dữ liệu cho chart Quiz (Pass Rate)
+  // Dữ liệu cho chart Quiz (Pass Rate) — % học viên đạt trên mỗi quiz.
   const quizPassBars = (qzInfo.rows || []).map(r => {
-    const rate = r.totalAttempts > 0 ? Math.round((r.passedCount / r.totalAttempts) * 100) : 0;
+    const rate = r.uniqueStudents > 0 ? Math.round((r.passedStudents / r.uniqueStudents) * 100) : 0;
     return {
       label: r.quizTitle,
       value: rate,
@@ -167,7 +170,7 @@ export default function ClassSectionReportContent({
     if (selectedQuiz) {
       currentHistogram = selectedQuiz.histogram || [];
       histAvg = typeof selectedQuiz.averageScore === 'number' ? selectedQuiz.averageScore.toFixed(1) : "0.0";
-      histPass = selectedQuiz.totalAttempts > 0 ? Math.round((selectedQuiz.passedCount / selectedQuiz.totalAttempts) * 100) + "%" : "0%";
+      histPass = selectedQuiz.uniqueStudents > 0 ? Math.round((selectedQuiz.passedStudents / selectedQuiz.uniqueStudents) * 100) + "%" : "0%";
       histAttempts = selectedQuiz.totalAttempts;
       histTitle = selectedQuiz.quizTitle;
     }
@@ -179,8 +182,9 @@ export default function ClassSectionReportContent({
     const color = prog < 40 ? "#e11d48" : prog < 75 ? "#f59e0b" : "#10b981";
     let statusText = "Tốt";
     let statusTone = "green";
-    if (prog < 40) { statusText = "Nguy cơ"; statusTone = "rose"; }
-    else if (prog < 75) { statusText = "Trung bình"; statusTone = "amber"; }
+    let standingKey = "good";
+    if (prog < 40) { statusText = "Nguy cơ"; statusTone = "rose"; standingKey = "atRisk"; }
+    else if (prog < 75) { statusText = "Trung bình"; statusTone = "amber"; standingKey = "average"; }
 
     return {
       key: student.studentId || i,
@@ -191,10 +195,10 @@ export default function ClassSectionReportContent({
       avatarUrl: student.avatarUrl || student.imageUrl || student.studentAvatar || student.avatar,
       progress: prog,
       progColor: color,
-      missingAssignments: student.missingAssignments || 0,
-      // Tạm thời mock các tỷ lệ nếu Backend chưa cung cấp chính xác fraction
-      btNop: `${Math.max(0, (asgmInfo.totalAssignments || 0) - (student.missingAssignments || 0))} / ${asgmInfo.totalAssignments || 0}`,
-      quizDat: `${student.latestScore ? 1 : 0} / ${qzInfo.totalQuizzes || 0}`,
+      standingKey,
+      notSubmittedAssignments: student.notSubmittedAssignments || 0,
+      btNop: `${student.submittedAssignments || 0} / ${student.totalAssignments || 0}`,
+      quizDat: `${student.passedQuizzes || 0} / ${student.totalQuizzes || 0}`,
       statusText,
       statusTone,
     };
@@ -202,14 +206,16 @@ export default function ClassSectionReportContent({
 
   const filteredStudents = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return studentsTableData;
-    return studentsTableData.filter(
-      (student) =>
+    return studentsTableData.filter((student) => {
+      if (standingFilter !== "ALL" && student.standingKey !== standingFilter) return false;
+      if (!term) return true;
+      return (
         (student.name || "").toLowerCase().includes(term) ||
         (student.code || "").toLowerCase().includes(term) ||
         (student.email || "").toLowerCase().includes(term)
-    );
-  }, [studentsTableData, searchTerm]);
+      );
+    });
+  }, [studentsTableData, searchTerm, standingFilter]);
 
   const paginatedStudents = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -230,7 +236,7 @@ export default function ClassSectionReportContent({
       t("report.colProgress", "Tiến độ (%)"),
       t("report.colAssignments", "Bài tập đã nộp"),
       t("report.colQuizzes", "Bài kiểm tra đạt"),
-      t("report.colLate", "Số lần nộp muộn"),
+      t("report.colLate", "Số bài chưa nộp"),
       t("report.colStatus", "Trạng thái"),
     ];
     const rows = filteredStudents.map((s) => [
@@ -241,7 +247,7 @@ export default function ClassSectionReportContent({
       s.progress || 0,
       s.btNop || "",
       s.quizDat || "",
-      s.missingAssignments || 0,
+      s.notSubmittedAssignments || 0,
       t(`report.status.${s.statusText}`, s.statusText),
     ]);
     const escapeCsv = (val) => {
@@ -560,7 +566,7 @@ export default function ClassSectionReportContent({
             title={`${t("report.learnerList", "Danh sách Người học")} – ${classOverview?.classTitle || ""}`}
             subtitle={`${totalStudents} ${t("report.approvedLearners", "người học đã được duyệt")}`}
             extra={
-              <div className="!flex !gap-2">
+              <div className="!flex !gap-2 !flex-wrap">
                 <Input
                   prefix={<SearchOutlined />}
                   placeholder={t("report.searchLearner", "Tìm người học...")}
@@ -571,6 +577,20 @@ export default function ClassSectionReportContent({
                     setPage(1);
                   }}
                   allowClear
+                />
+                <Select
+                  value={standingFilter}
+                  onChange={(val) => {
+                    setStandingFilter(val);
+                    setPage(1);
+                  }}
+                  className="!w-40"
+                  options={[
+                    { value: "ALL", label: t("report.progressFilter.all", "Tất cả tiến độ") },
+                    { value: "atRisk", label: t("report.progressFilter.atRisk", "Nguy cơ") },
+                    { value: "average", label: t("report.progressFilter.average", "Trung bình") },
+                    { value: "good", label: t("report.progressFilter.good", "Tốt") },
+                  ]}
                 />
                 <Button
                   icon={<DownloadOutlined />}
@@ -614,7 +634,7 @@ export default function ClassSectionReportContent({
                   },
                   { title: t("report.colAssignments", "Bài tập đã nộp"), dataIndex: 'btNop', align: 'center', width: 140 },
                   { title: t("report.colQuizzes", "Bài kiểm tra đạt"), dataIndex: 'quizDat', align: 'center', width: 180 },
-                  { title: t("report.colLate", "Số lần nộp muộn"), dataIndex: 'missingAssignments', align: 'center', width: 170 },
+                  { title: t("report.colLate", "Số bài chưa nộp"), dataIndex: 'notSubmittedAssignments', align: 'center', width: 170 },
                   {
                     title: t("report.colStatus", "Trạng thái"),
                     dataIndex: 'statusText',

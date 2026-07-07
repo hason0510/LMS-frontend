@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import TeachingLayout from "../../components/teaching/TeachingLayout";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import DataPaginationFooter from "../../components/common/DataPaginationFooter";
+import UserIdentity from "../../components/common/UserIdentity";
 import { getQuizById, getQuizAttemptsByClassContentItem } from "../../api/quiz";
 
 function formatDateTime(value, locale) {
@@ -93,14 +94,13 @@ export default function TeachingQuizContentAttempts() {
         dataIndex: "studentName",
         width: 240,
         render: (_, record) => (
-          <div className="min-w-0">
-            <div className="font-semibold text-slate-900 dark:text-white break-words">
-              {record.studentName || record.studentEmail || `ID: ${record.studentId ?? "-"}`}
-            </div>
-            <div className="truncate text-xs text-slate-500 dark:text-slate-400">
-              {record.studentEmail || `ID: ${record.studentId ?? "-"}`}
-            </div>
-          </div>
+          <UserIdentity
+            user={record}
+            variant="student"
+            avatarSizeClass="size-10"
+            avatarInitialsClass="text-sm"
+            fallbackName={record.studentEmail || `ID: ${record.studentId ?? "-"}`}
+          />
         ),
       },
       {
@@ -159,7 +159,7 @@ export default function TeachingQuizContentAttempts() {
 
   return (
     <TeachingLayout>
-      <div className="mx-auto max-w-6xl space-y-4 p-6">
+      <div className="mx-auto w-full space-y-4 p-6">
         <AppBreadcrumb
           className="mb-1"
           context={{
@@ -190,7 +190,6 @@ export default function TeachingQuizContentAttempts() {
                 columns={columns}
                 dataSource={attempts}
                 pagination={false}
-                tableLayout="fixed"
                 scroll={{ x: 1050 }}
                 sticky
                 className="[&_.ant-table-thead_th]:bg-slate-50 [&_.ant-table-thead_th]:font-semibold [&_.ant-table-thead_th]:text-slate-600 dark:[&_.ant-table-thead_th]:bg-slate-800 dark:[&_.ant-table-thead_th]:text-slate-200"

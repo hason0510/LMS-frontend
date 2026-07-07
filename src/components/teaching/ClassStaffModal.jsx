@@ -9,7 +9,6 @@ import UserIdentity from "../common/UserIdentity";
 const TA_PERMISSION_KEYS = [
   "VIEW_CLASS",
   "VIEW_PEOPLE",
-  "VIEW_PROGRESS",
   "MANAGE_ASSIGNMENTS",
   "REVIEW_QUIZZES",
   "POST_ANNOUNCEMENTS",

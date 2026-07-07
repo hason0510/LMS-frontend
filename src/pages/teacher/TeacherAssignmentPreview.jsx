@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Spin, Tag } from "antd";
 import dayjs from "dayjs";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
+import TeachingLayout from "../../components/teaching/TeachingLayout";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import SafeHtml from "../../components/common/SafeHtml";
 import { getAssignmentById } from "../../api/assignment";
 import FileItem from "../../components/common/FileItem";
 
-export default function TeacherAssignmentPreview() {
+export default function TeacherAssignmentPreview({ teachingMode = false }) {
   const { classSectionId, assignmentId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [assignment, setAssignment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,50 +44,52 @@ export default function TeacherAssignmentPreview() {
     init();
   }, [assignmentId]);
 
-  if (loading) {
+  const renderFrame = (body, centered = false) => {
+    if (teachingMode) {
+      return (
+        <TeachingLayout>
+          {centered ? <div className="flex items-center justify-center py-24">{body}</div> : body}
+        </TeachingLayout>
+      );
+    }
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <TeacherHeader />
         <div className="flex">
           <TeacherSidebar />
-          <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-            <Spin size="large" />
+          <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"} ${centered ? "flex items-center justify-center" : ""}`}>
+            {body}
           </main>
         </div>
       </div>
     );
+  };
+
+  if (loading) {
+    return renderFrame(<Spin size="large" />, true);
   }
 
   if (error || !assignment) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-        <TeacherHeader />
-        <div className="flex">
-          <TeacherSidebar />
-          <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-            <div className="text-center space-y-3">
-              <p className="text-lg font-semibold text-red-600">{error || "Không tải được dữ liệu"}</p>
-              <button onClick={() => navigate(-1)} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                Quay lại
-              </button>
-            </div>
-          </main>
-        </div>
-      </div>
+    return renderFrame(
+      <div className="text-center space-y-3">
+        <p className="text-lg font-semibold text-red-600">{error || "Không tải được dữ liệu"}</p>
+        <button onClick={() => navigate(-1)} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+          Quay lại
+        </button>
+      </div>,
+      true
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <TeacherHeader />
-      <div className="flex">
-        <TeacherSidebar />
-        <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
+  return renderFrame(
+    <>
           {/* Preview Banner */}
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              Chế độ xem trước — Đây là giao diện người học thấy khi xem bài tập này
+              {teachingMode
+                ? t("classContent.teachingReadOnly.assignmentBanner")
+                : "Chế độ xem trước — Đây là giao diện người học thấy khi xem bài tập này"}
             </div>
           </div>
 
@@ -155,6 +160,7 @@ export default function TeacherAssignmentPreview() {
             </div>
 
             {/* Submission Area — mirrors actual student form, all controls disabled */}
+            {!teachingMode && (
             <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Bài nộp của bạn</h2>
@@ -208,9 +214,8 @@ export default function TeacherAssignmentPreview() {
                 Đây là giao diện người học thấy khi chưa nộp bài. Tất cả các nút bấm không hoạt động ở chế độ xem trước.
               </div>
             </div>
+            )}
           </div>
-        </main>
-      </div>
-    </div>
+    </>
   );
 }

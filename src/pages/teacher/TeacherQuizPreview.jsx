@@ -6,11 +6,12 @@ import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import TeachingLayout from "../../components/teaching/TeachingLayout";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import { getQuizById } from "../../api/quiz";
 import { getQuizTemplateById } from "../../api/curriculumTemplate";
 
-export default function TeacherQuizPreview({ isAdmin = false }) {
+export default function TeacherQuizPreview({ isAdmin = false, teachingMode = false }) {
   const { classSectionId, quizId, templateId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -55,36 +56,40 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
     navigate(attemptUrl, { state: { quizData: quiz } });
   };
 
-  if (loading) {
+  const renderFrame = (body, centered = false) => {
+    if (teachingMode) {
+      return (
+        <TeachingLayout>
+          {centered ? <div className="flex items-center justify-center py-24">{body}</div> : body}
+        </TeachingLayout>
+      );
+    }
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="min-h-screen bg-background-light dark:bg-background-dark">
         <TeacherHeader />
         <div className="flex">
           {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-          <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-            <Spin size="large" />
+          <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"} ${centered ? "flex items-center justify-center" : ""}`}>
+            {body}
           </main>
         </div>
       </div>
     );
+  };
+
+  if (loading) {
+    return renderFrame(<Spin size="large" />, true);
   }
 
   if (error || !quiz) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-        <TeacherHeader />
-        <div className="flex">
-          {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-          <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-            <div className="text-center">
-              <p className="text-lg font-semibold text-red-600 mb-4">{error || t("quizPreview.intro.loadFailed")}</p>
-              <button onClick={() => navigate(-1)} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                {t("quizPreview.common.back")}
-              </button>
-            </div>
-          </main>
-        </div>
-      </div>
+    return renderFrame(
+      <div className="text-center">
+        <p className="text-lg font-semibold text-red-600 mb-4">{error || t("quizPreview.intro.loadFailed")}</p>
+        <button onClick={() => navigate(-1)} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+          {t("quizPreview.common.back")}
+        </button>
+      </div>,
+      true
     );
   }
 
@@ -95,16 +100,14 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
   const maxAttempts = quiz.maxAttempts;
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
-      <TeacherHeader />
-      <div className="flex">
-        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-        <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
+    <>
+    {renderFrame(
+    <>
           {/* Preview Banner */}
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              {t("quizPreview.intro.previewBanner")}
+              {teachingMode ? t("classContent.teachingReadOnly.quizBanner") : t("quizPreview.intro.previewBanner")}
             </div>
           </div>
 
@@ -127,13 +130,15 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
                   {quiz.description || t("quizPreview.intro.defaultDescription")}
                 </p>
               </div>
-              <button
-                onClick={() => setShowConfirm(true)}
-                className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg font-bold text-base transition-all shadow-md whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white"
-              >
-                <EyeIcon className="h-4 w-4" />
-                {t("quizPreview.intro.startPreview")}
-              </button>
+              {!teachingMode && (
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg font-bold text-base transition-all shadow-md whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  <EyeIcon className="h-4 w-4" />
+                  {t("quizPreview.intro.startPreview")}
+                </button>
+              )}
             </div>
 
             {/* Stats Grid */}
@@ -194,36 +199,40 @@ export default function TeacherQuizPreview({ isAdmin = false }) {
             </div>
 
             {/* Teacher note */}
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-5">
-              <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-                {t("quizPreview.intro.teacherNote")}
-              </p>
+            {!teachingMode && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-5">
+                <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
+                  {t("quizPreview.intro.teacherNote")}
+                </p>
+              </div>
+            )}
+          </div>
+    </>
+    )}
+
+      {!teachingMode && (
+        <Modal
+          title={t("quizPreview.intro.confirmTitle")}
+          open={showConfirm}
+          onCancel={() => setShowConfirm(false)}
+          footer={[
+            <button key="cancel" onClick={() => setShowConfirm(false)} className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-[#111418] dark:text-white rounded-lg hover:bg-gray-300 mr-2">
+              {t("quizPreview.common.cancel")}
+            </button>,
+            <button key="start" onClick={handleConfirmStart} className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold">
+              {t("quizPreview.intro.startPreview")}
+            </button>,
+          ]}
+          centered
+        >
+          <div className="space-y-3 py-2">
+            <p>{t("quizPreview.intro.confirmBody", { title: quiz?.title })}</p>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-sm text-amber-700 dark:text-amber-400">
+              {t("quizPreview.intro.confirmNote")}
             </div>
           </div>
-        </main>
-      </div>
-
-      <Modal
-        title={t("quizPreview.intro.confirmTitle")}
-        open={showConfirm}
-        onCancel={() => setShowConfirm(false)}
-        footer={[
-          <button key="cancel" onClick={() => setShowConfirm(false)} className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-[#111418] dark:text-white rounded-lg hover:bg-gray-300 mr-2">
-            {t("quizPreview.common.cancel")}
-          </button>,
-          <button key="start" onClick={handleConfirmStart} className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold">
-            {t("quizPreview.intro.startPreview")}
-          </button>,
-        ]}
-        centered
-      >
-        <div className="space-y-3 py-2">
-          <p>{t("quizPreview.intro.confirmBody", { title: quiz?.title })}</p>
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-sm text-amber-700 dark:text-amber-400">
-            {t("quizPreview.intro.confirmNote")}
-          </div>
-        </div>
-      </Modal>
-    </div>
+        </Modal>
+      )}
+    </>
   );
 }

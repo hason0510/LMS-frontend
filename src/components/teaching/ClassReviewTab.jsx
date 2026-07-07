@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { App, Button, Empty, Segmented, Table, Tag } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getClassReviewQueue } from "../../api/teaching";
+import DataPaginationFooter from "../common/DataPaginationFooter";
 
 export default function ClassReviewTab({ classSectionId, canManageAssignments, canReviewQuizzes }) {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ export default function ClassReviewTab({ classSectionId, canManageAssignments, c
     : "ALL";
   const [filter, setFilter] = useState(defaultFilter);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const formatDate = (value) =>
     value ? new Date(value).toLocaleString(i18n.language === "vi" ? "vi-VN" : "en-US") : "-";
@@ -47,7 +50,20 @@ export default function ClassReviewTab({ classSectionId, canManageAssignments, c
     }
   }, [canManageAssignments, canReviewQuizzes, filter, defaultFilter]);
 
-  const filtered = queue.filter((item) => filter === "ALL" || item.type === filter);
+  const filtered = useMemo(
+    () => queue.filter((item) => filter === "ALL" || item.type === filter),
+    [queue, filter]
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, pageSize, classSectionId]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
   const filterOptions = [
     { label: t("teaching.review.filters.all"), value: "ALL" },
     ...(canManageAssignments ? [{ label: t("teaching.review.filters.assignment"), value: "ASSIGNMENT" }] : []),
@@ -128,7 +144,7 @@ export default function ClassReviewTab({ classSectionId, canManageAssignments, c
     <div className="space-y-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="m-0 text-lg font-black text-slate-950 dark:text-white">{t("teaching.review.title")}</h2>
+          <h2 className="m-0 text-lg font-black leading-tight! text-slate-950 dark:text-white">{t("teaching.review.title")}</h2>
           <p className="m-0 text-sm text-slate-500">{t("teaching.review.subtitle")}</p>
         </div>
         <Segmented
@@ -146,9 +162,25 @@ export default function ClassReviewTab({ classSectionId, canManageAssignments, c
             rowKey={(record) => `${record.type}-${record.submissionId || record.attemptId}`}
             loading={loading}
             columns={columns}
-            dataSource={filtered}
+            dataSource={paginated}
             scroll={{ x: 920 }}
-            pagination={{ pageSize: 10, showSizeChanger: false }}
+            pagination={false}
+          />
+          <DataPaginationFooter
+            currentPage={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            totalLabel={t("teacherLists.shared.pagination.total", { count: filtered.length })}
+            pageSizeLabel={t("teacherLists.shared.pagination.pageSize")}
+            rangeLabel={t("teacherLists.shared.pagination.range", {
+              start: filtered.length === 0 ? 0 : (page - 1) * pageSize + 1,
+              end: Math.min(page * pageSize, filtered.length),
+            })}
+            onPageChange={setPage}
+            onPageSizeChange={(nextSize) => {
+              setPageSize(nextSize);
+              setPage(1);
+            }}
           />
         </div>
       )}

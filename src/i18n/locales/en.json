@@ -592,7 +592,7 @@
     "sortBy": "Sort By",
     "sortDesc": "Newest",
     "sortAsc": "Oldest",
-    "dueDateFilter": "Due Date",
+    "dueDateFilter": "Due by date",
     "loadFailed": "Could not load assignments",
     "empty": "No matching assignments",
     "details": "Details",
@@ -1500,6 +1500,7 @@
       "selfNotice": "This is your own student profile. Review actions on your own submissions are blocked.",
       "noStudentCode": "No student code",
       "empty": "No matching students found.",
+      "searchPlaceholder": "Search by name, student ID or email",
       "filters": {
         "all": "All",
         "approved": "Approved",
@@ -1507,12 +1508,30 @@
         "rejected": "Rejected"
       },
       "columns": {
+        "index": "#",
         "student": "Student",
         "status": "Status",
         "progress": "Progress",
         "missingAssignments": "Missing",
         "pendingReviews": "Pending Reviews",
-        "latestScore": "Latest Score"
+        "latestScore": "Latest Score",
+        "standing": "Standing",
+        "submittedAssignments": "Assignments submitted",
+        "passedQuizzes": "Quizzes passed",
+        "notSubmitted": "Not submitted"
+      },
+      "standing": {
+        "atRisk": "At risk",
+        "average": "Average",
+        "good": "Good"
+      },
+      "progressFilter": {
+        "all": "All progress"
+      },
+      "pagination": {
+        "total": "Total: {{count}}",
+        "pageSize": "Rows per page",
+        "range": "{{start}} - {{end}}"
       }
     },
     "enrollmentStatus": {
@@ -1595,7 +1614,7 @@
       },
       "permissions": {
         "VIEW_CLASS": "View support class",
-        "VIEW_PEOPLE": "View students",
+        "VIEW_PEOPLE": "View students & progress",
         "VIEW_PROGRESS": "View student progress",
         "MANAGE_ASSIGNMENTS": "Create, manage, and grade assignments",
         "REVIEW_QUIZZES": "View and review quizzes",
@@ -1835,7 +1854,13 @@
       "hidden": "Hidden",
       "locked": "Locked",
       "notOpenYet": "Not open yet",
-      "closed": "Closed"
+      "closed": "Closed",
+      "viewOnly": "View only"
+    },
+    "teachingReadOnly": {
+      "lessonBanner": "Read-only lesson content view",
+      "quizBanner": "Read-only view — you do not have permission to review this quiz",
+      "assignmentBanner": "Read-only view — you do not have permission to grade this assignment"
     },
     "access": {
       "waitForApproval": "Please wait for teacher approval before accessing this content.",
@@ -2945,12 +2970,18 @@
     "learnerList": "Learner List",
     "approvedLearners": "approved learners",
     "searchLearner": "Search learner...",
+    "progressFilter": {
+      "all": "All progress",
+      "atRisk": "At risk",
+      "average": "Average",
+      "good": "Good"
+    },
     "export": "Export",
     "colLearner": "Learner",
     "colProgress": "Progress",
     "colAssignments": "Submissions",
     "colQuizzes": "Passed Quizzes",
-    "colLate": "Missing Assignments",
+    "colLate": "Not submitted",
     "colStatus": "Status",
     "allQuizzes": "All Quizzes",
     "quizPassRateLabel": "Pass Rate",

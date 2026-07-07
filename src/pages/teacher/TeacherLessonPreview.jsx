@@ -6,6 +6,7 @@ import { EyeIcon } from "@heroicons/react/24/outline";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import TeacherSidebar from "../../components/layout/TeacherSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import TeachingLayout from "../../components/teaching/TeachingLayout";
 import AppBreadcrumb from "../../components/common/AppBreadcrumb";
 import LessonComments from "../../components/lesson/LessonComments";
 import FileItem from "../../components/common/FileItem";
@@ -15,7 +16,7 @@ import { getLessonById } from "../../api/lesson";
 import { getResourcesByLessonId } from "../../api/resource";
 import { getLessonTemplateById } from "../../api/curriculumTemplate";
 
-export default function TeacherLessonPreview({ isAdmin = false }) {
+export default function TeacherLessonPreview({ isAdmin = false, teachingMode = false }) {
   const { lectureId, templateId } = useParams();
   const isTemplate = !!templateId;
   const { t } = useTranslation();
@@ -91,18 +92,29 @@ export default function TeacherLessonPreview({ isAdmin = false }) {
   const resolvePrimaryVideoResource = (items) =>
     (items || []).find((resource) => resource.type === "VIDEO") || null;
 
-  if (loading) {
+  const renderFrame = (body, centered = false) => {
+    if (teachingMode) {
+      return (
+        <TeachingLayout>
+          {centered ? <div className="flex items-center justify-center py-24">{body}</div> : body}
+        </TeachingLayout>
+      );
+    }
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <TeacherHeader />
         <div className="flex">
           {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-          <main className={`flex-1 pt-16 flex items-center justify-center ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
-            <Spin size="large" />
+          <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"} ${centered ? "flex items-center justify-center" : ""}`}>
+            {body}
           </main>
         </div>
       </div>
     );
+  };
+
+  if (loading) {
+    return renderFrame(<Spin size="large" />, true);
   }
 
   const videoInfo = lesson?.videoUrl ? extractVideoId(lesson.videoUrl) : null;
@@ -119,17 +131,13 @@ export default function TeacherLessonPreview({ isAdmin = false }) {
       : getVideoEmbedUrl(primaryVideoResourceInfo);
   const nonVideoResources = resources.filter((resource) => resource.type !== "VIDEO");
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <TeacherHeader />
-      <div className="flex">
-        {isAdmin ? <AdminSidebar /> : <TeacherSidebar />}
-        <main className={`flex-1 pt-16 transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}>
+  return renderFrame(
+    <>
           {/* Preview Banner */}
           <div className="sticky top-16 z-20 bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-6 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-semibold">
               <EyeIcon className="h-4 w-4" />
-              {t("classContent.lessonPreview.banner")}
+              {teachingMode ? t("classContent.teachingReadOnly.lessonBanner") : t("classContent.lessonPreview.banner")}
             </div>
           </div>
 
@@ -247,8 +255,6 @@ export default function TeacherLessonPreview({ isAdmin = false }) {
 
             {!isTemplate && <LessonComments lectureId={lectureId} previewMode />}
           </div>
-        </main>
-      </div>
-    </div>
+    </>
   );
 }

@@ -269,6 +269,18 @@ function AppContent() {
         path="/teaching/class-sections/:classSectionId/assignments/:assignmentId"
         element={<ProtectedRoute element={<AssignmentDetail teachingMode={true} />} allowedRoles={["STUDENT"]} />}
       />
+      <Route
+        path="/teaching/class-sections/:classSectionId/lectures/:lectureId"
+        element={<ProtectedRoute element={<TeacherLessonPreview teachingMode={true} />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:classSectionId/quizzes/:quizId/view"
+        element={<ProtectedRoute element={<TeacherQuizPreview teachingMode={true} />} allowedRoles={["STUDENT"]} />}
+      />
+      <Route
+        path="/teaching/class-sections/:classSectionId/assignments/:assignmentId/view"
+        element={<ProtectedRoute element={<TeacherAssignmentPreview teachingMode={true} />} allowedRoles={["STUDENT"]} />}
+      />
 
       {/* Teacher Routes */}
       <Route

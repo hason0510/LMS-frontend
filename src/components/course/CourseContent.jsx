@@ -25,7 +25,7 @@ import {
   deleteClassContentItem,
   createClassChapter,
   overrideClassChapter,
-  overrideClassContentItem,
+  moveClassContentItem,
   getClassContentCompletion,
   updateClassChapter,
   updateClassContentItem,
@@ -51,7 +51,10 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
   const canReviewQuizzes = capabilities.includes("REVIEW_QUIZZES");
   const canManageAssignments = capabilities.includes("MANAGE_ASSIGNMENTS") || capabilities.includes("GRADE_ASSIGNMENTS");
   const canManageAssignmentContent = isTeachingWorkspace && canManageAssignments && !archived;
-  const canViewStudentProgress = capabilities.includes("VIEW_PROGRESS");
+  const canViewStudentProgress = capabilities.includes("VIEW_PEOPLE");
+  // GV/ADMIN (role toàn cục) hoặc TA trong workspace hỗ trợ được cấp quyền REPLY_COMMENTS
+  // đều mở được ngăn bình luận để trả lời người học.
+  const canReplyComments = canManage || (isTeachingWorkspace && capabilities.includes("REPLY_COMMENTS"));
   const contentRoutePrefix = isTeachingWorkspace ? "teaching" : userRole?.toLowerCase();
 
   // Chapter list state
@@ -93,12 +96,14 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
   useEffect(() => {
     const lessonId = searchParams.get("commentLessonId");
     if (lessonId) {
-      setCommentDrawer({ open: true, lessonId: Number(lessonId), title: "" });
+      if (canReplyComments) {
+        setCommentDrawer({ open: true, lessonId: Number(lessonId), title: "" });
+      }
       const next = new URLSearchParams(searchParams);
       next.delete("commentLessonId");
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, canReplyComments]);
 
   // Lesson completion modal
   const [lessonCompletionModal, setLessonCompletionModal] = useState({ open: false, itemId: null, title: "" });
@@ -343,16 +348,14 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     if (swapIndex < 0 || swapIndex >= items.length || reorderingItem) return;
 
+    const movedItemId = items[index].id;
     const newItems = [...items];
     [newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]];
     setChapterItems((prev) => ({ ...prev, [chapterId]: newItems }));
     setReorderingItem(true);
 
     try {
-      await Promise.all([
-        overrideClassContentItem(classSectionId, newItems[index].id, { orderIndex: index }),
-        overrideClassContentItem(classSectionId, newItems[swapIndex].id, { orderIndex: swapIndex }),
-      ]);
+      await moveClassContentItem(classSectionId, movedItemId, direction === "up" ? "UP" : "DOWN");
     } catch (err) {
       message.error(tc("messages.reorderItemFailed"));
       fetchChapterItems(chapterId);
@@ -376,11 +379,16 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     const classContentQuery = `?classContentItemId=${item.id}`;
 
     if (isTeachingWorkspace && item.itemType === "QUIZ") {
+      const quizId = item.quizId || item.id;
       if (!canReviewQuizzes) {
-        message.warning(tc("messages.noQuizReviewPermission"));
+        navigate(`/teaching/class-sections/${classSectionId}/quizzes/${quizId}/view`, {
+          state: {
+            classContentItemId: item.id,
+            itemTitle: item.displayTitle || item.title,
+          },
+        });
         return;
       }
-      const quizId = item.quizId || item.id;
       navigate(`/teaching/class-sections/${classSectionId}/quizzes/${quizId}/attempts${classContentQuery}`, {
         state: {
           classContentItemId: item.id,
@@ -391,11 +399,16 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     }
 
     if (isTeachingWorkspace && item.itemType === "ASSIGNMENT") {
+      const currentAssignmentId = item.assignmentId || item.id;
       if (!canManageAssignments) {
-        message.warning(tc("messages.noAssignmentGradePermission"));
+        navigate(`/teaching/class-sections/${classSectionId}/assignments/${currentAssignmentId}/view`, {
+          state: {
+            classContentItemId: item.id,
+            itemTitle: item.displayTitle || item.title,
+          },
+        });
         return;
       }
-      const currentAssignmentId = item.assignmentId || item.id;
       navigate(`/teaching/class-sections/${classSectionId}/assignments/${currentAssignmentId}/submissions${classContentQuery}`, {
         state: {
           classContentItemId: item.id,
@@ -407,7 +420,11 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
 
     if (item.itemType === "LESSON") {
       const lectureId = item.lessonId || item.id;
-      if (userRole === "STUDENT") {
+      if (isTeachingWorkspace) {
+        navigate(`/teaching/class-sections/${classSectionId}/lectures/${lectureId}`, {
+          state: { classContentItemId: item.id },
+        });
+      } else if (userRole === "STUDENT") {
         navigate(`/class-sections/${classSectionId}/lectures/${lectureId}${classContentQuery}`, {
           state: { classContentItemId: item.id },
         });
@@ -441,15 +458,15 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
     }
   };
 
-  const getTeachingRestrictionMessage = (item) => {
+  const getTeachingViewOnlyLabel = (item) => {
     if (!isTeachingWorkspace) {
       return null;
     }
     if (item.itemType === "QUIZ" && !canReviewQuizzes) {
-      return tc("messages.noQuizReviewPermission");
+      return t("classContent.badges.viewOnly");
     }
     if (item.itemType === "ASSIGNMENT" && !canManageAssignments) {
-      return tc("messages.noAssignmentGradePermission");
+      return t("classContent.badges.viewOnly");
     }
     return null;
   };
@@ -649,7 +666,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
   };
 
   const getStudentCompletionMeta = (item) => {
-    if (userRole !== "STUDENT") {
+    if (userRole !== "STUDENT" || isTeachingWorkspace) {
       return null;
     }
 
@@ -841,8 +858,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                           const typeConfig = getTypeConfig(item.itemType);
                           const isStudentBlocked =
                             isStudentNotApproved || (userRole === "STUDENT" && item.accessible === false);
-                          const teachingRestrictionMessage = getTeachingRestrictionMessage(item);
-                          const isTeachingBlocked = Boolean(teachingRestrictionMessage);
+                          const viewOnlyLabel = getTeachingViewOnlyLabel(item);
                           const completionMeta = getStudentCompletionMeta(item);
                           const canManageThisItem =
                             canMutateContent || (canManageAssignmentContent && item.itemType === "ASSIGNMENT");
@@ -851,7 +867,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                           return (
                             <div
                               key={item.id}
-                              className={`p-3.5 bg-slate-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 flex items-center gap-3 transition-all ${isStudentBlocked || isTeachingBlocked
+                              className={`p-3.5 bg-slate-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 flex items-center gap-3 transition-all ${isStudentBlocked
                                 ? "opacity-70 cursor-not-allowed"
                                 : "hover:shadow-sm hover:border-primary/30 cursor-pointer"
                                 }`}
@@ -879,9 +895,9 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                       {completionMeta.label}
                                     </span>
                                   )}
-                                  {teachingRestrictionMessage && (
-                                    <span className="text-[10px] font-medium bg-rose-100 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 rounded-full">
-                                      {teachingRestrictionMessage}
+                                  {viewOnlyLabel && (
+                                    <span className="text-[10px] font-medium bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full">
+                                      {viewOnlyLabel}
                                     </span>
                                   )}
                                   {item.hidden && (
@@ -907,7 +923,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                 </div>
                               </div>
 
-                              {userRole === "STUDENT" && (
+                              {userRole === "STUDENT" && !isTeachingWorkspace && (
                                 <div className="flex shrink-0 items-center justify-center">
                                   {completionMeta?.completed ? (
                                     <div className="flex h-9 w-9 items-center justify-center">
@@ -943,7 +959,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                       <CheckCircleSolidIcon className="h-4 w-4" />
                                     </button>
                                   )}
-                                  {canManage && item.itemType === "LESSON" && (
+                                  {canReplyComments && item.itemType === "LESSON" && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -1116,6 +1132,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
           </p>
           <Input.Search
             allowClear
+            size="large"
             value={lessonProgressPickerKeyword}
             onChange={(event) => setLessonProgressPickerKeyword(event.target.value)}
             placeholder={t("classContent.lessonCompletionPicker.filters.searchPlaceholder")}
@@ -1125,22 +1142,24 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
               <Spin size="large" />
             </div>
           ) : filteredLessonProgressPickerRows.length > 0 ? (
-            <div className="space-y-3">
+            <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
               {filteredLessonProgressPickerRows.map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 md:flex-row md:items-center md:justify-between"
+                  className="flex min-h-[68px] flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-all hover:border-blue-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-800/80 dark:hover:border-blue-500 md:flex-row md:items-center md:justify-between md:gap-4"
                 >
                   <div className="min-w-0">
-                    <p className="m-0 truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    <p className="m-0 truncate text-[15px] font-bold leading-tight! text-slate-900 dark:text-white md:text-base">
                       {item.displayTitle || item.title || t("classContent.unknownItem")}
                     </p>
-                    <p className="m-0 truncate text-xs text-slate-500 dark:text-slate-400">
+                    <p className="m-0 -mt-0.5! truncate text-sm leading-tight! text-slate-500 dark:text-slate-400">
                       {item.chapterTitle || t("classContent.lessonCompletionPicker.defaults.noChapter")}
                     </p>
                   </div>
                   <Button
                     type="primary"
+                    size="large"
+                    className="shrink-0"
                     onClick={async () => {
                       closeLessonProgressPicker();
                       await openLessonCompletionModal(item);
@@ -1359,7 +1378,7 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
               <Spin size="large" />
             </div>
           ) : filteredLessonCompletionRows.length > 0 ? (
-            <div className="space-y-3">
+            <div className="max-h-[44vh] space-y-3 overflow-y-auto pr-1">
               {filteredLessonCompletionRows.map((row) => {
                 return (
                   <div

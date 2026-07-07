@@ -19,13 +19,6 @@ export async function getQuizAttempts(classContentItemId, pageNumber = 1, pageSi
     return response.data;
 }
 
-export async function getClassSectionApprovedStudents(classSectionId, pageNumber = 1, pageSize = 100) {
-    const response = await axiosClient.get(`class-sections/${classSectionId}/enrollments/approved`, {
-        params: { pageNumber, pageSize }
-    });
-    return response.data;
-}
-
 export async function getClassSectionPendingRequests(classSectionId, pageNumber = 1, pageSize = 100) {
     const response = await axiosClient.get(`class-sections/${classSectionId}/enrollments/pending`, {
         params: { pageNumber, pageSize }
