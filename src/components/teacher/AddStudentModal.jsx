@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Form, Select, Input, Button, message, Spin, Table, Checkbox, Space, Alert } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { getStudentsNotInClassSection, addStudentsToClassSection } from "../../api/enrollment";
-import CustomAvatar from "../common/Avatar";
+import UserIdentity from "../common/UserIdentity";
 
 export default function AddStudentModal({ visible, onClose, onSuccess, courses }) {
   const [form] = Form.useForm();
@@ -147,10 +147,7 @@ export default function AddStudentModal({ visible, onClose, onSuccess, courses }
       title: "Họ và tên",
       key: "fullName",
       render: (_, record) => (
-        <div className="flex items-center gap-2">
-          <CustomAvatar size="small" src={record.avatar} name={record.fullName} />
-          <span>{record.fullName}</span>
-        </div>
+        <UserIdentity user={record} variant="student" avatarSizeClass="size-8" secondaryText={null} />
       ),
     },
     {

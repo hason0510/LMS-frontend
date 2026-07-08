@@ -286,7 +286,7 @@ export default function MediaLibraryPanel({
         .then((items) => {
           setQuestionBankScopeOptions(
             (Array.isArray(items) ? items : [])
-              .filter((item) => item?.id)
+              .filter((item) => item?.id && (isAdmin || item.myRole === "OWNER" || item.myRole === "EDITOR"))
               .map((item) => ({
                 value: item.id,
                 label: item.subjectTitle ? `${item.name} · ${item.subjectTitle}` : item.name || `#${item.id}`,
