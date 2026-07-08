@@ -491,6 +491,7 @@ export default function QuestionBankDetail({ isAdmin = false }) {
         pageSize: 10,
         userName: query,
         fullName: query,
+        roleName: "TEACHER",
       });
       const payload = res?.data ?? res;
       const users = Array.isArray(payload?.pageList)

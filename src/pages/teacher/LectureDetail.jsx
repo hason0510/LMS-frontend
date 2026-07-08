@@ -486,9 +486,9 @@ export default function LectureDetail({ isAdmin = false }) {
         messageApi.error("Chỉ hỗ trợ file PDF, PPT và PPTX");
         return;
       }
-      // Validate file size (50MB)
-      if (file.size > 100 * 1024 * 1024) {
-        messageApi.error("File không được vượt quá 100MB");
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        messageApi.error("File không được vượt quá 10MB");
         return;
       }
 
@@ -1371,7 +1371,7 @@ export default function LectureDetail({ isAdmin = false }) {
                           </span>
                         </p>
                         <p className="text-xs text-gray-500 mt-2">
-                          Hỗ trợ: PDF, PPTX (Max 100MB)
+                          Hỗ trợ: PDF, PPTX (tối đa 10MB)
                         </p>
                         {isTemplateMode && (
                           <p className="mt-2 text-xs text-gray-500 text-center">
