@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Select, message, Popconfirm } from "antd";
 import TeacherHeader from "../../components/layout/TeacherHeader";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -20,6 +21,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function AdminUserManagement() {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,10 +68,10 @@ export default function AdminUserManagement() {
       const response = await getAllUsers(0, totalElements);
       const userList = response?.data?.pageList || [];
       setUsers(userList);
-      message.success("Tải danh sách người dùng thành công");
+      message.success(t("adminUsers.messages.loadSuccess"));
     } catch (error) {
       console.error("Error fetching users:", error);
-      message.error("Lỗi: Không thể tải danh sách người dùng");
+      message.error(t("adminUsers.messages.loadFailed"));
       setUsers([]);
     } finally {
       setLoading(false);
@@ -79,26 +82,26 @@ export default function AdminUserManagement() {
     try {
       if (user.status === "active") {
         await lockUser(user.id);
-        message.success(`Đã khóa tài khoản ${user.name}`);
+        message.success(t("adminUsers.messages.locked", { name: user.name }));
       } else {
         await unlockUser(user.id);
-        message.success(`Đã mở khóa tài khoản ${user.name}`);
+        message.success(t("adminUsers.messages.unlocked", { name: user.name }));
       }
       fetchUsers();
     } catch (error) {
       console.error("Error toggling user lock:", error);
-      message.error(error?.response?.data?.message || "Không thể cập nhật trạng thái tài khoản");
+      message.error(error?.response?.data?.message || t("adminUsers.messages.toggleFailed"));
     }
   };
 
   const handleDeleteUser = async (userId) => {
     try {
       await deleteUser(userId);
-      message.success("Xóa người dùng thành công");
+      message.success(t("adminUsers.messages.deleteSuccess"));
       fetchUsers(); // Reload list
     } catch (error) {
       console.error("Error deleting user:", error);
-      message.error("Lỗi: Không thể xóa người dùng");
+      message.error(t("adminUsers.messages.deleteFailed"));
     }
   };
 
@@ -176,7 +179,7 @@ export default function AdminUserManagement() {
       role: roleCode,
       status: user.active === false ? "inactive" : "active",
       createdDate: user.createdDate
-        ? new Date(user.createdDate).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+        ? new Date(user.createdDate).toLocaleString(dateLocale, { dateStyle: 'short', timeStyle: 'short' })
         : "N/A",
       studentNumber: user.studentNumber || "",
       phoneNumber: user.phoneNumber || "",
@@ -231,18 +234,10 @@ export default function AdminUserManagement() {
       : "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300";
   };
 
-  const getRoleLabel = (role) => {
-    const roleMap = {
-      STUDENT: "Người học",
-      TEACHER: "Giảng viên",
-      ADMIN: "Quản trị viên",
-    };
-    return roleMap[role] || role;
-  };
+  const getRoleLabel = (role) => t(`adminUsers.roles.${role}`, { defaultValue: role });
 
-  const getStatusLabel = (status) => {
-    return status === "active" ? "Hoạt động" : "Bị khóa";
-  };
+  const getStatusLabel = (status) =>
+    t(`adminUsers.status.${status === "active" ? "active" : "inactive"}`);
 
   return (
     <div className="admin-user-management-page min-h-screen bg-background-light dark:bg-background-dark">
@@ -259,17 +254,17 @@ export default function AdminUserManagement() {
             <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-5 dark:border-gray-700 sm:flex-row sm:items-start sm:justify-between sm:px-6">
               <div>
                 <h1 className="m-0 text-2xl font-bold text-gray-900 dark:text-white">
-                  Quản lý Người dùng
+                  {t("adminUsers.title")}
                 </h1>
                 <p className="m-0 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  Quản lý tất cả người dùng trong hệ thống
+                  {t("adminUsers.subtitle")}
                 </p>
               </div>
               <button
                 onClick={handleOpenCreateModal}
                 className="flex shrink-0 items-center justify-center gap-2 px-4 h-10 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
                 <PlusCircleIcon className="h-4 w-4" />
-                <span>Tạo người dùng mới</span>
+                <span>{t("adminUsers.createButton")}</span>
               </button>
             </div>
 
@@ -291,7 +286,7 @@ export default function AdminUserManagement() {
                           setCurrentPage(1);
                         }}
                         className="form-input !h-auto w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-base font-normal leading-normal text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-primary focus:ring-primary"
-                        placeholder="Tìm kiếm theo tên, email, username, MSSV..."
+                        placeholder={t("adminUsers.searchPlaceholder")}
                       />
                     </div>
                   </label>
@@ -310,10 +305,10 @@ export default function AdminUserManagement() {
                     showSearch
                     optionFilterProp="label"
                     options={[
-                      { label: "Vai trò: Tất cả", value: "all" },
-                      { label: "Người học", value: "student" },
-                      { label: "Giảng viên", value: "teacher" },
-                      { label: "Quản trị viên", value: "admin" },
+                      { label: t("adminUsers.filters.roleAll"), value: "all" },
+                      { label: t("adminUsers.roles.STUDENT"), value: "student" },
+                      { label: t("adminUsers.roles.TEACHER"), value: "teacher" },
+                      { label: t("adminUsers.roles.ADMIN"), value: "admin" },
                     ]}
                   />
 
@@ -328,9 +323,9 @@ export default function AdminUserManagement() {
                     showSearch
                     optionFilterProp="label"
                     options={[
-                      { label: "Trạng thái: Tất cả", value: "all" },
-                      { label: "Hoạt động", value: "active" },
-                      { label: "Bị khóa", value: "inactive" },
+                      { label: t("adminUsers.filters.statusAll"), value: "all" },
+                      { label: t("adminUsers.status.active"), value: "active" },
+                      { label: t("adminUsers.status.inactive"), value: "inactive" },
                     ]}
                   />
                 </div>
@@ -343,25 +338,25 @@ export default function AdminUserManagement() {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="py-3.5 pl-4 pr-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 w-12" scope="col">
-                      STT
+                      {t("adminUsers.table.index")}
                     </th>
                     <th className="px-3 py-3.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
-                      USERNAME
+                      {t("adminUsers.table.username")}
                     </th>
                     <th className="px-3 py-3.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
-                      TÊN & EMAIL
+                      {t("adminUsers.table.nameEmail")}
                     </th>
                     <th className="px-3 py-3.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
-                      VAI TRÒ
+                      {t("adminUsers.table.role")}
                     </th>
                     <th className="px-3 py-3.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
-                      TRẠNG THÁI
+                      {t("adminUsers.table.status")}
                     </th>
                     <th className="px-3 py-3.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
-                      NGÀY TẠO
+                      {t("adminUsers.table.createdDate")}
                     </th>
                     <th className="px-3 py-3.5 !text-center text-xs font-semibold text-gray-600 dark:text-gray-300" scope="col">
-                      HÀNH ĐỘNG
+                      {t("adminUsers.table.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -422,26 +417,28 @@ export default function AdminUserManagement() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-4">
                           <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              className="p-1 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" 
-                              title="Xem chi tiết"
+                            <button
+                              className="p-1 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors"
+                              title={t("adminUsers.actions.view")}
                               onClick={() => handleOpenViewModal(user)}
                             >
                               <EyeIcon className="h-4 w-4" />
                             </button>
-                            <button 
-                              className="p-1 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" 
-                              title="Chỉnh sửa"
+                            <button
+                              className="p-1 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors"
+                              title={t("adminUsers.actions.edit")}
                               onClick={() => handleOpenEditModal(user)}
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
                             <Popconfirm
-                              title={user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-                              description={`Bạn có chắc muốn ${user.status === "active" ? "khóa" : "mở khóa"} ${user.name}?`}
+                              title={user.status === "active" ? t("adminUsers.confirm.lockTitle") : t("adminUsers.confirm.unlockTitle")}
+                              description={user.status === "active"
+                                ? t("adminUsers.confirm.lockDesc", { name: user.name })
+                                : t("adminUsers.confirm.unlockDesc", { name: user.name })}
                               onConfirm={() => handleToggleUserLock(user)}
-                              okText={user.status === "active" ? "Khóa" : "Mở khóa"}
-                              cancelText="Hủy"
+                              okText={user.status === "active" ? t("adminUsers.confirm.lockOk") : t("adminUsers.confirm.unlockOk")}
+                              cancelText={t("adminUsers.confirm.cancel")}
                             >
                               <button
                                 className={`p-1 transition-colors ${
@@ -449,7 +446,7 @@ export default function AdminUserManagement() {
                                     ? "text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                                     : "text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
                                 }`}
-                                title={user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                                title={user.status === "active" ? t("adminUsers.actions.lock") : t("adminUsers.actions.unlock")}
                               >
                                 {user.status === "active" ? (
                                   <LockClosedIcon className="h-4 w-4" />
@@ -459,14 +456,14 @@ export default function AdminUserManagement() {
                               </button>
                             </Popconfirm>
                             <Popconfirm
-                              title="Xóa người dùng"
-                              description={`Bạn có chắc muốn xóa ${user.name}?`}
+                              title={t("adminUsers.confirm.deleteTitle")}
+                              description={t("adminUsers.confirm.deleteDesc", { name: user.name })}
                               onConfirm={() => handleDeleteUser(user.id)}
-                              okText="Xóa"
-                              cancelText="Hủy"
+                              okText={t("adminUsers.confirm.deleteOk")}
+                              cancelText={t("adminUsers.confirm.cancel")}
                               okButtonProps={{ danger: true }}
                             >
-                              <button className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors" title="Xóa">
+                              <button className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors" title={t("adminUsers.actions.delete")}>
                                 <TrashIcon className="h-4 w-4" />
                               </button>
                             </Popconfirm>
@@ -477,7 +474,7 @@ export default function AdminUserManagement() {
                   ) : (
                     <tr>
                       <td colSpan="7" className="py-8 text-center text-gray-500 dark:text-gray-400">
-                        Không tìm thấy người dùng nào
+                        {t("adminUsers.empty")}
                       </td>
                     </tr>
                   )}
@@ -491,8 +488,8 @@ export default function AdminUserManagement() {
               pageSize={itemsPerPage}
               total={filteredUsers.length}
               pageSizeOptions={[20, 50, 100, 200]}
-              totalLabel="Tổng số:"
-              pageSizeLabel="Số dòng / trang:"
+              totalLabel={t("adminUsers.pagination.total")}
+              pageSizeLabel={t("adminUsers.pagination.pageSize")}
               onPageChange={(page) => setCurrentPage(page)}
               onPageSizeChange={(size) => {
                 setItemsPerPage(size);

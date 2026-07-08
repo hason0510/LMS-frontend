@@ -337,7 +337,7 @@ function JoinPreviewModal({ open, preview, loading, onConfirm, onClose, t }) {
   return (
     <Modal open={open} onCancel={onClose} footer={null} centered width={520}>
       {preview ? (
-        <div className="px-2 py-3 text-center">
+        <div className="px-6! pt-4! pb-6! text-center">
           <div className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-[28px] bg-primary text-3xl font-bold text-white">
             {preview?.imageUrl ? (
               <img src={preview.imageUrl} alt={preview.title} className="h-full w-full object-cover" />
@@ -345,20 +345,20 @@ function JoinPreviewModal({ open, preview, loading, onConfirm, onClose, t }) {
               (preview?.subjectCode || preview?.title || "CL").slice(0, 2).toUpperCase()
             )}
           </div>
-          <h3 className="mt-6 text-[2rem] font-bold leading-tight text-slate-900 dark:text-white">{preview.title}</h3>
-          <div className="mt-3 text-base text-slate-600 dark:text-slate-300">
+          <h3 className="mt-8 text-[2rem] font-bold leading-tight text-slate-900 dark:text-white">{preview.title}</h3>
+          <div className="mt-4 text-base text-slate-600 dark:text-slate-300">
             {[preview.teacherName, t("classesPage.modal.students", { count: preview.totalEnrollments || 0 })]
               .filter(Boolean)
               .join(" • ")}
           </div>
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-left text-lg leading-8 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-center text-lg leading-8 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             {preview.joinMessage}
           </div>
           <button
             type="button"
             disabled={loading || preview.alreadyJoined}
             onClick={onConfirm}
-            className="mt-6 w-full rounded-2xl bg-primary px-5 py-3.5 text-lg font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-8 w-full rounded-2xl bg-primary px-5 py-3.5 text-lg font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {preview.alreadyJoined
               ? preview.enrollmentStatus === "PENDING"

@@ -7,9 +7,65 @@ const MAX_TRACKED_IDS = 500;
 
 let audio = null;
 let lastPlayedAt = 0;
+let audioUnlocked = false;
 // Module-level → dùng chung cho MỌI nơi gọi (STOMP store + polling hook).
 // Đây là chốt chống lặp tiếng khi 2 kênh cùng phát hiện 1 thông báo.
 const beepedIds = new Set();
+
+function getAudioEl() {
+  if (!audio) {
+    audio = new Audio(soundUrl);
+    audio.volume = 0.5;
+  }
+  return audio;
+}
+
+// Mở khóa autoplay: trình duyệt chặn audio.play() do JS gọi cho tới khi user
+// tương tác trang lần đầu. Ở lần tương tác ĐẦU TIÊN (click/gõ phím/chạm),
+// ta "mồi" audio bằng cách phát TẮT TIẾNG rồi dừng → các tiếng thông báo sau
+// phát được kể cả khi người nhận đang ngồi yên (vd học viên chờ được duyệt).
+function removeUnlockListeners() {
+  window.removeEventListener("pointerdown", unlockAudioOnce);
+  window.removeEventListener("keydown", unlockAudioOnce);
+  window.removeEventListener("touchstart", unlockAudioOnce);
+}
+
+function unlockAudioOnce() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  removeUnlockListeners();
+
+  const el = getAudioEl();
+  const prevMuted = el.muted;
+  el.muted = true;
+  const restore = () => {
+    try {
+      el.pause();
+      el.currentTime = 0;
+    } catch {
+      /* bỏ qua */
+    }
+    el.muted = prevMuted;
+  };
+  try {
+    const p = el.play();
+    if (p && typeof p.then === "function") {
+      p.then(restore).catch(() => {
+        el.muted = prevMuted;
+      });
+    } else {
+      restore();
+    }
+  } catch {
+    el.muted = prevMuted;
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pointerdown", unlockAudioOnce);
+  window.addEventListener("keydown", unlockAudioOnce);
+  window.addEventListener("touchstart", unlockAudioOnce);
+}
 
 export function isNotifSoundMuted() {
   return localStorage.getItem(STORAGE_KEY) === "1";
@@ -52,16 +108,14 @@ export function playNotificationSound(notifId) {
   if (now - lastPlayedAt < THROTTLE_MS) return; // gộp burst thành 1 tiếng
   lastPlayedAt = now;
 
-  if (!audio) {
-    audio = new Audio(soundUrl);
-    audio.volume = 0.5;
-  }
+  const el = getAudioEl();
+  el.muted = false;
   try {
-    audio.currentTime = 0;
+    el.currentTime = 0;
   } catch {
     /* một số trình duyệt chặn seek khi chưa load xong — bỏ qua */
   }
-  audio.play().catch(() => {
+  el.play().catch(() => {
     /* trình duyệt chặn autoplay tới khi user tương tác trang — bỏ qua, không vỡ UI */
   });
 }

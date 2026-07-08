@@ -1,4 +1,65 @@
 {
+  "adminUsers": {
+    "title": "Quản lý Người dùng",
+    "subtitle": "Quản lý tất cả người dùng trong hệ thống",
+    "createButton": "Tạo người dùng mới",
+    "searchPlaceholder": "Tìm kiếm theo tên, email, username, MSSV...",
+    "filters": {
+      "roleAll": "Vai trò: Tất cả",
+      "statusAll": "Trạng thái: Tất cả"
+    },
+    "roles": {
+      "STUDENT": "Người học",
+      "TEACHER": "Giảng viên",
+      "ADMIN": "Quản trị viên"
+    },
+    "status": {
+      "active": "Hoạt động",
+      "inactive": "Bị khóa"
+    },
+    "table": {
+      "index": "STT",
+      "username": "USERNAME",
+      "nameEmail": "TÊN & EMAIL",
+      "role": "VAI TRÒ",
+      "status": "TRẠNG THÁI",
+      "createdDate": "NGÀY TẠO",
+      "actions": "HÀNH ĐỘNG"
+    },
+    "actions": {
+      "view": "Xem chi tiết",
+      "edit": "Chỉnh sửa",
+      "lock": "Khóa tài khoản",
+      "unlock": "Mở khóa tài khoản",
+      "delete": "Xóa"
+    },
+    "confirm": {
+      "lockTitle": "Khóa tài khoản",
+      "unlockTitle": "Mở khóa tài khoản",
+      "lockDesc": "Bạn có chắc muốn khóa {{name}}?",
+      "unlockDesc": "Bạn có chắc muốn mở khóa {{name}}?",
+      "lockOk": "Khóa",
+      "unlockOk": "Mở khóa",
+      "deleteTitle": "Xóa người dùng",
+      "deleteDesc": "Bạn có chắc muốn xóa {{name}}?",
+      "deleteOk": "Xóa",
+      "cancel": "Hủy"
+    },
+    "empty": "Không tìm thấy người dùng nào",
+    "pagination": {
+      "total": "Tổng số:",
+      "pageSize": "Số dòng / trang:"
+    },
+    "messages": {
+      "loadSuccess": "Tải danh sách người dùng thành công",
+      "loadFailed": "Lỗi: Không thể tải danh sách người dùng",
+      "locked": "Đã khóa tài khoản {{name}}",
+      "unlocked": "Đã mở khóa tài khoản {{name}}",
+      "toggleFailed": "Không thể cập nhật trạng thái tài khoản",
+      "deleteSuccess": "Xóa người dùng thành công",
+      "deleteFailed": "Lỗi: Không thể xóa người dùng"
+    }
+  },
   "common": {
     "khóaHọc": "Khóa học",
     "gioiThieu": "Giới thiệu",

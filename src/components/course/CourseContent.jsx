@@ -942,12 +942,12 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                               )}
 
                               {/* Actions */}
-                              {(canManage || canManageThisItem) && (
+                              {(canManage || canManageThisItem || (item.itemType === "LESSON" && (canReplyComments || (isTeachingWorkspace && canViewStudentProgress)))) && (
                                 <div
                                   className="flex items-center gap-0.5 shrink-0"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  {canManage && isTeachingWorkspace && item.itemType === "LESSON" && canViewStudentProgress && (
+                                  {isTeachingWorkspace && item.itemType === "LESSON" && canViewStudentProgress && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -983,6 +983,8 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                       )}
                                     </button>
                                   )}
+                                  {(canManage || canManageThisItem) && (
+                                  <>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1047,6 +1049,8 @@ export default function CourseContent({ enrollmentStatus = null, workspaceMode =
                                       <TrashIcon className="h-4 w-4" />
                                     )}
                                   </button>
+                                  </>
+                                  )}
                                 </div>
                               )}
                             </div>

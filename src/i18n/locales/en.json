@@ -1,4 +1,65 @@
 {
+  "adminUsers": {
+    "title": "User Management",
+    "subtitle": "Manage all users in the system",
+    "createButton": "Create new user",
+    "searchPlaceholder": "Search by name, email, username, student ID...",
+    "filters": {
+      "roleAll": "Role: All",
+      "statusAll": "Status: All"
+    },
+    "roles": {
+      "STUDENT": "Student",
+      "TEACHER": "Teacher",
+      "ADMIN": "Administrator"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Locked"
+    },
+    "table": {
+      "index": "No.",
+      "username": "USERNAME",
+      "nameEmail": "NAME & EMAIL",
+      "role": "ROLE",
+      "status": "STATUS",
+      "createdDate": "CREATED",
+      "actions": "ACTIONS"
+    },
+    "actions": {
+      "view": "View details",
+      "edit": "Edit",
+      "lock": "Lock account",
+      "unlock": "Unlock account",
+      "delete": "Delete"
+    },
+    "confirm": {
+      "lockTitle": "Lock account",
+      "unlockTitle": "Unlock account",
+      "lockDesc": "Are you sure you want to lock {{name}}?",
+      "unlockDesc": "Are you sure you want to unlock {{name}}?",
+      "lockOk": "Lock",
+      "unlockOk": "Unlock",
+      "deleteTitle": "Delete user",
+      "deleteDesc": "Are you sure you want to delete {{name}}?",
+      "deleteOk": "Delete",
+      "cancel": "Cancel"
+    },
+    "empty": "No users found",
+    "pagination": {
+      "total": "Total:",
+      "pageSize": "Rows / page:"
+    },
+    "messages": {
+      "loadSuccess": "Users loaded successfully",
+      "loadFailed": "Error: Could not load users",
+      "locked": "Locked account {{name}}",
+      "unlocked": "Unlocked account {{name}}",
+      "toggleFailed": "Could not update account status",
+      "deleteSuccess": "User deleted successfully",
+      "deleteFailed": "Error: Could not delete user"
+    }
+  },
   "common": {
     "khóaHọc": "Courses",
     "gioiThieu": "Introduction",

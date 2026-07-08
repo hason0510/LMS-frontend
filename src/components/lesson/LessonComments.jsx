@@ -223,12 +223,13 @@ export default function LessonComments({ lectureId, classSectionId = null, previ
       ) : user ? (
         <div className="mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
           {showCommentForm ? (
-            <div className="flex gap-3 mb-4">
+            <div className="flex items-start gap-3 mb-4">
               <UserIdentity
                 user={user}
                 variant="student"
-                className="flex-shrink-0 items-start"
+                className="flex-shrink-0"
                 avatarSizeClass="size-10"
+                secondaryText={null}
               />
               <div className="flex-1">
                 <Input.TextArea
