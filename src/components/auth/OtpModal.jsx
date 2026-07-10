@@ -59,11 +59,11 @@ export default function OtpModal({
   };
 
   const handleOtpChange = (value, index) => {
-    // Only allow numbers
-    if (!/^\d*$/.test(value)) return;
+    // Allow letters and numbers
+    if (!/^[a-zA-Z0-9]*$/.test(value)) return;
 
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // Take only last character
+    newOtp[index] = value.slice(-1).toUpperCase(); // Take only last character
     setOtp(newOtp);
     setError('');
 
@@ -71,6 +71,25 @@ export default function OtpModal({
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
+  };
+
+  const handlePaste = (e, index) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData.getData('text') || '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase();
+    if (!pasted) return;
+
+    const newOtp = [...otp];
+    let cursor = index;
+    for (const ch of pasted) {
+      if (cursor > 5) break;
+      newOtp[cursor] = ch;
+      cursor += 1;
+    }
+    setOtp(newOtp);
+    setError('');
+    inputRefs.current[Math.min(cursor, 5)]?.focus();
   };
 
   const handleKeyDown = (e, index) => {
@@ -86,7 +105,7 @@ export default function OtpModal({
     const otpCode = otp.join('');
 
     if (otpCode.length !== 6) {
-      setError('Vui lòng nhập đầy đủ 6 chữ số');
+      setError('Vui lòng nhập đầy đủ 6 ký tự');
       return;
     }
 
@@ -180,7 +199,7 @@ export default function OtpModal({
         {/* OTP Input */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Nhập mã OTP (6 chữ số)
+            Nhập mã OTP (6 ký tự)
           </label>
           <div className="flex gap-2 justify-center">
             {otp.map((digit, index) => (
@@ -191,6 +210,7 @@ export default function OtpModal({
                 maxLength="1"
                 value={digit}
                 onChange={(e) => handleOtpChange(e.target.value, index)}
+                onPaste={(e) => handlePaste(e, index)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
                 className={`w-12 h-12 text-center text-2xl font-bold rounded-lg border-2 transition-colors
                   ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
