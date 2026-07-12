@@ -351,7 +351,12 @@
     "thuLai": "Retry",
     "khongCoThongBao": "No notifications",
     "chuaDa": "Unread",
-    "xemTatCa": "View all notifications"
+    "xemTatCa": "View all notifications",
+    "adaptive": {
+      "cohort": "Half the class has already submitted \"{{title}}\" — try to finish yours soon.",
+      "personal": "\"{{title}}\" is running late compared to your usual submission pace.",
+      "personalGentle": "You usually submit earlier — perhaps you're thinking \"{{title}}\" through carefully. Reach out to your instructor if you need help."
+    }
   },
   "profile": {
     "thongTinCaNhan": "Personal Information",

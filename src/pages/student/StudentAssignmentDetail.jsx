@@ -524,7 +524,7 @@ export default function StudentAssignmentDetail() {
                         Hủy
                       </Button>
                     )}
-                    <Button type="primary" loading={submitting} onClick={handleSubmit} disabled={!canResubmit || status === "GRADED"}>
+                    <Button type="primary" loading={submitting} onClick={handleSubmit} disabled={!canResubmit}>
                       {hasSubmitted ? "Nộp lại" : "Nộp bài"}
                     </Button>
                   </div>
@@ -597,7 +597,7 @@ export default function StudentAssignmentDetail() {
                 {isArchived
                   ? "Lớp đã được lưu trữ — bạn chỉ có thể xem lại bài đã nộp, không thể nộp hoặc nộp lại."
                   : status === "GRADED"
-                    ? t("assignmentDetail.gradedCannotResubmit", "Bài đã được chấm điểm, không thể nộp lại.")
+                    ? "Bài đã được chấm. Nếu nộp lại, điểm và nhận xét hiện tại sẽ bị xóa để giảng viên chấm lại."
                     : canResubmit
                       ? "Bạn có thể gửi bài mới trước thời điểm hệ thống đóng nhận bài."
                       : "Assignment này đã đóng nhận bài hoặc không còn cho phép nộp lại."}
@@ -605,7 +605,7 @@ export default function StudentAssignmentDetail() {
               <Button
                 type="primary"
                 className="mt-4 w-full"
-                disabled={isArchived || !canResubmit || showEditor || status === "GRADED"}
+                disabled={isArchived || !canResubmit || showEditor}
                 onClick={handleStartEditing}
               >
                 {hasSubmitted ? "Tạo bài nộp mới" : "Mở form nộp bài"}

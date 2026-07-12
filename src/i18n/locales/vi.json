@@ -351,7 +351,12 @@
     "thuLai": "Thử lại",
     "khongCoThongBao": "Không có thông báo",
     "chuaDa": "Chưa đọc",
-    "xemTatCa": "Xem tất cả thông báo"
+    "xemTatCa": "Xem tất cả thông báo",
+    "adaptive": {
+      "cohort": "Nửa lớp đã nộp \"{{title}}\" rồi — bạn tranh thủ hoàn thành nhé.",
+      "personal": "Bài \"{{title}}\" sắp trễ so với nhịp nộp thường lệ của bạn.",
+      "personalGentle": "Mọi khi bạn nộp sớm hơn — bài \"{{title}}\" chắc bạn đang cân nhắc kỹ. Cần hỗ trợ gì cứ báo giảng viên nhé."
+    }
   },
   "profile": {
     "thongTinCaNhan": "Thông tin cá nhân",
